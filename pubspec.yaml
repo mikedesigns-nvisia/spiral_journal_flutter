@@ -1,0 +1,25 @@
+name: spiral_journal
+description: A beautiful journaling app with emotional intelligence tracking
+
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  material_color_utilities: ^0.11.1
+  cupertino_icons: ^1.0.2
+  intl: ^0.19.0
+  google_fonts: ^6.1.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true
