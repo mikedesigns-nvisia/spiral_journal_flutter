@@ -9,7 +9,7 @@ class CoreLibraryScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppTheme.backgroundPrimary,
       body: SafeArea(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -157,20 +157,22 @@ class CoreLibraryScreen extends StatelessWidget {
               const SizedBox(height: 16),
               
               // Core Grid
-              Expanded(
-                child: GridView.count(
-                  crossAxisCount: 2,
-                  crossAxisSpacing: 12,
-                  mainAxisSpacing: 12,
-                  childAspectRatio: 1.1,
-                  children: [
-                    _buildCoreCard('Optimist Core', '78%', 'rising', AppTheme.coreOptimist),
-                    _buildCoreCard('Reflective Core', '64%', 'stable', AppTheme.coreReflective),
-                    _buildCoreCard('Social Core', '52%', 'rising', AppTheme.coreSocial),
-                    _buildCoreCard('Rest Core', '45%', 'declining', AppTheme.coreRest),
-                  ],
-                ),
+              GridView.count(
+                crossAxisCount: 2,
+                crossAxisSpacing: 12,
+                mainAxisSpacing: 12,
+                childAspectRatio: 1.1,
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                children: [
+                  _buildCoreCard('Optimist Core', '78%', 'rising', AppTheme.coreOptimist),
+                  _buildCoreCard('Reflective Core', '64%', 'stable', AppTheme.coreReflective),
+                  _buildCoreCard('Social Core', '52%', 'rising', AppTheme.coreSocial),
+                  _buildCoreCard('Rest Core', '45%', 'declining', AppTheme.coreRest),
+                ],
               ),
+              
+              const SizedBox(height: 100), // Extra space for bottom navigation
             ],
           ),
         ),

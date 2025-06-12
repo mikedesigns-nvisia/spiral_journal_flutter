@@ -9,7 +9,7 @@ class JournalHistoryScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppTheme.backgroundPrimary,
       body: SafeArea(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -149,6 +149,8 @@ class JournalHistoryScreen extends StatelessWidget {
                   ),
                 ),
               ),
+              
+              const SizedBox(height: 100), // Extra space for bottom navigation
             ],
           ),
         ),

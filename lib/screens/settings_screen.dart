@@ -9,7 +9,7 @@ class SettingsScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppTheme.backgroundPrimary,
       body: SafeArea(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -69,7 +69,7 @@ class SettingsScreen extends StatelessWidget {
                 ],
               ),
               
-              const Spacer(),
+              const SizedBox(height: 40),
               
               // App Version
               Center(
@@ -80,6 +80,8 @@ class SettingsScreen extends StatelessWidget {
                   ),
                 ),
               ),
+              
+              const SizedBox(height: 100), // Extra space for bottom navigation
             ],
           ),
         ),
