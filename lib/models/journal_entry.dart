@@ -2,24 +2,32 @@ class JournalEntry {
   final String id;
   final DateTime date;
   final String content;
-  final List<String> moods;
-  final String dayOfWeek;
+  final List<String> mood;
+  final List<String> tags;
 
   JournalEntry({
     required this.id,
     required this.date,
     required this.content,
-    required this.moods,
-    required this.dayOfWeek,
+    required this.mood,
+    this.tags = const [],
   });
+
+  String get dayOfWeek {
+    const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    return days[date.weekday - 1];
+  }
+
+  // Keep backward compatibility
+  List<String> get moods => mood;
 
   factory JournalEntry.fromJson(Map<String, dynamic> json) {
     return JournalEntry(
       id: json['id'],
       date: DateTime.parse(json['date']),
       content: json['content'],
-      moods: List<String>.from(json['moods']),
-      dayOfWeek: json['dayOfWeek'],
+      mood: List<String>.from(json['mood'] ?? json['moods'] ?? []),
+      tags: List<String>.from(json['tags'] ?? []),
     );
   }
 
@@ -28,7 +36,8 @@ class JournalEntry {
       'id': id,
       'date': date.toIso8601String(),
       'content': content,
-      'moods': moods,
+      'mood': mood,
+      'tags': tags,
       'dayOfWeek': dayOfWeek,
     };
   }

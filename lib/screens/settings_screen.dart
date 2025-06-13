@@ -69,7 +69,7 @@ class SettingsScreen extends StatelessWidget {
                 ],
               ),
               
-              const SizedBox(height: 40),
+              const SizedBox(height: 60), // Increased spacing before footer
               
               // App Version
               Center(
@@ -81,7 +81,7 @@ class SettingsScreen extends StatelessWidget {
                 ),
               ),
               
-              const SizedBox(height: 100), // Extra space for bottom navigation
+              const SizedBox(height: 120), // Extra space for bottom navigation
             ],
           ),
         ),

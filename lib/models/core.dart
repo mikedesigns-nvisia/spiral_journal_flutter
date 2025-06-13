@@ -1,3 +1,40 @@
+enum CoreTrend { rising, stable, declining }
+
+class Core {
+  final String id;
+  final String name;
+  final String description;
+  final int percentage;
+  final CoreTrend trend;
+  final String color;
+  final String icon;
+  final DateTime lastUpdated;
+  final List<String> insights;
+
+  const Core({
+    required this.id,
+    required this.name,
+    required this.description,
+    required this.percentage,
+    required this.trend,
+    required this.color,
+    required this.icon,
+    required this.lastUpdated,
+    required this.insights,
+  });
+
+  String get trendString {
+    switch (trend) {
+      case CoreTrend.rising:
+        return 'rising';
+      case CoreTrend.stable:
+        return 'stable';
+      case CoreTrend.declining:
+        return 'declining';
+    }
+  }
+}
+
 class EmotionalCore {
   final String id;
   final String name;
