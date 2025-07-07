@@ -51,8 +51,6 @@ class AppTheme {
         onSecondary: textPrimary,
         surface: backgroundPrimary,
         onSurface: textPrimary,
-        background: backgroundPrimary,
-        onBackground: textPrimary,
       ),
       
       // App Bar Theme
@@ -73,10 +71,10 @@ class AppTheme {
         color: backgroundSecondary,
         surfaceTintColor: Colors.transparent,
         elevation: 1,
-        shadowColor: Colors.black.withOpacity(0.1),
+        shadowColor: Colors.black.withValues(alpha: 0.1),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
-          side: BorderSide(color: backgroundTertiary, width: 1),
+          side: const BorderSide(color: backgroundTertiary, width: 1),
         ),
       ),
       
@@ -167,15 +165,15 @@ class AppTheme {
         fillColor: backgroundSecondary,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: backgroundTertiary),
+          borderSide: const BorderSide(color: backgroundTertiary),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: backgroundTertiary),
+          borderSide: const BorderSide(color: backgroundTertiary),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: primaryOrange, width: 2),
+          borderSide: const BorderSide(color: primaryOrange, width: 2),
         ),
         contentPadding: const EdgeInsets.all(16),
         hintStyle: GoogleFonts.notoSansJp(
@@ -226,12 +224,12 @@ class AppTheme {
   static LinearGradient get primaryGradient => const LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: [Color(0xFFFFFDCBF), Color(0xFFFFF8F5)],
+    colors: [Color(0xFFFFDCBF), Color(0xFFFFF8F5)],
   );
   
   static LinearGradient get cardGradient => const LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: [Color(0xFFFFFEFD9), Color(0xFFFFF8F5)],
+    colors: [Color(0xFFFFFEFD), Color(0xFFFFF8F5)],
   );
 }

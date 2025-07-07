@@ -26,7 +26,7 @@ class ClaudeAIService {
   Future<AIAnalysis> analyzeJournalEntry({
     required JournalEntry entry,
     required String userId,
-    Map<String, Core>? currentCores,
+    Map<String, EmotionalCore>? currentCores,
     String? recentPatterns,
   }) async {
     try {
@@ -139,7 +139,7 @@ Be encouraging and focus on positive development trends.
   /// Core personality evolution calculation
   Future<CoreEvolution> _calculateCoreChanges(
     String text, 
-    Map<String, Core> currentCores
+    Map<String, EmotionalCore> currentCores
   ) async {
     final coresContext = currentCores.entries
         .map((e) => '${e.key}: ${e.value.percentage}%')

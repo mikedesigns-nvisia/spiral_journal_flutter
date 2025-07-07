@@ -118,11 +118,11 @@ Recent thinking patterns: ${thinkingPatterns.take(3).join(', ')}
   }
 
   /// Update cores based on AI analysis suggestions
-  Future<Map<String, Core>> _updateCoresWithAnalysis(
-    Map<String, Core> currentCores,
+  Future<Map<String, EmotionalCore>> _updateCoresWithAnalysis(
+    Map<String, EmotionalCore> currentCores,
     CoreEvolution coreEvolution,
   ) async {
-    final updatedCores = <String, Core>{};
+    final updatedCores = <String, EmotionalCore>{};
 
     for (final entry in currentCores.entries) {
       final coreId = entry.key;
@@ -134,14 +134,18 @@ Recent thinking patterns: ${thinkingPatterns.take(3).join(', ')}
       if (adjustment != null && adjustment.adjustment != 0) {
         // Apply adjustment with bounds checking
         final newPercentage = (currentCore.percentage + adjustment.adjustment)
-            .clamp(0, 100);
+            .clamp(0.0, 100.0);
             
-        updatedCores[coreId] = Core(
+        updatedCores[coreId] = EmotionalCore(
           id: currentCore.id,
           name: currentCore.name,
-          percentage: newPercentage,
-          color: currentCore.color,
           description: currentCore.description,
+          percentage: newPercentage,
+          trend: currentCore.trend,
+          color: currentCore.color,
+          iconPath: currentCore.iconPath,
+          insight: currentCore.insight,
+          relatedCores: currentCore.relatedCores,
         );
       } else {
         // No change for this core
@@ -163,8 +167,8 @@ Recent thinking patterns: ${thinkingPatterns.take(3).join(', ')}
           id: 'temp',
           content: text,
           date: DateTime.now(),
-          mood: [],
-          tags: [],
+          moods: [],
+          dayOfWeek: DateTime.now().weekday.toString(),
         ),
         userId: _firebaseService.currentUserId ?? 'anonymous',
       );

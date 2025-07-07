@@ -12,7 +12,7 @@ class YourCoresCard extends StatelessWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            Color(0xFFFFFEFD9),
+            Color(0xfffffefd9),
             Color(0xFFFFF8F5),
           ],
         ),

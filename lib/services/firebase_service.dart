@@ -117,47 +117,71 @@ class FirebaseService {
   /// Initialize default personality cores for new users
   Future<void> _initializeDefaultCores(String userId) async {
     final defaultCores = {
-      'optimism': Core(
+      'optimism': EmotionalCore(
         id: 'optimism',
         name: 'Optimism',
-        percentage: 65,
-        color: 0xFFFF9800,
         description: 'Your positive outlook and hope for the future',
+        percentage: 65.0,
+        trend: 'stable',
+        color: '0xFFFF9800',
+        iconPath: 'assets/icons/optimism.png',
+        insight: 'Building positive outlook',
+        relatedCores: ['resilience', 'growth_mindset'],
       ),
-      'resilience': Core(
+      'resilience': EmotionalCore(
         id: 'resilience',
-        name: 'Resilience', 
-        percentage: 60,
-        color: 0xFF4CAF50,
+        name: 'Resilience',
         description: 'Your ability to bounce back from challenges',
+        percentage: 60.0,
+        trend: 'stable',
+        color: '0xFF4CAF50',
+        iconPath: 'assets/icons/resilience.png',
+        insight: 'Developing coping strategies',
+        relatedCores: ['optimism', 'self_awareness'],
       ),
-      'self_awareness': Core(
+      'self_awareness': EmotionalCore(
         id: 'self_awareness',
         name: 'Self-Awareness',
-        percentage: 70,
-        color: 0xFF2196F3,
         description: 'Your understanding of your thoughts and emotions',
+        percentage: 70.0,
+        trend: 'stable',
+        color: '0xFF2196F3',
+        iconPath: 'assets/icons/self_awareness.png',
+        insight: 'Growing emotional intelligence',
+        relatedCores: ['resilience', 'creativity'],
       ),
-      'creativity': Core(
+      'creativity': EmotionalCore(
         id: 'creativity',
         name: 'Creativity',
-        percentage: 55,
-        color: 0xFF9C27B0,
         description: 'Your innovative thinking and creative expression',
+        percentage: 55.0,
+        trend: 'stable',
+        color: '0xFF9C27B0',
+        iconPath: 'assets/icons/creativity.png',
+        insight: 'Exploring creative potential',
+        relatedCores: ['self_awareness', 'social_connection'],
       ),
-      'social_connection': Core(
+      'social_connection': EmotionalCore(
         id: 'social_connection',
         name: 'Social Connection',
-        percentage: 58,
-        color: 0xFFE91E63,
         description: 'Your ability to connect and relate to others',
+        percentage: 58.0,
+        trend: 'stable',
+        color: '0xFFE91E63',
+        iconPath: 'assets/icons/social_connection.png',
+        insight: 'Building meaningful relationships',
+        relatedCores: ['creativity', 'growth_mindset'],
       ),
-      'growth_mindset': Core(
+      'growth_mindset': EmotionalCore(
         id: 'growth_mindset',
         name: 'Growth Mindset',
-        percentage: 62,
-        color: 0xFF00BCD4,
         description: 'Your openness to learning and personal development',
+        percentage: 62.0,
+        trend: 'stable',
+        color: '0xFF00BCD4',
+        iconPath: 'assets/icons/growth_mindset.png',
+        insight: 'Embracing continuous learning',
+        relatedCores: ['optimism', 'social_connection'],
       ),
     };
 
@@ -182,12 +206,12 @@ class FirebaseService {
           .doc(entry.id)
           .set(entry.toJson());
           
-      await _analytics.logEvent(
+          await _analytics.logEvent(
         name: 'journal_entry_created',
         parameters: {
           'word_count': entry.content.length,
-          'has_mood': entry.mood.isNotEmpty,
-          'has_tags': entry.tags.isNotEmpty,
+          'has_moods': entry.moods.isNotEmpty,
+          'day_of_week': entry.dayOfWeek,
         },
       );
     } catch (e) {
@@ -231,15 +255,15 @@ class FirebaseService {
   /// Core Operations
 
   /// Get user's cores
-  Future<Map<String, Core>> getCores() async {
+  Future<Map<String, EmotionalCore>> getCores() async {
     if (currentUserId == null) throw AuthException('User not authenticated');
 
     try {
       final snapshot = await _userCores(currentUserId!).get();
-      final Map<String, Core> cores = {};
+      final Map<String, EmotionalCore> cores = {};
 
       for (final doc in snapshot.docs) {
-        final core = Core.fromJson(doc.data() as Map<String, dynamic>);
+        final core = EmotionalCore.fromJson(doc.data() as Map<String, dynamic>);
         cores[core.id] = core;
       }
 
@@ -250,7 +274,7 @@ class FirebaseService {
   }
 
   /// Update cores based on AI analysis
-  Future<void> updateCores(Map<String, Core> updatedCores) async {
+  Future<void> updateCores(Map<String, EmotionalCore> updatedCores) async {
     if (currentUserId == null) throw AuthException('User not authenticated');
 
     try {
@@ -268,15 +292,15 @@ class FirebaseService {
   }
 
   /// Get cores stream for real-time updates
-  Stream<Map<String, Core>> getCoresStream() {
+  Stream<Map<String, EmotionalCore>> getCoresStream() {
     if (currentUserId == null) throw AuthException('User not authenticated');
 
     return _userCores(currentUserId!)
         .snapshots()
         .map((snapshot) {
-          final Map<String, Core> cores = {};
+          final Map<String, EmotionalCore> cores = {};
           for (final doc in snapshot.docs) {
-            final core = Core.fromJson(doc.data() as Map<String, dynamic>);
+            final core = EmotionalCore.fromJson(doc.data() as Map<String, dynamic>);
             cores[core.id] = core;
           }
           return cores;

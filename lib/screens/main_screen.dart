@@ -55,7 +55,7 @@ class _MainScreenState extends State<MainScreen> {
         child: _screens[_currentIndex],
       ),
       bottomNavigationBar: Container(
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           color: AppTheme.backgroundPrimary,
           border: Border(
             top: BorderSide(

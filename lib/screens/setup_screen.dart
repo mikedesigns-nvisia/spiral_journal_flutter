@@ -43,7 +43,7 @@ class _SetupScreenState extends State<SetupScreen> {
                 const Icon(
                   Icons.psychology,
                   size: 80,
-                  color: AppTheme.primaryColor,
+                  color: AppTheme.primaryOrange,
                 ),
                 const SizedBox(height: 24),
                 
@@ -51,7 +51,7 @@ class _SetupScreenState extends State<SetupScreen> {
                   'Welcome to Spiral Journal',
                   style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                     fontWeight: FontWeight.bold,
-                    color: AppTheme.primaryColor,
+                    color: AppTheme.primaryOrange,
                   ),
                   textAlign: TextAlign.center,
                 ),
@@ -111,7 +111,7 @@ class _SetupScreenState extends State<SetupScreen> {
               children: [
                 Row(
                   children: [
-                    const Icon(Icons.smart_toy, color: AppTheme.primaryColor),
+                    const Icon(Icons.smart_toy, color: AppTheme.primaryOrange),
                     const SizedBox(width: 8),
                     Text(
                       'Claude AI Configuration',
@@ -160,7 +160,7 @@ class _SetupScreenState extends State<SetupScreen> {
                   child: Text(
                     'Need help getting your API key? →',
                     style: TextStyle(
-                      color: AppTheme.primaryColor,
+                      color: AppTheme.primaryOrange,
                       decoration: TextDecoration.underline,
                     ),
                   ),
@@ -214,7 +214,7 @@ class _SetupScreenState extends State<SetupScreen> {
         ElevatedButton(
           onPressed: _isLoading ? null : _setupWithApiKey,
           style: ElevatedButton.styleFrom(
-            backgroundColor: AppTheme.primaryColor,
+            backgroundColor: AppTheme.primaryOrange,
             foregroundColor: Colors.white,
             padding: const EdgeInsets.symmetric(vertical: 16),
             shape: RoundedRectangleBorder(
