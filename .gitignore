@@ -43,3 +43,26 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Environment variables and secrets
+.env
+.env.local
+.env.production
+.env.staging
+
+# Apple Developer credentials
+*.p12
+*.mobileprovision
+*.cer
+*.certSigningRequest
+
+# iOS build artifacts
+ios/build/
+ios/Runner.xcarchive/
+ios/Runner.xcworkspace/xcuserdata/
+ios/Pods/
+ios/.symlinks/
+
+# Deployment logs
+deployment.log
+upload.log

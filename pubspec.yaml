@@ -1,9 +1,13 @@
 name: spiral_journal
-description: A beautiful journaling app with emotional intelligence tracking
+description: AI-powered personal growth platform that transforms stream-of-consciousness journaling into actionable insights using emotional intelligence tracking.
 
+# TestFlight ready version
 publish_to: 'none'
 
-version: 1.0.0+1
+version: 1.0.0+2
+
+homepage: https://spiraljournal.com
+repository: https://github.com/yourusername/spiral-journal
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
@@ -12,14 +16,49 @@ dependencies:
   flutter:
     sdk: flutter
   material_color_utilities: ^0.11.1
-  cupertino_icons: ^1.0.2
-  intl: ^0.19.0
-  google_fonts: ^6.1.0
+  cupertino_icons: ^1.0.8
+  intl: ^0.20.2
+  google_fonts: ^6.2.1
+  sqflite: ^2.4.2
+  sqlcipher_flutter_libs: ^0.6.1
+  path: ^1.9.1
+  uuid: ^4.5.1
+  provider: ^6.1.5
+  http: ^1.4.0
+  shared_preferences: ^2.5.3
+  
+  # Local authentication and security
+  local_auth: ^2.3.0
+  flutter_secure_storage: ^9.2.4
+  crypto: ^3.0.6
+  
+  # Data export and validation
+  convert: ^3.1.1
+  path_provider: ^2.1.4
+  share_plus: ^10.1.2
+  encrypt: ^5.0.3
+  file_picker: ^8.1.4
+  device_info_plus: ^9.1.2
+  
+  # Local analytics and crash reporting (no external services)
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^3.0.0
+  flutter_lints: ^6.0.0
+  sqflite_common_ffi: ^2.3.0
 
 flutter:
   uses-material-design: true
+  
+  # App icons and assets
+  assets:
+    - assets/images/
+    - assets/icons/
+  
+  # Generate app icons for all platforms
+  # Run: flutter packages pub run flutter_launcher_icons:main
+  # flutter_icons:
+  #   android: true
+  #   ios: true
+  #   image_path: "assets/icon/app_icon.png"
