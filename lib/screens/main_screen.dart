@@ -4,7 +4,9 @@ import 'package:spiral_journal/screens/journal_history_screen.dart';
 import 'package:spiral_journal/screens/emotional_mirror_screen.dart';
 import 'package:spiral_journal/screens/core_library_screen.dart';
 import 'package:spiral_journal/screens/settings_screen.dart';
-import 'package:spiral_journal/theme/app_theme.dart';
+import 'package:spiral_journal/design_system/design_tokens.dart';
+import 'package:spiral_journal/design_system/responsive_layout.dart';
+import 'package:spiral_journal/utils/iphone_detector.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -49,47 +51,53 @@ class _MainScreenState extends State<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppTheme.backgroundPrimary,
-      body: SafeArea(
-        child: _screens[_currentIndex],
+    return AdaptiveScaffold(
+      backgroundColor: DesignTokens.getBackgroundPrimary(context),
+      padding: EdgeInsets.zero, // Let individual screens handle their own padding
+      body: _screens[_currentIndex],
+      bottomNavigationBar: AdaptiveBottomNavigation(
+        currentIndex: _currentIndex,
+        onTap: (index) {
+          setState(() {
+            _currentIndex = index;
+          });
+        },
+        items: _getAdaptiveNavItems(context),
+        backgroundColor: DesignTokens.getBackgroundPrimary(context),
+        selectedItemColor: DesignTokens.getPrimaryColor(context),
+        unselectedItemColor: DesignTokens.getTextTertiary(context),
       ),
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: AppTheme.backgroundPrimary,
-          border: Border(
-            top: BorderSide(
-              color: AppTheme.backgroundTertiary,
-              width: 1,
-            ),
-          ),
-        ),
-        child: BottomNavigationBar(
-          currentIndex: _currentIndex,
-          onTap: (index) {
-            setState(() {
-              _currentIndex = index;
-            });
-          },
-          items: _navItems,
-          type: BottomNavigationBarType.fixed,
-          backgroundColor: AppTheme.backgroundPrimary,
-          selectedItemColor: AppTheme.primaryOrange,
-          unselectedItemColor: AppTheme.textTertiary,
-          selectedLabelStyle: const TextStyle(
-            fontFamily: 'NotoSansJP',
-            fontSize: 12,
-            fontWeight: FontWeight.w500,
-          ),
-          unselectedLabelStyle: const TextStyle(
-            fontFamily: 'NotoSansJP',
-            fontSize: 12,
-            fontWeight: FontWeight.w400,
-          ),
-          elevation: 0,
-        ),
-      ),
-      extendBody: true,
     );
+  }
+
+  /// Get navigation items with adaptive icon sizes
+  List<BottomNavigationBarItem> _getAdaptiveNavItems(BuildContext context) {
+    final iconSize = iPhoneDetector.getAdaptiveIconSize(
+      context,
+      base: DesignTokens.iconSizeL,
+    );
+
+    return [
+      BottomNavigationBarItem(
+        icon: Icon(Icons.edit_note_rounded, size: iconSize),
+        label: 'Journal',
+      ),
+      BottomNavigationBarItem(
+        icon: Icon(Icons.history_rounded, size: iconSize),
+        label: 'History',
+      ),
+      BottomNavigationBarItem(
+        icon: Icon(Icons.psychology_rounded, size: iconSize),
+        label: 'Mirror',
+      ),
+      BottomNavigationBarItem(
+        icon: Icon(Icons.auto_awesome_rounded, size: iconSize),
+        label: 'Insights',
+      ),
+      BottomNavigationBarItem(
+        icon: Icon(Icons.settings_rounded, size: iconSize),
+        label: 'Settings',
+      ),
+    ];
   }
 }

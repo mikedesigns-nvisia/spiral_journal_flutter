@@ -1,9 +1,16 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:spiral_journal/theme/app_theme.dart';
 import 'package:spiral_journal/widgets/mood_selector.dart';
 import 'package:spiral_journal/widgets/journal_input.dart';
 import 'package:spiral_journal/widgets/mind_reflection_card.dart';
 import 'package:spiral_journal/widgets/your_cores_card.dart';
+import 'package:spiral_journal/providers/journal_provider.dart';
+import 'package:spiral_journal/providers/core_provider.dart';
+import 'package:spiral_journal/models/journal_entry.dart';
+import 'package:spiral_journal/services/ai_service_manager.dart';
 import 'package:intl/intl.dart';
 
 class JournalScreen extends StatefulWidget {
@@ -15,12 +22,478 @@ class JournalScreen extends StatefulWidget {
 
 class _JournalScreenState extends State<JournalScreen> {
   final TextEditingController _journalController = TextEditingController();
-  final List<String> _selectedMoods = ['Happy', 'Content'];
+  final List<String> _selectedMoods = [];
+  final List<String> _aiDetectedMoods = [];
+  
+  bool _isAnalyzing = false;
+  String? _draftContent;
+  String? _analysisInsight;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadDraftContent();
+  }
 
   @override
   void dispose() {
     _journalController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadDraftContent() async {
+    // Load any existing draft content from SharedPreferences
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final draftContent = prefs.getString('journal_draft_content');
+      final draftMoods = prefs.getStringList('journal_draft_moods') ?? [];
+      
+      if (draftContent != null && draftContent.isNotEmpty) {
+        setState(() {
+          _draftContent = draftContent;
+          _selectedMoods.clear();
+          _selectedMoods.addAll(draftMoods);
+        });
+        
+        // Show recovery dialog
+        if (mounted) {
+          _showDraftRecoveryDialog(draftContent);
+        }
+      }
+    } catch (e) {
+      debugPrint('Error loading draft content: $e');
+    }
+  }
+
+  Future<void> _saveDraftContent(String content) async {
+    // Save draft content for crash recovery
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      if (content.trim().isNotEmpty) {
+        await prefs.setString('journal_draft_content', content);
+        await prefs.setStringList('journal_draft_moods', _selectedMoods);
+      } else {
+        await prefs.remove('journal_draft_content');
+        await prefs.remove('journal_draft_moods');
+      }
+      
+      setState(() {
+        _draftContent = content;
+      });
+    } catch (e) {
+      debugPrint('Error saving draft content: $e');
+    }
+  }
+
+  Future<void> _clearDraftContent() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('journal_draft_content');
+      await prefs.remove('journal_draft_moods');
+      
+      setState(() {
+        _draftContent = null;
+      });
+    } catch (e) {
+      debugPrint('Error clearing draft content: $e');
+    }
+  }
+
+  void _showDraftRecoveryDialog(String draftContent) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Recover Draft'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('We found an unsaved draft from your previous session:'),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppTheme.getColorWithOpacity(AppTheme.backgroundTertiary, 0.5),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: AppTheme.getColorWithOpacity(AppTheme.getPrimaryColor(context), 0.3),
+                  ),
+                ),
+                child: Text(
+                  draftContent.length > 100 
+                      ? '${draftContent.substring(0, 100)}...' 
+                      : draftContent,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                _clearDraftContent();
+                Navigator.of(context).pop();
+              },
+              child: const Text('Discard'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                _journalController.text = draftContent;
+                Navigator.of(context).pop();
+              },
+              child: const Text('Recover'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showAnalysisInsight(dynamic analysisResult) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Row(
+            children: [
+              Icon(
+                Icons.psychology_rounded,
+                color: AppTheme.getPrimaryColor(context),
+              ),
+              const SizedBox(width: 8),
+              const Text('AI Analysis'),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (analysisResult.personalizedInsight.isNotEmpty) ...[
+                  Text(
+                    'Personal Insight:',
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    analysisResult.personalizedInsight,
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                  const SizedBox(height: 16),
+                ],
+                
+                if (analysisResult.primaryEmotions.isNotEmpty) ...[
+                  Text(
+                    'Detected Emotions:',
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: analysisResult.primaryEmotions.map<Widget>((emotion) {
+                      return Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: AppTheme.getMoodColor(emotion),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          emotion,
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 16),
+                ],
+                
+                if (analysisResult.keyThemes.isNotEmpty) ...[
+                  Text(
+                    'Key Themes:',
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  ...analysisResult.keyThemes.map<Widget>((theme) {
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 4),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.circle,
+                            size: 6,
+                            color: AppTheme.getTextSecondary(context),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              theme,
+                              style: Theme.of(context).textTheme.bodySmall,
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }).toList(),
+                ],
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Close'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                _acceptAllAIMoods();
+              },
+              child: const Text('Accept Emotions'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _triggerAIAnalysis() async {
+    if (_journalController.text.trim().isEmpty) return;
+
+    setState(() {
+      _isAnalyzing = true;
+      _aiDetectedMoods.clear();
+      _analysisInsight = null;
+    });
+
+    try {
+      // Get AI service manager
+      final aiManager = AIServiceManager();
+      
+      // Create a temporary journal entry for analysis
+      final tempEntry = JournalEntry.create(
+        content: _journalController.text.trim(),
+        moods: _selectedMoods,
+      );
+
+      // Perform real AI analysis
+      final analysisResult = await aiManager.performEmotionalAnalysis(tempEntry);
+      
+      setState(() {
+        _aiDetectedMoods.clear();
+        _aiDetectedMoods.addAll(analysisResult.primaryEmotions);
+        _analysisInsight = analysisResult.personalizedInsight;
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('AI analysis complete! Found ${analysisResult.primaryEmotions.length} emotions.'),
+            backgroundColor: AppTheme.accentGreen,
+            action: SnackBarAction(
+              label: 'View',
+              onPressed: () {
+                // Show analysis insight in a dialog
+                _showAnalysisInsight(analysisResult);
+              },
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('AI Analysis error: $e');
+      
+      // Fallback to simple keyword-based analysis
+      final detectedMoods = _simulateAIAnalysis(_journalController.text);
+      
+      setState(() {
+        _aiDetectedMoods.clear();
+        _aiDetectedMoods.addAll(detectedMoods);
+        _analysisInsight = 'Basic analysis complete. AI service unavailable.';
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Using basic analysis. Found ${detectedMoods.length} emotions.'),
+            backgroundColor: AppTheme.accentYellow,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isAnalyzing = false;
+        });
+      }
+    }
+  }
+
+  List<String> _simulateAIAnalysis(String content) {
+    // Simple simulation of AI mood detection based on keywords
+    final detectedMoods = <String>[];
+    final contentLower = content.toLowerCase();
+    
+    if (contentLower.contains('happy') || contentLower.contains('joy') || contentLower.contains('great')) {
+      detectedMoods.add('happy');
+    }
+    if (contentLower.contains('grateful') || contentLower.contains('thankful') || contentLower.contains('appreciate')) {
+      detectedMoods.add('grateful');
+    }
+    if (contentLower.contains('excited') || contentLower.contains('amazing') || contentLower.contains('wonderful')) {
+      detectedMoods.add('excited');
+    }
+    if (contentLower.contains('calm') || contentLower.contains('peaceful') || contentLower.contains('relaxed')) {
+      detectedMoods.add('peaceful');
+    }
+    if (contentLower.contains('sad') || contentLower.contains('down') || contentLower.contains('upset')) {
+      detectedMoods.add('sad');
+    }
+    if (contentLower.contains('anxious') || contentLower.contains('worried') || contentLower.contains('nervous')) {
+      detectedMoods.add('anxious');
+    }
+    if (contentLower.contains('angry') || contentLower.contains('frustrated') || contentLower.contains('mad')) {
+      detectedMoods.add('frustrated');
+    }
+    if (contentLower.contains('tired') || contentLower.contains('exhausted') || contentLower.contains('drained')) {
+      detectedMoods.add('tired');
+    }
+    
+    // If no specific moods detected, add some general ones based on content analysis
+    if (detectedMoods.isEmpty) {
+      if (contentLower.length > 100) {
+        detectedMoods.add('reflective');
+      }
+      if (contentLower.contains('today') || contentLower.contains('work') || contentLower.contains('life')) {
+        detectedMoods.add('contemplative');
+      }
+    }
+    
+    return detectedMoods.take(3).toList(); // Limit to 3 detected moods
+  }
+
+  void _acceptAllAIMoods() {
+    setState(() {
+      final newMoods = List<String>.from(_selectedMoods);
+      for (final mood in _aiDetectedMoods) {
+        final capitalizedMood = mood[0].toUpperCase() + mood.substring(1).toLowerCase();
+        if (!newMoods.any((m) => m.toLowerCase() == mood.toLowerCase())) {
+          newMoods.add(capitalizedMood);
+        }
+      }
+      _selectedMoods.clear();
+      _selectedMoods.addAll(newMoods);
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Added ${_aiDetectedMoods.length} AI-detected moods!'),
+        backgroundColor: AppTheme.accentGreen,
+      ),
+    );
+  }
+
+  Future<void> _saveEntry() async {
+    if (_journalController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please write something before saving!'),
+          backgroundColor: AppTheme.accentRed,
+        ),
+      );
+      return;
+    }
+
+    if (_selectedMoods.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please select at least one mood!'),
+          backgroundColor: AppTheme.accentRed,
+        ),
+      );
+      return;
+    }
+
+    final journalProvider = Provider.of<JournalProvider>(context, listen: false);
+    final coreProvider = Provider.of<CoreProvider>(context, listen: false);
+
+    // Create entry with AI-detected moods if available
+    final allMoods = List<String>.from(_selectedMoods);
+    for (final aiMood in _aiDetectedMoods) {
+      final capitalizedMood = aiMood[0].toUpperCase() + aiMood.substring(1).toLowerCase();
+      if (!allMoods.any((m) => m.toLowerCase() == aiMood.toLowerCase())) {
+        allMoods.add(capitalizedMood);
+      }
+    }
+
+    final success = await journalProvider.createEntry(
+      content: _journalController.text.trim(),
+      moods: allMoods,
+    );
+
+    if (mounted) {
+      if (success) {
+        // Clear draft content after successful save
+        await _clearDraftContent();
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              _aiDetectedMoods.isNotEmpty 
+                  ? 'Entry saved with AI insights! 🎉' 
+                  : 'Entry saved successfully! 🎉'
+            ),
+            backgroundColor: AppTheme.accentGreen,
+            action: _analysisInsight != null 
+                ? SnackBarAction(
+                    label: 'View Insight',
+                    onPressed: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(_analysisInsight!),
+                          duration: const Duration(seconds: 4),
+                        ),
+                      );
+                    },
+                  )
+                : null,
+          ),
+        );
+
+        // Refresh cores after saving entry
+        await coreProvider.refresh();
+
+        // Refresh journal entries so they appear immediately in history
+        await journalProvider.refresh();
+
+        // Clear the form after successful save
+        setState(() {
+          _journalController.clear();
+          _selectedMoods.clear();
+          _aiDetectedMoods.clear();
+          _analysisInsight = null;
+        });
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to save entry: ${journalProvider.error ?? 'Unknown error'}'),
+            backgroundColor: AppTheme.accentRed,
+          ),
+        );
+      }
+    }
   }
 
   @override
@@ -29,10 +502,10 @@ class _JournalScreenState extends State<JournalScreen> {
     final dateFormatter = DateFormat('EEEE, MMMM d');
 
     return Scaffold(
-      backgroundColor: AppTheme.backgroundPrimary,
+      backgroundColor: AppTheme.getBackgroundPrimary(context),
       body: Container(
         decoration: BoxDecoration(
-          gradient: AppTheme.primaryGradient,
+          gradient: AppTheme.getPrimaryGradient(context),
         ),
         child: SafeArea(
           child: SingleChildScrollView(
@@ -52,9 +525,9 @@ class _JournalScreenState extends State<JournalScreen> {
                             color: AppTheme.accentYellow,
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          child: const Icon(
+                          child: Icon(
                             Icons.auto_stories_rounded,
-                            color: AppTheme.primaryOrange,
+                            color: AppTheme.getPrimaryColor(context),
                             size: 24,
                           ),
                         ),
@@ -69,7 +542,7 @@ class _JournalScreenState extends State<JournalScreen> {
                     Text(
                       dateFormatter.format(now),
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: AppTheme.textTertiary,
+                        color: AppTheme.getTextTertiary(context),
                       ),
                     ),
                   ],
@@ -81,8 +554,10 @@ class _JournalScreenState extends State<JournalScreen> {
                 Text(
                   'Hi Kenzie, How are you feeling today?',
                   style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                    color: AppTheme.textPrimary,
+                    color: AppTheme.getTextPrimary(context),
                   ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
                 
                 const SizedBox(height: 24),
@@ -96,15 +571,28 @@ class _JournalScreenState extends State<JournalScreen> {
                       _selectedMoods.addAll(moods);
                     });
                   },
+                  aiDetectedMoods: _aiDetectedMoods,
+                  isAnalyzing: _isAnalyzing,
+                  onAcceptAIMoods: _aiDetectedMoods.isNotEmpty ? _acceptAllAIMoods : null,
                 ),
                 
                 const SizedBox(height: 24),
                 
                 // Journal Input
-                JournalInput(
-                  controller: _journalController,
-                  onChanged: (text) {
-                    // Handle text changes if needed
+                Consumer<JournalProvider>(
+                  builder: (context, journalProvider, child) {
+                    return JournalInput(
+                      controller: _journalController,
+                      onChanged: (text) {
+                        // Handle text changes if needed
+                      },
+                      onSave: _saveEntry,
+                      isSaving: journalProvider.isLoading,
+                      isAnalyzing: _isAnalyzing,
+                      onAutoSave: _saveDraftContent,
+                      onTriggerAnalysis: _triggerAIAnalysis,
+                      draftContent: _draftContent,
+                    );
                   },
                 ),
                 
