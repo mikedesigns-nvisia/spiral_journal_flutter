@@ -1,66 +1,355 @@
 import 'package:flutter/material.dart';
-import 'package:spiral_journal/theme/app_theme.dart';
+import 'package:spiral_journal/design_system/design_tokens.dart';
+import 'package:spiral_journal/design_system/component_library.dart';
+import 'package:spiral_journal/services/journal_service.dart';
 
 class MoodSelector extends StatelessWidget {
   final List<String> selectedMoods;
   final Function(List<String>) onMoodChanged;
+  final List<String> aiDetectedMoods;
+  final bool isAnalyzing;
+  final VoidCallback? onAcceptAIMoods;
 
   const MoodSelector({
     super.key,
     required this.selectedMoods,
     required this.onMoodChanged,
+    this.aiDetectedMoods = const [],
+    this.isAnalyzing = false,
+    this.onAcceptAIMoods,
   });
 
-  final List<String> availableMoods = const [
-    'Happy',
-    'Content', 
-    'Unsure',
-    'Sad',
-    'Energetic',
+  List<String> get availableMoods => JournalService().availableMoods;
+  
+  // Primary moods shown first
+  List<String> get primaryMoods => [
+    'happy', 'content', 'energetic', 'grateful', 'peaceful'
   ];
+  
+  // Secondary moods in carousel
+  List<String> get secondaryMoods => availableMoods
+      .where((mood) => !primaryMoods.contains(mood.toLowerCase()))
+      .toList();
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'How are you feeling?',
-              style: Theme.of(context).textTheme.headlineSmall,
+    return ComponentLibrary.card(
+      padding: ComponentTokens.moodSelectorPadding,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'How are you feeling?',
+            style: DesignTokens.getTextStyle(
+              fontSize: DesignTokens.fontSizeXL,
+              fontWeight: DesignTokens.fontWeightMedium,
+              color: DesignTokens.getPrimaryColor(context),
             ),
-            const SizedBox(height: 16),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: availableMoods.map((mood) {
-                final isSelected = selectedMoods.contains(mood);
-                return FilterChip(
-                  label: Text(mood),
-                  selected: isSelected,
-                  onSelected: (selected) {
-                    final newMoods = List<String>.from(selectedMoods);
-                    if (selected) {
-                      newMoods.add(mood);
-                    } else {
-                      newMoods.remove(mood);
-                    }
-                    onMoodChanged(newMoods);
-                  },
-                  backgroundColor: AppTheme.backgroundTertiary,
-                  selectedColor: AppTheme.getMoodColor(mood),
-                  labelStyle: TextStyle(
-                    color: isSelected ? Colors.white : AppTheme.textSecondary,
-                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+          ),
+          const SizedBox(height: DesignTokens.spaceL),
+          
+          // AI-detected moods section
+          if (aiDetectedMoods.isNotEmpty) ...[
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(DesignTokens.spaceM),
+              decoration: BoxDecoration(
+                color: DesignTokens.getColorWithOpacity(
+                  DesignTokens.getPrimaryColor(context), 
+                  0.1
+                ),
+                borderRadius: BorderRadius.circular(DesignTokens.radiusS),
+                border: Border.all(
+                  color: DesignTokens.getColorWithOpacity(
+                    DesignTokens.getPrimaryColor(context), 
+                    0.3
                   ),
-                );
-              }).toList(),
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.psychology_rounded,
+                        size: DesignTokens.iconSizeS,
+                        color: DesignTokens.getPrimaryColor(context),
+                      ),
+                      const SizedBox(width: DesignTokens.spaceS),
+                      Expanded(
+                        child: Text(
+                          'AI detected these emotions:',
+                          style: DesignTokens.getTextStyle(
+                            fontSize: DesignTokens.fontSizeM,
+                            fontWeight: DesignTokens.fontWeightSemiBold,
+                            color: DesignTokens.getPrimaryColor(context),
+                          ),
+                        ),
+                      ),
+                      if (onAcceptAIMoods != null)
+                        ComponentLibrary.textButton(
+                          text: 'Accept All',
+                          onPressed: onAcceptAIMoods,
+                          size: ButtonSize.small,
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: DesignTokens.spaceS),
+                  Wrap(
+                    spacing: ComponentTokens.moodSelectorSpacing,
+                    runSpacing: ComponentTokens.moodSelectorRunSpacing,
+                    children: aiDetectedMoods.map((mood) {
+                      final isAlreadySelected = selectedMoods.any((selected) => 
+                          selected.toLowerCase() == mood.toLowerCase());
+                      
+                      return ComponentLibrary.moodChip(
+                        label: _capitalizeMood(mood),
+                        isSelected: isAlreadySelected,
+                        moodType: mood,
+                        onTap: () {
+                          if (!isAlreadySelected) {
+                            final newMoods = List<String>.from(selectedMoods);
+                            newMoods.add(_capitalizeMood(mood));
+                            onMoodChanged(newMoods);
+                          }
+                        },
+                      );
+                    }).toList(),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: DesignTokens.spaceL),
+          ],
+          
+          // AI analysis in progress indicator
+          if (isAnalyzing) ...[
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(DesignTokens.spaceM),
+              decoration: BoxDecoration(
+                color: DesignTokens.getColorWithOpacity(
+                  DesignTokens.getPrimaryColor(context), 
+                  0.1
+                ),
+                borderRadius: BorderRadius.circular(DesignTokens.radiusS),
+                border: Border.all(
+                  color: DesignTokens.getColorWithOpacity(
+                    DesignTokens.getPrimaryColor(context), 
+                    0.3
+                  ),
+                ),
+              ),
+              child: Row(
+                children: [
+                  SizedBox(
+                    width: DesignTokens.iconSizeS,
+                    height: DesignTokens.iconSizeS,
+                    child: CircularProgressIndicator(
+                      strokeWidth: DesignTokens.loadingStrokeWidth,
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        DesignTokens.getPrimaryColor(context)
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: DesignTokens.spaceM),
+                  Expanded(
+                    child: Text(
+                      'AI is analyzing your emotions...',
+                      style: DesignTokens.getTextStyle(
+                        fontSize: DesignTokens.fontSizeM,
+                        fontWeight: DesignTokens.fontWeightMedium,
+                        color: DesignTokens.getPrimaryColor(context),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: DesignTokens.spaceL),
+          ],
+          
+          // Primary moods - always visible
+          Wrap(
+            spacing: ComponentTokens.moodSelectorSpacing,
+            runSpacing: ComponentTokens.moodSelectorRunSpacing,
+            children: primaryMoods.map((mood) {
+              final isSelected = selectedMoods.any((selected) => 
+                  selected.toLowerCase() == mood.toLowerCase());
+              
+              return ComponentLibrary.moodChip(
+                label: _capitalizeMood(mood),
+                isSelected: isSelected,
+                moodType: mood,
+                onTap: () {
+                  final moodCapitalized = _capitalizeMood(mood);
+                  final newMoods = List<String>.from(selectedMoods);
+                  if (isSelected) {
+                    newMoods.removeWhere((m) => 
+                        m.toLowerCase() == mood.toLowerCase());
+                  } else {
+                    newMoods.add(moodCapitalized);
+                  }
+                  onMoodChanged(newMoods);
+                },
+              );
+            }).toList(),
+          ),
+          
+          if (secondaryMoods.isNotEmpty) ...[
+            const SizedBox(height: DesignTokens.spaceL),
+            
+            // "More moods" section with carousel
+            Row(
+              children: [
+                Text(
+                  'More moods:',
+                  style: DesignTokens.getTextStyle(
+                    fontSize: DesignTokens.fontSizeM,
+                    fontWeight: DesignTokens.fontWeightMedium,
+                    color: DesignTokens.getTextSecondary(context),
+                  ),
+                ),
+                const Spacer(),
+                Text(
+                  'Swipe to see more →',
+                  style: DesignTokens.getTextStyle(
+                    fontSize: DesignTokens.fontSizeS,
+                    fontWeight: DesignTokens.fontWeightRegular,
+                    color: DesignTokens.getTextTertiary(context),
+                  ),
+                ),
+              ],
+            ),
+            
+            const SizedBox(height: DesignTokens.spaceS),
+            
+            // Horizontal scrollable carousel for additional moods
+            SizedBox(
+              height: ComponentTokens.moodChipHeight,
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                itemCount: secondaryMoods.length,
+                itemBuilder: (context, index) {
+                  final mood = secondaryMoods[index];
+                  final isSelected = selectedMoods.any((selected) => 
+                      selected.toLowerCase() == mood.toLowerCase());
+                  
+                  return Padding(
+                    padding: EdgeInsets.only(
+                      right: index < secondaryMoods.length - 1 
+                          ? DesignTokens.spaceS 
+                          : 0,
+                    ),
+                    child: ComponentLibrary.moodChip(
+                      label: _capitalizeMood(mood),
+                      isSelected: isSelected,
+                      moodType: mood,
+                      onTap: () {
+                        final moodCapitalized = _capitalizeMood(mood);
+                        final newMoods = List<String>.from(selectedMoods);
+                        if (isSelected) {
+                          newMoods.removeWhere((m) => 
+                              m.toLowerCase() == mood.toLowerCase());
+                        } else {
+                          newMoods.add(moodCapitalized);
+                        }
+                        onMoodChanged(newMoods);
+                      },
+                    ),
+                  );
+                },
+              ),
             ),
           ],
-        ),
+          
+          // Selected moods summary
+          if (selectedMoods.isNotEmpty) ...[
+            const SizedBox(height: DesignTokens.spaceL),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(DesignTokens.spaceM),
+              decoration: BoxDecoration(
+                color: DesignTokens.getColorWithOpacity(
+                  DesignTokens.accentYellow, 
+                  0.1
+                ),
+                borderRadius: BorderRadius.circular(DesignTokens.radiusS),
+                border: Border.all(
+                  color: DesignTokens.getColorWithOpacity(
+                    DesignTokens.accentYellow, 
+                    0.3
+                  ),
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.check_circle_outline,
+                        size: DesignTokens.iconSizeS,
+                        color: DesignTokens.getPrimaryColor(context),
+                      ),
+                      const SizedBox(width: DesignTokens.spaceS),
+                      Expanded(
+                        child: Text(
+                          'Selected moods:',
+                          style: DesignTokens.getTextStyle(
+                            fontSize: DesignTokens.fontSizeS,
+                            fontWeight: DesignTokens.fontWeightMedium,
+                            color: DesignTokens.getTextSecondary(context),
+                          ),
+                        ),
+                      ),
+                      if (selectedMoods.length > 1)
+                        ComponentLibrary.textButton(
+                          text: 'Clear',
+                          onPressed: () => onMoodChanged([]),
+                          size: ButtonSize.small,
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: DesignTokens.spaceXS),
+                  Wrap(
+                    spacing: DesignTokens.spaceXS,
+                    runSpacing: DesignTokens.spaceXS,
+                    children: selectedMoods.map((mood) {
+                      return Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: DesignTokens.spaceS, 
+                          vertical: DesignTokens.spaceXXS,
+                        ),
+                        decoration: BoxDecoration(
+                          color: DesignTokens.getColorWithOpacity(
+                            DesignTokens.getMoodColor(mood), 
+                            0.2
+                          ),
+                          borderRadius: BorderRadius.circular(DesignTokens.radiusM),
+                        ),
+                        child: Text(
+                          mood,
+                          style: DesignTokens.getTextStyle(
+                            fontSize: DesignTokens.fontSizeXS,
+                            fontWeight: DesignTokens.fontWeightRegular,
+                            color: DesignTokens.getTextSecondary(context),
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
       ),
     );
+  }
+  
+  String _capitalizeMood(String mood) {
+    return mood[0].toUpperCase() + mood.substring(1).toLowerCase();
   }
 }

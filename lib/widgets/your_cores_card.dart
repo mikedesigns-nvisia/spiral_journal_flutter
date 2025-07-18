@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:spiral_journal/theme/app_theme.dart';
+import 'package:spiral_journal/providers/core_provider.dart';
+
 
 class YourCoresCard extends StatelessWidget {
   const YourCoresCard({super.key});
@@ -8,16 +11,13 @@ class YourCoresCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Color(0xFFFFFEFD9),
-            Color(0xFFFFF8F5),
-          ],
-        ),
+        gradient: AppTheme.getCardGradient(context),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.backgroundTertiary),
+        border: Border.all(
+          color: Theme.of(context).brightness == Brightness.dark 
+              ? AppTheme.darkBackgroundTertiary 
+              : AppTheme.backgroundTertiary
+        ),
       ),
       child: Padding(
         padding: const EdgeInsets.all(20.0),
@@ -32,9 +32,9 @@ class YourCoresCard extends StatelessWidget {
                     color: AppTheme.accentYellow,
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.auto_awesome_rounded,
-                    color: AppTheme.primaryOrange,
+                    color: AppTheme.getPrimaryColor(context),
                     size: 20,
                   ),
                 ),
@@ -49,77 +49,97 @@ class YourCoresCard extends StatelessWidget {
             Text(
               'Active emotional patterns shaping your mindset',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: AppTheme.textSecondary,
+                color: AppTheme.getTextSecondary(context),
               ),
             ),
             const SizedBox(height: 16),
-            // Core items
-            _buildCoreItem(
-              context,
-              'Optimist Core',
-              '78%',
-              'rising',
-              AppTheme.coreOptimist,
-              Icons.sentiment_very_satisfied_rounded,
-            ),
-            const SizedBox(height: 12),
-            _buildCoreItem(
-              context,
-              'Reflective Core',
-              '64%',
-              'stable',
-              AppTheme.coreReflective,
-              Icons.self_improvement_rounded,
-            ),
-            const SizedBox(height: 12),
-            _buildCoreItem(
-              context,
-              'Creative Core',
-              '52%',
-              'rising',
-              AppTheme.coreCreative,
-              Icons.palette_rounded,
+            // Core items using Provider
+            Consumer<CoreProvider>(
+              builder: (context, coreProvider, child) {
+                if (coreProvider.isLoading) {
+                  return const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(16.0),
+                      child: CircularProgressIndicator(),
+                    ),
+                  );
+                } else if (coreProvider.topCores.isEmpty) {
+                  return Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Text(
+                        'Start journaling to develop your cores!',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: AppTheme.getTextTertiary(context),
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  );
+                } else {
+                  return Column(
+                    children: coreProvider.topCores.asMap().entries.map((entry) {
+                      final index = entry.key;
+                      final core = entry.value;
+                      return Column(
+                        children: [
+                          if (index > 0) const SizedBox(height: 12),
+                          _buildCoreItem(
+                            context,
+                            core.name,
+                            '${core.percentage.round()}%',
+                            core.trend,
+                            _getCoreColor(core.color),
+                            _getCoreIcon(core.name),
+                          ),
+                        ],
+                      );
+                    }).toList(),
+                  );
+                }
+              },
             ),
             const SizedBox(height: 16),
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Flexible(
+                Expanded(
                   child: Text(
                     'Based on your journal patterns',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: AppTheme.textTertiary,
+                      color: AppTheme.getTextTertiary(context),
                     ),
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
                 const SizedBox(width: 8),
-                TextButton(
-                  onPressed: () {
-                    // Navigate to core library
-                  },
-                  style: TextButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    minimumSize: Size.zero,
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        'Explore All',
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: AppTheme.primaryOrange,
-                          fontWeight: FontWeight.w500,
+                Flexible(
+                  child: TextButton(
+                    onPressed: () {
+                      // Navigate to core library
+                    },
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'Explore All',
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: AppTheme.getPrimaryColor(context),
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 4),
-                      const Icon(
-                        Icons.arrow_forward_ios_rounded,
-                        size: 12,
-                        color: AppTheme.primaryOrange,
-                      ),
-                    ],
+                        const SizedBox(width: 4),
+                        Icon(
+                          Icons.arrow_forward_ios_rounded,
+                          size: 12,
+                          color: AppTheme.getPrimaryColor(context),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ],
@@ -128,6 +148,35 @@ class YourCoresCard extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Color _getCoreColor(String colorHex) {
+    try {
+      // Remove # if present and ensure it's 6 characters
+      final cleanHex = colorHex.replaceAll('#', '');
+      return Color(int.parse('FF$cleanHex', radix: 16));
+    } catch (e) {
+      return AppTheme.primaryOrange; // Fallback color
+    }
+  }
+
+  IconData _getCoreIcon(String coreName) {
+    switch (coreName.toLowerCase()) {
+      case 'optimism':
+        return Icons.sentiment_very_satisfied_rounded;
+      case 'resilience':
+        return Icons.shield_rounded;
+      case 'self-awareness':
+        return Icons.self_improvement_rounded;
+      case 'creativity':
+        return Icons.palette_rounded;
+      case 'social connection':
+        return Icons.people_rounded;
+      case 'growth mindset':
+        return Icons.trending_up_rounded;
+      default:
+        return Icons.auto_awesome_rounded;
+    }
   }
 
   Widget _buildCoreItem(
@@ -153,16 +202,16 @@ class YourCoresCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: coreColor.withOpacity(0.1),
+        color: AppTheme.getColorWithOpacity(coreColor, 0.1),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: coreColor.withOpacity(0.3)),
+        border: Border.all(color: AppTheme.getColorWithOpacity(coreColor, 0.3)),
       ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: coreColor.withOpacity(0.8),
+              color: AppTheme.getColorWithOpacity(coreColor, 0.8),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Icon(
@@ -180,7 +229,7 @@ class YourCoresCard extends StatelessWidget {
                   name,
                   style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                     fontWeight: FontWeight.w600,
-                    color: AppTheme.textPrimary,
+                    color: AppTheme.getTextPrimary(context),
                   ),
                 ),
                 Row(
@@ -206,7 +255,7 @@ class YourCoresCard extends StatelessWidget {
           Text(
             percentage,
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-              color: AppTheme.textPrimary,
+              color: AppTheme.getTextPrimary(context),
               fontWeight: FontWeight.w700,
             ),
           ),

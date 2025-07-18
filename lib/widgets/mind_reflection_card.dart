@@ -8,16 +8,13 @@ class MindReflectionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Color(0xFFFFE7D4),
-            Color(0xFFFFF8F5),
-          ],
-        ),
+        gradient: AppTheme.getCardGradient(context),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.backgroundTertiary),
+        border: Border.all(
+          color: Theme.of(context).brightness == Brightness.dark 
+              ? AppTheme.darkBackgroundTertiary 
+              : AppTheme.backgroundTertiary
+        ),
       ),
       child: Padding(
         padding: const EdgeInsets.all(20.0),
@@ -32,9 +29,9 @@ class MindReflectionCard extends StatelessWidget {
                     color: AppTheme.accentYellow,
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.psychology_rounded,
-                    color: AppTheme.primaryOrange,
+                    color: AppTheme.getPrimaryColor(context),
                     size: 20,
                   ),
                 ),
@@ -49,9 +46,13 @@ class MindReflectionCard extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: AppTheme.backgroundPrimary,
+                color: AppTheme.getBackgroundPrimary(context),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppTheme.backgroundTertiary),
+                border: Border.all(
+                  color: Theme.of(context).brightness == Brightness.dark 
+                      ? AppTheme.darkBackgroundTertiary 
+                      : AppTheme.backgroundTertiary
+                ),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -60,7 +61,9 @@ class MindReflectionCard extends StatelessWidget {
                     'Emotional Pattern Analysis',
                     style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                       fontWeight: FontWeight.w600,
-                      color: AppTheme.primaryDark,
+                      color: Theme.of(context).brightness == Brightness.dark 
+                          ? AppTheme.darkPrimaryDark 
+                          : AppTheme.primaryDark,
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -115,7 +118,7 @@ class MindReflectionCard extends StatelessWidget {
                   child: Text(
                     'Based on recent entries',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: AppTheme.textTertiary,
+                      color: AppTheme.getTextTertiary(context),
                     ),
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -136,15 +139,15 @@ class MindReflectionCard extends StatelessWidget {
                       Text(
                         'View Details',
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: AppTheme.primaryOrange,
+                          color: AppTheme.getPrimaryColor(context),
                           fontWeight: FontWeight.w500,
                         ),
                       ),
                       const SizedBox(width: 4),
-                      const Icon(
+                      Icon(
                         Icons.arrow_forward_ios_rounded,
                         size: 12,
-                        color: AppTheme.primaryOrange,
+                        color: AppTheme.getPrimaryColor(context),
                       ),
                     ],
                   ),
