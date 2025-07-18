@@ -11,20 +11,25 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:spiral_journal/main.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
+  testWidgets('Spiral Journal app smoke test', (WidgetTester tester) async {
     // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+    await tester.pumpWidget(const SpiralJournalApp());
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+    // Wait for the app to initialize
+    await tester.pumpAndSettle();
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
+    // Verify that the main navigation elements are present
+    expect(find.text('Journal'), findsOneWidget);
+    expect(find.text('History'), findsOneWidget);
+    expect(find.text('Mirror'), findsOneWidget);
+    expect(find.text('Insights'), findsOneWidget);
+    expect(find.text('Settings'), findsOneWidget);
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    // Verify that we can navigate between tabs
+    await tester.tap(find.text('History'));
+    await tester.pumpAndSettle();
+    
+    // Should show history screen content
+    expect(find.byType(BottomNavigationBar), findsOneWidget);
   });
 }
