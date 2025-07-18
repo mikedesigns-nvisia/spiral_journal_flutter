@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Keychain Access Groups -->
+	<key>keychain-access-groups</key>
+	<array>
+		<string>$(AppIdentifierPrefix)com.example.spiralJournal</string>
+	</array>
+	
+	<!-- App Groups (for shared data if needed) -->
+	<key>com.apple.security.application-groups</key>
+	<array>
+		<string>group.com.example.spiralJournal</string>
+	</array>
+	
+	<!-- Network Access -->
+	<key>com.apple.security.network.client</key>
+	<true/>
+	
+	<!-- Allow outgoing network connections -->
+	<key>com.apple.security.network.server</key>
+	<false/>
+	
+	<!-- File system access for app documents -->
+	<key>com.apple.security.files.user-selected.read-write</key>
+	<true/>
+	
+	<!-- Temporary exception for development -->
+	<key>com.apple.security.temporary-exception.files.absolute-path.read-write</key>
+	<array>
+		<string>/tmp/</string>
+	</array>
+</dict>
+</plist>
