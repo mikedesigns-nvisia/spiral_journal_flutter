@@ -4,7 +4,6 @@
 > **An intelligent journaling app that transforms stream-of-consciousness writing into actionable personal growth insights using Claude AI and real-time personality evolution tracking.**
 
 [![Flutter](https://img.shields.io/badge/Flutter-3.0+-02569B.svg?style=flat&logo=flutter)](https://flutter.dev)
-[![Firebase](https://img.shields.io/badge/Firebase-Backend-FFCA28.svg?style=flat&logo=firebase)](https://firebase.google.com)
 [![Claude AI](https://img.shields.io/badge/Claude-AI%20Analysis-7C3AED.svg?style=flat)](https://www.anthropic.com/claude)
 [![Material Design 3](https://img.shields.io/badge/Material-Design%203-1976D2.svg?style=flat&logo=material-design)](https://m3.material.io)
 
