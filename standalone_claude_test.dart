@@ -6,7 +6,7 @@ void main() async {
   print('🧪 Testing Claude API Integration (Standalone)...\n');
   
   // Your API key
-  const apiKey = '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';
+  const apiKey = 'sk-ant-api03-test-key-placeholder';
   
   try {
     // Test 1: API Key Validation
@@ -72,7 +72,7 @@ void main() async {
 }
 
 bool _validateApiKeyFormat(String apiKey) {
-  return apiKey.startsWith('sk-ant-api03-') && apiKey.length >= 50;
+  return apiKey.startsWith('sk-ant-api03-test-key-placeholder') && apiKey.length >= 50;
 }
 
 Future<String> _testConnection(String apiKey) async {

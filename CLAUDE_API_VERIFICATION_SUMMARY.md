@@ -7,7 +7,7 @@ Successfully verified and updated the Claude API integration in the Spiral Journ
 
 ### 1. **API Key Format Validation Updated**
 - **Before**: Accepted `sk-ant-*` format
-- **After**: Requires `sk-ant-api03-*` format (current Claude API standard)
+- **After**: Requires `sk-ant-api03-YOUR-KEY-HERE*` format (current Claude API standard)
 - **Files Updated**:
   - `lib/config/api_key_setup.dart`
   - `lib/services/providers/claude_ai_provider.dart`
@@ -16,7 +16,7 @@ Successfully verified and updated the Claude API integration in the Spiral Journ
 ### 2. **Environment Configuration**
 - **File**: `lib/config/environment.dart`
 - **Added**: Your actual Claude API key for development environment
-- **Key**: `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`
+- **Key**: `sk-ant-api03-YOUR-KEY-HERE`
 
 ### 3. **Test Updates**
 - **File**: `test/services/claude_ai_integration_test.dart`
@@ -43,7 +43,7 @@ Successfully verified and updated the Claude API integration in the Spiral Journ
 | **Extended Thinking** | Support for Claude 4 models | ✅ Future-ready | ✅ |
 
 ### 🔑 **API Key Validation**
-- **Format**: `sk-ant-api03-*` (minimum 50 characters)
+- **Format**: `sk-ant-api03-YOUR-KEY-HERE*` (minimum 50 characters)
 - **Your Key**: ✅ Valid format and length
 - **Validation**: ✅ Passes all format checks
 

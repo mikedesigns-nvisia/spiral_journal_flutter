@@ -4,7 +4,7 @@ class EnvironmentConfig {
   static const Environment current = Environment.development;
   
   // Claude API Configuration
-  static const String claudeApiKey = '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';
+  static const String claudeApiKey = 'YOUR_CLAUDE_API_KEY_HERE';
   
   // Local-only Configuration (Firebase removed)
   static const bool useLocalStorage = true;

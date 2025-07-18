@@ -9,7 +9,7 @@ void main() async {
   print('🧪 Testing Claude API Integration...\n');
   
   // Your API key
-  const apiKey = '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';
+  const apiKey = 'sk-ant-api03-test-key-placeholder';
   
   try {
     // Test 1: API Key Setup
