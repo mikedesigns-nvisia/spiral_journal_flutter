@@ -5,7 +5,6 @@ import 'package:spiral_journal/design_system/component_library.dart';
 import 'package:spiral_journal/design_system/responsive_layout.dart';
 import 'package:spiral_journal/widgets/loading_state_widget.dart' as loading_widget;
 import 'package:spiral_journal/utils/animation_utils.dart';
-import 'package:spiral_journal/utils/iphone_detector.dart';
 
 class JournalInput extends StatefulWidget {
   final TextEditingController controller;
@@ -81,36 +80,58 @@ class _JournalInputState extends State<JournalInput> {
 
   @override
   Widget build(BuildContext context) {
-    return KeyboardAwareScrollView(
-      child: AdaptiveCard(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildHeader(context),
-            AdaptiveSpacing.vertical(baseSize: DesignTokens.spaceL),
-            _buildTextInput(context),
-            _buildAnalysisIndicator(context),
-            AdaptiveSpacing.vertical(baseSize: DesignTokens.spaceL),
-            _buildActionButtons(context),
-          ],
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: DesignTokens.getBackgroundSecondary(context),
+        borderRadius: BorderRadius.circular(DesignTokens.cardRadius),
+        border: Border.all(
+          color: DesignTokens.getBackgroundTertiary(context),
+          width: 1,
         ),
+        boxShadow: [
+          BoxShadow(
+            color: DesignTokens.getColorWithOpacity(
+              Colors.black,
+              0.1,
+            ),
+            blurRadius: DesignTokens.elevationS,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      padding: EdgeInsets.all(DesignTokens.spaceL),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildHeader(context),
+          SizedBox(height: DesignTokens.spaceL),
+          _buildTextInput(context),
+          _buildAnalysisIndicator(context),
+          SizedBox(height: DesignTokens.spaceL),
+          _buildActionButtons(context),
+        ],
       ),
     );
   }
 
   Widget _buildHeader(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: ResponsiveText(
-            'What\'s on your mind?',
-            baseFontSize: DesignTokens.fontSizeXL,
-            fontWeight: DesignTokens.fontWeightMedium,
-            color: DesignTokens.getPrimaryColor(context),
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: DesignTokens.spaceS),
+      child: Row(
+        children: [
+          Expanded(
+            child: ResponsiveText(
+              'What\'s on your mind?',
+              baseFontSize: DesignTokens.fontSizeXL,
+              fontWeight: DesignTokens.fontWeightMedium,
+              color: DesignTokens.getPrimaryColor(context),
+            ),
           ),
-        ),
-        _buildSaveIndicator(context),
-      ],
+          SizedBox(width: DesignTokens.spaceM),
+          _buildSaveIndicator(context),
+        ],
+      ),
     );
   }
 
@@ -121,10 +142,10 @@ class _JournalInputState extends State<JournalInput> {
         children: [
           Icon(
             Icons.edit,
-            size: iPhoneDetector.getAdaptiveIconSize(context, base: DesignTokens.iconSizeS),
+            size: DesignTokens.iconSizeS,
             color: DesignTokens.getTextTertiary(context),
           ),
-          AdaptiveSpacing.horizontal(baseSize: DesignTokens.spaceXS),
+          SizedBox(width: DesignTokens.spaceXS),
           ResponsiveText(
             'Auto-saving...',
             baseFontSize: DesignTokens.fontSizeS,
@@ -139,10 +160,10 @@ class _JournalInputState extends State<JournalInput> {
         children: [
           Icon(
             Icons.check_circle,
-            size: iPhoneDetector.getAdaptiveIconSize(context, base: DesignTokens.iconSizeS),
+            size: DesignTokens.iconSizeS,
             color: DesignTokens.successColor,
           ),
-          AdaptiveSpacing.horizontal(baseSize: DesignTokens.spaceXS),
+          SizedBox(width: DesignTokens.spaceXS),
           ResponsiveText(
             'Saved',
             baseFontSize: DesignTokens.fontSizeS,
@@ -156,14 +177,21 @@ class _JournalInputState extends State<JournalInput> {
   }
 
   Widget _buildTextInput(BuildContext context) {
-    final maxLines = iPhoneDetector.isCompactiPhone(context) ? 4 : 6;
+    final maxLines = 10; // Increased from 6 to 10 for more writing space
     
-    return ComponentLibrary.textField(
-      label: '',
-      hint: 'Share your thoughts, experiences, and reflections...',
-      controller: widget.controller,
-      onChanged: _onTextChanged,
-      maxLines: maxLines,
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: DesignTokens.spaceXS), // Reduced padding for wider input
+      child: Container(
+        key: const Key('journal_text_input'),
+        child: ComponentLibrary.textField(
+          context: context,
+          label: '',
+          hint: 'Share your thoughts, experiences, and reflections...\n\nTake your time to explore your feelings, describe your experiences, and reflect on what matters to you today.',
+          controller: widget.controller,
+          onChanged: _onTextChanged,
+          maxLines: maxLines,
+        ),
+      ),
     );
   }
 
@@ -174,52 +202,56 @@ class _JournalInputState extends State<JournalInput> {
       height: widget.isAnalyzing ? null : 0,
       child: widget.isAnalyzing ? Column(
         children: [
-          AdaptiveSpacing.vertical(baseSize: DesignTokens.spaceM),
-          AnimationUtils.fadeScaleTransition(
-            animation: const AlwaysStoppedAnimation(1.0),
-            child: Container(
-              padding: iPhoneDetector.getAdaptivePadding(context),
-              decoration: BoxDecoration(
-                color: DesignTokens.getColorWithOpacity(
-                  DesignTokens.getPrimaryColor(context), 
-                  0.1
-                ),
-                borderRadius: BorderRadius.circular(DesignTokens.radiusS),
-                border: Border.all(
+          SizedBox(height: DesignTokens.spaceM),
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: DesignTokens.spaceS),
+            child: AnimationUtils.fadeScaleTransition(
+              animation: const AlwaysStoppedAnimation(1.0),
+              child: Container(
+                padding: EdgeInsets.all(DesignTokens.spaceL),
+                decoration: BoxDecoration(
                   color: DesignTokens.getColorWithOpacity(
                     DesignTokens.getPrimaryColor(context), 
-                    0.3
+                    0.1
                   ),
-                ),
-              ),
-              child: Row(
-                children: [
-                  loading_widget.LoadingStateWidget(
-                    type: loading_widget.LoadingType.dots,
-                    size: iPhoneDetector.getAdaptiveIconSize(context, base: 16),
-                    color: DesignTokens.getPrimaryColor(context),
-                  ),
-                  AdaptiveSpacing.horizontal(baseSize: DesignTokens.spaceM),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        ResponsiveText(
-                          'AI Analysis in Progress',
-                          baseFontSize: DesignTokens.fontSizeM,
-                          fontWeight: DesignTokens.fontWeightSemiBold,
-                          color: DesignTokens.getTextPrimary(context),
-                        ),
-                        ResponsiveText(
-                          'Analyzing your emotions and updating your cores...',
-                          baseFontSize: DesignTokens.fontSizeS,
-                          fontWeight: DesignTokens.fontWeightRegular,
-                          color: DesignTokens.getTextSecondary(context),
-                        ),
-                      ],
+                  borderRadius: BorderRadius.circular(DesignTokens.radiusL),
+                  border: Border.all(
+                    color: DesignTokens.getColorWithOpacity(
+                      DesignTokens.getPrimaryColor(context), 
+                      0.3
                     ),
                   ),
-                ],
+                ),
+                child: Row(
+                  children: [
+                    loading_widget.LoadingStateWidget(
+                      type: loading_widget.LoadingType.dots,
+                      size: DesignTokens.iconSizeM,
+                      color: DesignTokens.getPrimaryColor(context),
+                    ),
+                    SizedBox(width: DesignTokens.spaceL),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          ResponsiveText(
+                            'AI Analysis in Progress',
+                            baseFontSize: DesignTokens.fontSizeM,
+                            fontWeight: DesignTokens.fontWeightSemiBold,
+                            color: DesignTokens.getTextPrimary(context),
+                          ),
+                          SizedBox(height: DesignTokens.spaceXS),
+                          ResponsiveText(
+                            'Analyzing your emotions and updating your cores...',
+                            baseFontSize: DesignTokens.fontSizeS,
+                            fontWeight: DesignTokens.fontWeightRegular,
+                            color: DesignTokens.getTextSecondary(context),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -229,80 +261,73 @@ class _JournalInputState extends State<JournalInput> {
   }
 
   Widget _buildActionButtons(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        _buildSecondaryActions(context),
-        _buildSaveButton(context),
-      ],
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: DesignTokens.spaceS),
+      child: Row(
+        children: [
+          _buildSecondaryActions(context),
+          Spacer(),
+          // Show word count or character count for user feedback
+          _buildWordCount(context),
+        ],
+      ),
     );
   }
 
   Widget _buildSecondaryActions(BuildContext context) {
-    final iconSize = iPhoneDetector.getAdaptiveIconSize(context, base: DesignTokens.iconSizeM);
-    final buttonPadding = iPhoneDetector.getAdaptivePadding(context, compact: 8, regular: 12, large: 16);
-    
     return Row(
+      mainAxisSize: MainAxisSize.min,
       children: [
         // Voice input button
         IconButton(
           onPressed: () {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Voice input coming soon!'),
-                duration: Duration(seconds: 2),
+              SnackBar(
+                content: const Text('Voice input coming soon!'),
+                duration: const Duration(seconds: 2),
+                backgroundColor: DesignTokens.getPrimaryColor(context),
               ),
             );
           },
-          icon: Icon(Icons.mic_rounded, size: iconSize),
+          icon: Icon(Icons.mic_rounded, size: DesignTokens.iconSizeM),
           style: IconButton.styleFrom(
             foregroundColor: DesignTokens.getTextTertiary(context),
-            backgroundColor: Theme.of(context).brightness == Brightness.dark 
-                ? DesignTokens.darkBackgroundTertiary 
-                : DesignTokens.backgroundTertiary,
-            padding: buttonPadding,
+            backgroundColor: DesignTokens.getBackgroundTertiary(context),
+            padding: EdgeInsets.all(DesignTokens.spaceM),
+            minimumSize: Size(DesignTokens.buttonHeight, DesignTokens.buttonHeight),
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
           ),
           tooltip: 'Voice input',
         ),
-        
-        AdaptiveSpacing.horizontal(baseSize: DesignTokens.spaceS),
-        
-        // AI Analysis trigger button
-        if (widget.onTriggerAnalysis != null && !widget.isAnalyzing)
-          IconButton(
-            onPressed: widget.controller.text.trim().isNotEmpty 
-                ? widget.onTriggerAnalysis 
-                : null,
-            icon: Icon(Icons.psychology_rounded, size: iconSize),
-            style: IconButton.styleFrom(
-              foregroundColor: widget.controller.text.trim().isNotEmpty
-                  ? DesignTokens.getPrimaryColor(context)
-                  : DesignTokens.getTextTertiary(context),
-              backgroundColor: Theme.of(context).brightness == Brightness.dark 
-                  ? DesignTokens.darkBackgroundTertiary 
-                  : DesignTokens.backgroundTertiary,
-              padding: buttonPadding,
-            ),
-            tooltip: 'Analyze with AI',
-          ),
       ],
     );
   }
 
-  Widget _buildSaveButton(BuildContext context) {
-    return AdaptiveButton(
-      text: widget.isSaving 
-          ? 'Saving...' 
-          : widget.isAnalyzing 
-              ? 'Analyzing...' 
-              : 'Save Entry',
-      onPressed: (widget.isSaving || widget.isAnalyzing) ? null : () {
-        AnimationUtils.mediumImpact();
-        widget.onSave();
-      },
-      isLoading: widget.isSaving,
-      icon: Icons.save_rounded,
-      type: ButtonType.primary,
+  Widget _buildWordCount(BuildContext context) {
+    final text = widget.controller.text;
+    final wordCount = text.trim().isEmpty ? 0 : text.trim().split(RegExp(r'\s+')).length;
+    
+    if (wordCount == 0) {
+      return const SizedBox.shrink();
+    }
+    
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(
+          Icons.edit_note_rounded,
+          size: DesignTokens.iconSizeS,
+          color: DesignTokens.getTextTertiary(context),
+        ),
+        SizedBox(width: DesignTokens.spaceXS),
+        ResponsiveText(
+          '$wordCount ${wordCount == 1 ? 'word' : 'words'}',
+          baseFontSize: DesignTokens.fontSizeS,
+          fontWeight: DesignTokens.fontWeightRegular,
+          color: DesignTokens.getTextTertiary(context),
+        ),
+      ],
     );
   }
+
 }

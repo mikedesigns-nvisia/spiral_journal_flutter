@@ -34,20 +34,12 @@ class MoodSelector extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ComponentLibrary.card(
+      context: context,
       padding: ComponentTokens.moodSelectorPadding,
+      hasBorder: false,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'How are you feeling?',
-            style: DesignTokens.getTextStyle(
-              fontSize: DesignTokens.fontSizeXL,
-              fontWeight: DesignTokens.fontWeightMedium,
-              color: DesignTokens.getPrimaryColor(context),
-            ),
-          ),
-          const SizedBox(height: DesignTokens.spaceL),
-          
           // AI-detected moods section
           if (aiDetectedMoods.isNotEmpty) ...[
             Container(
@@ -201,26 +193,34 @@ class MoodSelector extends StatelessWidget {
             const SizedBox(height: DesignTokens.spaceL),
             
             // "More moods" section with carousel
-            Row(
-              children: [
-                Text(
-                  'More moods:',
-                  style: DesignTokens.getTextStyle(
-                    fontSize: DesignTokens.fontSizeM,
-                    fontWeight: DesignTokens.fontWeightMedium,
-                    color: DesignTokens.getTextSecondary(context),
+            SizedBox(
+              width: double.infinity,
+              child: Row(
+                children: [
+                  Flexible(
+                    child: Text(
+                      'More moods:',
+                      style: DesignTokens.getTextStyle(
+                        fontSize: DesignTokens.fontSizeM,
+                        fontWeight: DesignTokens.fontWeightMedium,
+                        color: DesignTokens.getTextSecondary(context),
+                      ),
+                    ),
                   ),
-                ),
-                const Spacer(),
-                Text(
-                  'Swipe to see more →',
-                  style: DesignTokens.getTextStyle(
-                    fontSize: DesignTokens.fontSizeS,
-                    fontWeight: DesignTokens.fontWeightRegular,
-                    color: DesignTokens.getTextTertiary(context),
+                  const Spacer(),
+                  Flexible(
+                    child: Text(
+                      'Swipe to see more →',
+                      style: DesignTokens.getTextStyle(
+                        fontSize: DesignTokens.fontSizeS,
+                        fontWeight: DesignTokens.fontWeightRegular,
+                        color: DesignTokens.getTextTertiary(context),
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
             
             const SizedBox(height: DesignTokens.spaceS),
@@ -272,13 +272,13 @@ class MoodSelector extends StatelessWidget {
               padding: const EdgeInsets.all(DesignTokens.spaceM),
               decoration: BoxDecoration(
                 color: DesignTokens.getColorWithOpacity(
-                  DesignTokens.accentYellow, 
+                  DesignTokens.getPrimaryColor(context), 
                   0.1
                 ),
                 borderRadius: BorderRadius.circular(DesignTokens.radiusS),
                 border: Border.all(
                   color: DesignTokens.getColorWithOpacity(
-                    DesignTokens.accentYellow, 
+                    DesignTokens.getPrimaryColor(context), 
                     0.3
                   ),
                 ),
