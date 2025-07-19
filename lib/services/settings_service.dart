@@ -350,6 +350,57 @@ class SettingsService extends ChangeNotifier {
   /// Get current theme mode display name
   String get currentThemeModeDisplayName => _currentPreferences.themeModeDisplayName;
 
+  /// Set text scale factor for accessibility
+  Future<void> setTextScaleFactor(double scaleFactor) async {
+    await _ensureInitialized();
+    
+    try {
+      // Store the text scale factor in preferences
+      // Note: This would need to be added to UserPreferences model
+      // For now, we'll store it separately
+      await _prefs?.setDouble('text_scale_factor', scaleFactor);
+      notifyListeners();
+    } catch (e) {
+      debugPrint('SettingsService setTextScaleFactor error: $e');
+      rethrow;
+    }
+  }
+
+  /// Get text scale factor
+  Future<double> getTextScaleFactor() async {
+    await _ensureInitialized();
+    return _prefs?.getDouble('text_scale_factor') ?? 1.0;
+  }
+
+  /// Set notifications enabled/disabled (alias for daily reminders)
+  Future<void> setNotificationsEnabled(bool enabled) async {
+    await setDailyRemindersEnabled(enabled);
+  }
+
+  /// Get notifications enabled status (alias for daily reminders)
+  Future<bool> getNotificationsEnabled() async {
+    return await getDailyRemindersEnabled();
+  }
+
+  /// Set PIN setup requested flag
+  Future<void> setPinSetupRequested(bool requested) async {
+    await _ensureInitialized();
+    
+    try {
+      await _prefs?.setBool('pin_setup_requested', requested);
+      notifyListeners();
+    } catch (e) {
+      debugPrint('SettingsService setPinSetupRequested error: $e');
+      rethrow;
+    }
+  }
+
+  /// Get PIN setup requested status
+  Future<bool> getPinSetupRequested() async {
+    await _ensureInitialized();
+    return _prefs?.getBool('pin_setup_requested') ?? false;
+  }
+
   // Legacy compatibility methods (deprecated - use new methods instead)
   @deprecated
   Future<bool> isSplashScreenEnabled() => getSplashScreenEnabled();

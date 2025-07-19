@@ -68,7 +68,33 @@ class ValidationConstants {
     'unsure',
     'tired',
     'stressed',
-    'sad'
+    'sad',
+    // New mood options
+    'joyful',
+    'optimistic',
+    'inspired',
+    'calm',
+    'focused',
+    'determined',
+    'playful',
+    'curious',
+    'proud',
+    'hopeful',
+    'relaxed',
+    'accomplished',
+    'loving',
+    'compassionate',
+    'adventurous',
+    'anxious',
+    'overwhelmed',
+    'frustrated',
+    'lonely',
+    'disappointed',
+    'worried',
+    'angry',
+    'confused',
+    'melancholy',
+    'restless'
   ];
 
   /// Positive mood categories for emotional analysis
@@ -82,20 +108,45 @@ class ValidationConstants {
     'excited',
     'motivated',
     'creative',
-    'social'
+    'social',
+    'joyful',
+    'optimistic',
+    'inspired',
+    'calm',
+    'focused',
+    'determined',
+    'playful',
+    'curious',
+    'proud',
+    'hopeful',
+    'relaxed',
+    'accomplished',
+    'loving',
+    'compassionate',
+    'adventurous'
   ];
 
   /// Neutral mood categories for emotional analysis
   static const List<String> neutralMoods = [
     'reflective',
-    'unsure'
+    'unsure',
+    'confused',
+    'restless'
   ];
 
   /// Challenging mood categories for emotional analysis
   static const List<String> challengingMoods = [
     'tired',
     'stressed',
-    'sad'
+    'sad',
+    'anxious',
+    'overwhelmed',
+    'frustrated',
+    'lonely',
+    'disappointed',
+    'worried',
+    'angry',
+    'melancholy'
   ];
 
   /// High-intensity moods for analysis weighting

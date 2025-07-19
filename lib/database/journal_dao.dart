@@ -708,6 +708,13 @@ class JournalDao {
     return 'stable';
   }
 
+  // Clear all journal entries (for data management)
+  Future<void> clearAllJournalEntries() async {
+    await _executeInTransaction<void>((txn) async {
+      await txn.delete('journal_entries');
+    });
+  }
+
   // Helper method to convert database map to JournalEntry
   JournalEntry _mapToJournalEntry(Map<String, dynamic> map) {
     // Parse metadata safely

@@ -8,9 +8,16 @@ class SampleDataGenerator {
 
   /// Generate sample journal entries for testing and demonstration
   /// This version works offline without requiring AI services
+  /// DISABLED for TestFlight production builds
   static Future<void> generateSampleData() async {
+    // Disable sample data generation for production/TestFlight builds
+    if (kReleaseMode) {
+      debugPrint('🚫 Sample data generation disabled in production builds');
+      return;
+    }
+    
     try {
-      debugPrint('🔄 Starting sample data generation...');
+      debugPrint('🔄 Starting sample data generation (debug mode only)...');
       
       // Clear existing data first
       await _repository.clearAllEntries();

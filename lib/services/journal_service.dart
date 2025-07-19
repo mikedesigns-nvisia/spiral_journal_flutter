@@ -517,4 +517,57 @@ class JournalService {
   List<String> get availableMoods => ValidationConstants.validMoods;
 
   List<String> get coreTypes => ValidationConstants.validCoreNames;
+
+  // Phase 5: 24-Hour Entry Limit
+  Future<bool> canCreateEntryToday() async {
+    try {
+      final now = DateTime.now();
+      final startOfDay = DateTime(now.year, now.month, now.day);
+      final endOfDay = DateTime(now.year, now.month, now.day, 23, 59, 59);
+      
+      final todaysEntries = await _journalDao.getJournalEntriesByDateRange(startOfDay, endOfDay);
+      
+      // Allow only one entry per day for API usage limits
+      return todaysEntries.isEmpty;
+    } catch (e) {
+      debugPrint('JournalService canCreateEntryToday error: $e');
+      // If there's an error checking, allow the entry (fail open)
+      return true;
+    }
+  }
+
+  Future<JournalEntry?> getTodaysEntry() async {
+    try {
+      final now = DateTime.now();
+      final startOfDay = DateTime(now.year, now.month, now.day);
+      final endOfDay = DateTime(now.year, now.month, now.day, 23, 59, 59);
+      
+      final todaysEntries = await _journalDao.getJournalEntriesByDateRange(startOfDay, endOfDay);
+      
+      return todaysEntries.isNotEmpty ? todaysEntries.first : null;
+    } catch (e) {
+      debugPrint('JournalService getTodaysEntry error: $e');
+      return null;
+    }
+  }
+
+  // Phase 4: Data Management - Clear all app data
+  Future<bool> clearAllData() async {
+    try {
+      // Clear all journal entries
+      await _journalDao.clearAllJournalEntries();
+      
+      // Reset all cores to default state
+      await _coreDao.resetAllCores();
+      
+      // Clear any cached data
+      clearProcessingQueue();
+      
+      debugPrint('JournalService: All data cleared successfully');
+      return true;
+    } catch (e) {
+      debugPrint('JournalService clearAllData error: $e');
+      return false;
+    }
+  }
 }

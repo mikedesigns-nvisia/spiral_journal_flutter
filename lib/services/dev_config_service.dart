@@ -26,8 +26,9 @@ class DevConfigService {
   static bool get isDevMode => kDebugMode;
 
   /// Check if development features are enabled
+  /// Always returns false in production/TestFlight builds
   Future<bool> isDevModeEnabled() async {
-    if (!isDevMode) return false;
+    if (!isDevMode || kReleaseMode) return false;
     
     try {
       final prefs = await SharedPreferences.getInstance();

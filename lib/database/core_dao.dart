@@ -680,6 +680,101 @@ class CoreDao {
     }
   }
 
+  // Reset all cores to default state (for data management)
+  Future<void> resetAllCores() async {
+    await _executeInTransaction<void>((txn) async {
+      // Delete all existing cores
+      await txn.delete('emotional_cores');
+      
+      // Re-initialize default cores
+      final defaultCores = [
+        EmotionalCore(
+          id: '',
+          name: 'Optimism',
+          description: 'Your ability to maintain hope and positive outlook',
+          currentLevel: 0.75,
+          previousLevel: 0.75,
+          lastUpdated: DateTime.now(),
+          trend: 'rising',
+          color: 'AFCACD',
+          iconPath: 'assets/icons/optimism.png',
+          insight: 'Your optimistic nature helps you see opportunities in challenges',
+          relatedCores: ['Growth Mindset', 'Resilience'],
+        ),
+        EmotionalCore(
+          id: '',
+          name: 'Resilience',
+          description: 'Your capacity to bounce back from setbacks',
+          currentLevel: 0.68,
+          previousLevel: 0.68,
+          lastUpdated: DateTime.now(),
+          trend: 'stable',
+          color: 'EBA751',
+          iconPath: 'assets/icons/resilience.png',
+          insight: 'You show strong ability to recover from difficult situations',
+          relatedCores: ['Optimism', 'Self-Awareness'],
+        ),
+        EmotionalCore(
+          id: '',
+          name: 'Self-Awareness',
+          description: 'Your understanding of your thoughts and emotions',
+          currentLevel: 0.82,
+          previousLevel: 0.82,
+          lastUpdated: DateTime.now(),
+          trend: 'rising',
+          color: 'A198DD',
+          iconPath: 'assets/icons/self_awareness.png',
+          insight: 'Your self-reflection shows deep emotional intelligence',
+          relatedCores: ['Growth Mindset', 'Creativity'],
+        ),
+        EmotionalCore(
+          id: '',
+          name: 'Creativity',
+          description: 'Your innovative thinking and expression',
+          currentLevel: 0.71,
+          previousLevel: 0.71,
+          lastUpdated: DateTime.now(),
+          trend: 'rising',
+          color: 'B1CDAF',
+          iconPath: 'assets/icons/creativity.png',
+          insight: 'Your creative approach brings fresh perspectives to problems',
+          relatedCores: ['Self-Awareness', 'Social Connection'],
+        ),
+        EmotionalCore(
+          id: '',
+          name: 'Social Connection',
+          description: 'Your ability to relate and connect with others',
+          currentLevel: 0.64,
+          previousLevel: 0.64,
+          lastUpdated: DateTime.now(),
+          trend: 'stable',
+          color: 'B37A9B',
+          iconPath: 'assets/icons/social.png',
+          insight: 'You value meaningful relationships and community',
+          relatedCores: ['Creativity', 'Growth Mindset'],
+        ),
+        EmotionalCore(
+          id: '',
+          name: 'Growth Mindset',
+          description: 'Your openness to learning and development',
+          currentLevel: 0.78,
+          previousLevel: 0.78,
+          lastUpdated: DateTime.now(),
+          trend: 'rising',
+          color: 'AFCACD',
+          iconPath: 'assets/icons/growth.png',
+          insight: 'You embrace challenges as opportunities to learn',
+          relatedCores: ['Optimism', 'Self-Awareness'],
+        ),
+      ];
+
+      // Insert all default cores
+      for (final core in defaultCores) {
+        await _insertEmotionalCoreInTransaction(txn, core);
+      }
+    });
+  }
+
   // Helper methods to convert database maps to objects
   EmotionalCore _mapToEmotionalCore(Map<String, dynamic> map) {
     return EmotionalCore(

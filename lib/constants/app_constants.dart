@@ -50,6 +50,9 @@ class AppConstants {
   /// Large padding for major sections
   static const double largePadding = 24.0;
   
+  /// Extra large padding for major sections
+  static const double extraLargePadding = 32.0;
+  
   /// Small padding for compact layouts
   static const double smallPadding = 8.0;
   
@@ -58,6 +61,9 @@ class AppConstants {
   
   /// Standard button border radius
   static const double buttonBorderRadius = 8.0;
+  
+  /// Standard border radius for form elements
+  static const double borderRadius = 12.0;
   
   /// Default icon size for UI elements
   static const double defaultIconSize = 24.0;
