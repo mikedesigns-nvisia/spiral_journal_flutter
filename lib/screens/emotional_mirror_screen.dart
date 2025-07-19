@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
-import '../theme/app_theme.dart';
+import '../design_system/design_tokens.dart';
+import '../design_system/component_library.dart';
+import '../design_system/responsive_layout.dart';
 import '../services/emotional_mirror_service.dart';
 import '../widgets/emotional_trend_chart.dart';
 import '../widgets/mood_distribution_chart.dart';
-import '../widgets/loading_state_widget.dart';
+import '../widgets/loading_state_widget.dart' as loading_widget;
 import '../utils/animation_utils.dart';
+import '../utils/iphone_detector.dart';
 
 class EmotionalMirrorScreen extends StatefulWidget {
   const EmotionalMirrorScreen({super.key});
@@ -61,54 +64,19 @@ class _EmotionalMirrorScreenState extends State<EmotionalMirrorScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppTheme.getBackgroundPrimary(context),
-      body: SafeArea(
-        child: RefreshIndicator(
-          onRefresh: _loadEmotionalMirrorData,
-          child: SingleChildScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.all(24.0),
+    return AdaptiveScaffold(
+      backgroundColor: DesignTokens.getBackgroundPrimary(context),
+      body: RefreshIndicator(
+        onRefresh: _loadEmotionalMirrorData,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: ResponsiveContainer(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Header
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: AppTheme.accentYellow,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Icon(
-                        Icons.psychology_rounded,
-                        color: AppTheme.getPrimaryColor(context),
-                        size: 24,
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Emotional Mirror',
-                            style: Theme.of(context).textTheme.headlineLarge,
-                          ),
-                          if (_mirrorData != null)
-                            Text(
-                              'Last 30 days • ${_mirrorData!.totalEntries} entries',
-                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                color: AppTheme.getTextSecondary(context),
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 32),
+                _buildHeader(),
+                AdaptiveSpacing.vertical(baseSize: DesignTokens.spaceXXXL),
                 
                 if (_isLoading)
                   _buildLoadingState()
@@ -119,7 +87,7 @@ class _EmotionalMirrorScreenState extends State<EmotionalMirrorScreen> {
                 else
                   _buildEmptyState(),
                 
-                const SizedBox(height: 100), // Extra space for bottom navigation
+                AdaptiveSpacing.vertical(baseSize: 100), // Extra space for bottom navigation
               ],
             ),
           ),
@@ -128,11 +96,51 @@ class _EmotionalMirrorScreenState extends State<EmotionalMirrorScreen> {
     );
   }
 
+  Widget _buildHeader() {
+    return Row(
+      children: [
+        Container(
+          padding: EdgeInsets.all(iPhoneDetector.getAdaptiveSpacing(context, base: DesignTokens.spaceS)),
+          decoration: BoxDecoration(
+            color: DesignTokens.accentYellow,
+            borderRadius: BorderRadius.circular(DesignTokens.radiusM),
+          ),
+          child: Icon(
+            Icons.psychology_rounded,
+            color: DesignTokens.getPrimaryColor(context),
+            size: iPhoneDetector.getAdaptiveIconSize(context, base: DesignTokens.iconSizeL),
+          ),
+        ),
+        AdaptiveSpacing.horizontal(baseSize: DesignTokens.spaceL),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              ResponsiveText(
+                'Emotional Mirror',
+                baseFontSize: DesignTokens.fontSizeXXXL,
+                fontWeight: DesignTokens.fontWeightBold,
+                color: DesignTokens.getTextPrimary(context),
+              ),
+              if (_mirrorData != null)
+                ResponsiveText(
+                  'Last 30 days • ${_mirrorData!.totalEntries} entries',
+                  baseFontSize: DesignTokens.fontSizeS,
+                  fontWeight: DesignTokens.fontWeightRegular,
+                  color: DesignTokens.getTextSecondary(context),
+                ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
   List<Widget> _buildMirrorContent() {
     return [
       // Mood Overview Card
       _buildMoodOverviewCard(),
-      const SizedBox(height: 24),
+      AdaptiveSpacing.vertical(baseSize: DesignTokens.spaceXXL),
       
       // Emotional Trends Charts
       if (_intensityTrend != null && _intensityTrend!.isNotEmpty) ...[
@@ -141,7 +149,7 @@ class _EmotionalMirrorScreenState extends State<EmotionalMirrorScreen> {
           title: 'Emotional Intensity Trend',
           height: 220,
         ),
-        const SizedBox(height: 24),
+        AdaptiveSpacing.vertical(baseSize: DesignTokens.spaceXXL),
       ],
       
       if (_sentimentTrend != null && _sentimentTrend!.isNotEmpty) ...[
@@ -150,7 +158,7 @@ class _EmotionalMirrorScreenState extends State<EmotionalMirrorScreen> {
           title: 'Sentiment Over Time',
           height: 220,
         ),
-        const SizedBox(height: 24),
+        AdaptiveSpacing.vertical(baseSize: DesignTokens.spaceXXL),
       ],
       
       // Mood Distribution
@@ -161,18 +169,18 @@ class _EmotionalMirrorScreenState extends State<EmotionalMirrorScreen> {
           height: 280,
           showAIMoods: true,
         ),
-        const SizedBox(height: 24),
+        AdaptiveSpacing.vertical(baseSize: DesignTokens.spaceXXL),
       ],
       
       // Emotional Patterns
       if (_mirrorData!.emotionalPatterns.isNotEmpty) ...[
         _buildPatternsCard(),
-        const SizedBox(height: 24),
+        AdaptiveSpacing.vertical(baseSize: DesignTokens.spaceXXL),
       ],
       
       // Self-Awareness Score
       _buildSelfAwarenessCard(),
-      const SizedBox(height: 24),
+      AdaptiveSpacing.vertical(baseSize: DesignTokens.spaceXXL),
       
       // Insights
       if (_mirrorData!.insights.isNotEmpty)
@@ -183,67 +191,66 @@ class _EmotionalMirrorScreenState extends State<EmotionalMirrorScreen> {
   Widget _buildMoodOverviewCard() {
     final overview = _mirrorData!.moodOverview;
     
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: AppTheme.getCardGradient(context),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: Theme.of(context).brightness == Brightness.dark 
-              ? AppTheme.darkBackgroundTertiary 
-              : AppTheme.backgroundTertiary
-        ),
-      ),
+    return ComponentLibrary.gradientCard(
+      gradient: DesignTokens.getCardGradient(context),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
+          ResponsiveText(
             'Mood Overview',
-            style: Theme.of(context).textTheme.headlineSmall,
+            baseFontSize: DesignTokens.fontSizeXL,
+            fontWeight: DesignTokens.fontWeightSemiBold,
+            color: DesignTokens.getTextPrimary(context),
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: DesignTokens.spaceXL),
           
           // Mood balance bar
           Container(
-            height: 8,
+            height: DesignTokens.spaceM,
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(4),
+              borderRadius: BorderRadius.circular(DesignTokens.radiusXS),
               gradient: LinearGradient(
                 colors: _getMoodBalanceColors(overview.moodBalance),
               ),
             ),
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: DesignTokens.spaceXL),
           
           // Dominant moods
           if (overview.dominantMoods.isNotEmpty)
-            Wrap(
-              spacing: 16,
-              runSpacing: 8,
-              children: overview.dominantMoods.take(4).map((mood) {
-                return _buildMoodIndicator(
-                  _formatMoodName(mood), 
-                  _getMoodIcon(mood), 
-                  context
-                );
-              }).toList(),
+            Container(
+              width: double.infinity,
+              child: Wrap(
+                spacing: DesignTokens.spaceXL,
+                runSpacing: DesignTokens.spaceL,
+                alignment: WrapAlignment.center,
+                children: overview.dominantMoods.take(4).map((mood) {
+                  return _buildMoodIndicator(
+                    _formatMoodName(mood), 
+                    _getMoodIcon(mood), 
+                    context
+                  );
+                }).toList(),
+              ),
             ),
           
-          const SizedBox(height: 24),
-          Text(
+          SizedBox(height: DesignTokens.spaceXXXL),
+          ResponsiveText(
             'Your Emotional Balance',
-            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-              fontWeight: FontWeight.w600,
-            ),
+            baseFontSize: DesignTokens.fontSizeL,
+            fontWeight: DesignTokens.fontWeightSemiBold,
+            color: DesignTokens.getTextPrimary(context),
           ),
-          const SizedBox(height: 8),
-          Text(
+          SizedBox(height: DesignTokens.spaceL),
+          ResponsiveText(
             overview.description,
-            style: Theme.of(context).textTheme.bodyMedium,
+            baseFontSize: DesignTokens.fontSizeM,
+            fontWeight: DesignTokens.fontWeightRegular,
+            color: DesignTokens.getTextSecondary(context),
           ),
           
           // Balance metrics
-          const SizedBox(height: 16),
+          SizedBox(height: DesignTokens.spaceXXL),
           Row(
             children: [
               _buildMetricChip(
@@ -251,48 +258,42 @@ class _EmotionalMirrorScreenState extends State<EmotionalMirrorScreen> {
                 _formatBalance(overview.moodBalance),
                 _getBalanceColor(overview.moodBalance),
               ),
-              const SizedBox(width: 12),
+              SizedBox(width: DesignTokens.spaceL),
               _buildMetricChip(
                 'Variety', 
                 '${(overview.emotionalVariety * 100).round()}%',
-                AppTheme.getPrimaryColor(context),
+                DesignTokens.getPrimaryColor(context),
               ),
             ],
           ),
+          SizedBox(height: DesignTokens.spaceL), // Extra bottom padding
         ],
       ),
     );
   }
 
   Widget _buildPatternsCard() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: AppTheme.getCardGradient(context),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: Theme.of(context).brightness == Brightness.dark 
-              ? AppTheme.darkBackgroundTertiary 
-              : AppTheme.backgroundTertiary
-        ),
-      ),
+    return ComponentLibrary.gradientCard(
+      gradient: DesignTokens.getCardGradient(context),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
+          ResponsiveText(
             'Emotional Patterns',
-            style: Theme.of(context).textTheme.headlineSmall,
+            baseFontSize: DesignTokens.fontSizeXL,
+            fontWeight: DesignTokens.fontWeightSemiBold,
+            color: DesignTokens.getTextPrimary(context),
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: DesignTokens.spaceXL),
           
           ...(_mirrorData!.emotionalPatterns.take(3).map((pattern) {
             return Padding(
-              padding: const EdgeInsets.only(bottom: 16),
+              padding: EdgeInsets.only(bottom: DesignTokens.spaceXL),
               child: Container(
-                padding: const EdgeInsets.all(16),
+                padding: EdgeInsets.all(DesignTokens.spaceL),
                 decoration: BoxDecoration(
                   color: _getPatternColor(pattern.type).withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(DesignTokens.radiusM),
                   border: Border.all(
                     color: _getPatternColor(pattern.type).withOpacity(0.3),
                   ),
@@ -305,29 +306,32 @@ class _EmotionalMirrorScreenState extends State<EmotionalMirrorScreen> {
                         Icon(
                           _getPatternIcon(pattern.type),
                           color: _getPatternColor(pattern.type),
-                          size: 20,
+                          size: DesignTokens.iconSizeM,
                         ),
-                        const SizedBox(width: 8),
+                        SizedBox(width: DesignTokens.spaceL),
                         Expanded(
-                          child: Text(
+                          child: ResponsiveText(
                             pattern.title,
-                            style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                              fontWeight: FontWeight.w600,
-                            ),
+                            baseFontSize: DesignTokens.fontSizeM,
+                            fontWeight: DesignTokens.fontWeightSemiBold,
+                            color: DesignTokens.getTextPrimary(context),
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 8),
-                    Text(
+                    SizedBox(height: DesignTokens.spaceL),
+                    ResponsiveText(
                       pattern.description,
-                      style: Theme.of(context).textTheme.bodySmall,
+                      baseFontSize: DesignTokens.fontSizeS,
+                      fontWeight: DesignTokens.fontWeightRegular,
+                      color: DesignTokens.getTextSecondary(context),
                     ),
                   ],
                 ),
               ),
             );
           }).toList()),
+          SizedBox(height: DesignTokens.spaceL), // Extra bottom padding
         ],
       ),
     );
@@ -337,93 +341,80 @@ class _EmotionalMirrorScreenState extends State<EmotionalMirrorScreen> {
     final score = _mirrorData!.selfAwarenessScore;
     final percentage = (score * 100).round();
     
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: AppTheme.getCardGradient(context),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: Theme.of(context).brightness == Brightness.dark 
-              ? AppTheme.darkBackgroundTertiary 
-              : AppTheme.backgroundTertiary
-        ),
-      ),
-      child: Row(
+    return ComponentLibrary.gradientCard(
+      gradient: DesignTokens.getCardGradient(context),
+      child: Column(
         children: [
-          Container(
-            width: 80,
-            height: 80,
-            decoration: BoxDecoration(
-              color: AppTheme.primaryLight,
-              borderRadius: BorderRadius.circular(40),
-            ),
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                SizedBox(
-                  width: 60,
-                  height: 60,
-                  child: CircularProgressIndicator(
-                    value: score,
-                    backgroundColor: Colors.white.withOpacity(0.3),
-                    valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
-                    strokeWidth: 4,
-                  ),
+          Row(
+            children: [
+              Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  color: DesignTokens.getPrimaryColor(context),
+                  borderRadius: BorderRadius.circular(40),
                 ),
-                Text(
-                  '$percentage%',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    SizedBox(
+                      width: 60,
+                      height: 60,
+                      child: CircularProgressIndicator(
+                        value: score,
+                        backgroundColor: Colors.white.withOpacity(0.3),
+                        valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
+                        strokeWidth: 4,
+                      ),
+                    ),
+                    ResponsiveText(
+                      '$percentage%',
+                      baseFontSize: 16,
+                      fontWeight: DesignTokens.fontWeightBold,
+                      color: Colors.white,
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+              SizedBox(width: DesignTokens.spaceXL),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    ResponsiveText(
+                      'Self-Awareness Score',
+                      baseFontSize: DesignTokens.fontSizeL,
+                      fontWeight: DesignTokens.fontWeightSemiBold,
+                      color: DesignTokens.getTextPrimary(context),
+                    ),
+                    SizedBox(height: DesignTokens.spaceL),
+                    ResponsiveText(
+                      _getSelfAwarenessDescription(score),
+                      baseFontSize: DesignTokens.fontSizeM,
+                      fontWeight: DesignTokens.fontWeightRegular,
+                      color: DesignTokens.getTextSecondary(context),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Self-Awareness Score',
-                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  _getSelfAwarenessDescription(score),
-                  style: Theme.of(context).textTheme.bodyMedium,
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Based on ${_mirrorData!.analyzedEntries} analyzed entries',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppTheme.getTextSecondary(context),
-                  ),
-                ),
-              ],
-            ),
+          SizedBox(height: DesignTokens.spaceXL),
+          ResponsiveText(
+            'Based on ${_mirrorData!.analyzedEntries} analyzed entries',
+            baseFontSize: DesignTokens.fontSizeS,
+            fontWeight: DesignTokens.fontWeightRegular,
+            color: DesignTokens.getTextTertiary(context),
           ),
+          SizedBox(height: DesignTokens.spaceL), // Extra bottom padding
         ],
       ),
     );
   }
 
   Widget _buildInsightsCard() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: AppTheme.getCardGradient(context),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: Theme.of(context).brightness == Brightness.dark 
-              ? AppTheme.darkBackgroundTertiary 
-              : AppTheme.backgroundTertiary
-        ),
-      ),
+    return ComponentLibrary.gradientCard(
+      gradient: DesignTokens.getCardGradient(context),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -431,43 +422,51 @@ class _EmotionalMirrorScreenState extends State<EmotionalMirrorScreen> {
             children: [
               Icon(
                 Icons.lightbulb_outline,
-                color: AppTheme.getPrimaryColor(context),
-                size: 24,
+                color: DesignTokens.getPrimaryColor(context),
+                size: DesignTokens.iconSizeL,
               ),
-              const SizedBox(width: 8),
-              Text(
+              SizedBox(width: DesignTokens.spaceL),
+              ResponsiveText(
                 'Personal Insights',
-                style: Theme.of(context).textTheme.headlineSmall,
+                baseFontSize: DesignTokens.fontSizeXL,
+                fontWeight: DesignTokens.fontWeightSemiBold,
+                color: DesignTokens.getTextPrimary(context),
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: DesignTokens.spaceXL),
           
           ...(_mirrorData!.insights.map((insight) {
             return Padding(
-              padding: const EdgeInsets.only(bottom: 12),
+              padding: EdgeInsets.only(bottom: DesignTokens.spaceL),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Container(
                     width: 6,
                     height: 6,
-                    margin: const EdgeInsets.only(top: 8, right: 12),
+                    margin: EdgeInsets.only(
+                      top: DesignTokens.spaceS, 
+                      right: DesignTokens.spaceL
+                    ),
                     decoration: BoxDecoration(
-                      color: AppTheme.getPrimaryColor(context),
+                      color: DesignTokens.getPrimaryColor(context),
                       shape: BoxShape.circle,
                     ),
                   ),
                   Expanded(
-                    child: Text(
+                    child: ResponsiveText(
                       insight,
-                      style: Theme.of(context).textTheme.bodyMedium,
+                      baseFontSize: DesignTokens.fontSizeM,
+                      fontWeight: DesignTokens.fontWeightRegular,
+                      color: DesignTokens.getTextSecondary(context),
                     ),
                   ),
                 ],
               ),
             );
           }).toList()),
+          SizedBox(height: DesignTokens.spaceL), // Extra bottom padding
         ],
       ),
     );
@@ -476,12 +475,12 @@ class _EmotionalMirrorScreenState extends State<EmotionalMirrorScreen> {
   Widget _buildLoadingState() {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(32.0),
-        child: LoadingStateWidget(
-          type: LoadingType.wave,
+        padding: iPhoneDetector.getAdaptivePadding(context, compact: 24, regular: 32, large: 40),
+        child: loading_widget.LoadingStateWidget(
+          type: loading_widget.LoadingType.wave,
           message: 'Analyzing your emotional patterns...',
-          color: AppTheme.getPrimaryColor(context),
-          size: 48,
+          color: DesignTokens.getPrimaryColor(context),
+          size: iPhoneDetector.getAdaptiveIconSize(context, base: 48),
         ),
       ),
     );
@@ -494,26 +493,30 @@ class _EmotionalMirrorScreenState extends State<EmotionalMirrorScreen> {
         children: [
           Icon(
             Icons.error_outline,
-            size: 64,
-            color: AppTheme.getTextSecondary(context),
+            size: iPhoneDetector.getAdaptiveIconSize(context, base: 64),
+            color: DesignTokens.getTextTertiary(context),
           ),
-          const SizedBox(height: 16),
-          Text(
+          AdaptiveSpacing.vertical(baseSize: DesignTokens.spaceL),
+          ResponsiveText(
             'Unable to load emotional mirror',
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            _error ?? 'An unexpected error occurred',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: AppTheme.getTextSecondary(context),
-            ),
+            baseFontSize: DesignTokens.fontSizeL,
+            fontWeight: DesignTokens.fontWeightSemiBold,
+            color: DesignTokens.getTextPrimary(context),
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 16),
-          ElevatedButton(
+          AdaptiveSpacing.vertical(baseSize: DesignTokens.spaceS),
+          ResponsiveText(
+            _error ?? 'An unexpected error occurred',
+            baseFontSize: DesignTokens.fontSizeM,
+            fontWeight: DesignTokens.fontWeightRegular,
+            color: DesignTokens.getTextSecondary(context),
+            textAlign: TextAlign.center,
+          ),
+          AdaptiveSpacing.vertical(baseSize: DesignTokens.spaceL),
+          AdaptiveButton(
+            text: 'Retry',
             onPressed: _loadEmotionalMirrorData,
-            child: const Text('Retry'),
+            type: ButtonType.primary,
           ),
         ],
       ),
@@ -527,20 +530,23 @@ class _EmotionalMirrorScreenState extends State<EmotionalMirrorScreen> {
         children: [
           Icon(
             Icons.psychology_outlined,
-            size: 64,
-            color: AppTheme.getTextSecondary(context),
+            size: iPhoneDetector.getAdaptiveIconSize(context, base: 64),
+            color: DesignTokens.getTextTertiary(context),
           ),
-          const SizedBox(height: 16),
-          Text(
+          AdaptiveSpacing.vertical(baseSize: DesignTokens.spaceL),
+          ResponsiveText(
             'Your Emotional Mirror',
-            style: Theme.of(context).textTheme.titleLarge,
+            baseFontSize: DesignTokens.fontSizeXL,
+            fontWeight: DesignTokens.fontWeightSemiBold,
+            color: DesignTokens.getTextPrimary(context),
+            textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 8),
-          Text(
+          AdaptiveSpacing.vertical(baseSize: DesignTokens.spaceS),
+          ResponsiveText(
             'Start journaling to see your emotional patterns and insights unfold here.',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: AppTheme.getTextSecondary(context),
-            ),
+            baseFontSize: DesignTokens.fontSizeM,
+            fontWeight: DesignTokens.fontWeightRegular,
+            color: DesignTokens.getTextSecondary(context),
             textAlign: TextAlign.center,
           ),
         ],
@@ -551,15 +557,17 @@ class _EmotionalMirrorScreenState extends State<EmotionalMirrorScreen> {
   Widget _buildMoodIndicator(String label, IconData icon, BuildContext context) {
     return Column(
       children: [
-        Icon(icon, color: AppTheme.getPrimaryColor(context), size: 20),
-        const SizedBox(height: 4),
-        Text(
+        Icon(
+          icon, 
+          color: DesignTokens.getPrimaryColor(context), 
+          size: iPhoneDetector.getAdaptiveIconSize(context, base: DesignTokens.iconSizeM)
+        ),
+        AdaptiveSpacing.vertical(baseSize: DesignTokens.spaceXS),
+        ResponsiveText(
           label,
-          style: AppTheme.getTextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w400,
-            color: AppTheme.getTextSecondary(context),
-          ),
+          baseFontSize: DesignTokens.fontSizeS,
+          fontWeight: DesignTokens.fontWeightRegular,
+          color: DesignTokens.getTextTertiary(context),
         ),
       ],
     );
@@ -567,29 +575,30 @@ class _EmotionalMirrorScreenState extends State<EmotionalMirrorScreen> {
 
   Widget _buildMetricChip(String label, String value, Color color) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      padding: EdgeInsets.symmetric(
+        horizontal: iPhoneDetector.getAdaptiveSpacing(context, base: DesignTokens.spaceM),
+        vertical: iPhoneDetector.getAdaptiveSpacing(context, base: DesignTokens.spaceS),
+      ),
       decoration: BoxDecoration(
         color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(DesignTokens.radiusL),
         border: Border.all(color: color.withOpacity(0.3)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(
+          ResponsiveText(
             label,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: color,
-              fontWeight: FontWeight.w500,
-            ),
+            baseFontSize: DesignTokens.fontSizeS,
+            fontWeight: DesignTokens.fontWeightMedium,
+            color: color,
           ),
-          const SizedBox(width: 4),
-          Text(
+          AdaptiveSpacing.horizontal(baseSize: DesignTokens.spaceXS),
+          ResponsiveText(
             value,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: color,
-              fontWeight: FontWeight.bold,
-            ),
+            baseFontSize: DesignTokens.fontSizeS,
+            fontWeight: DesignTokens.fontWeightBold,
+            color: color,
           ),
         ],
       ),
@@ -635,17 +644,17 @@ class _EmotionalMirrorScreenState extends State<EmotionalMirrorScreen> {
   }
 
   Color _getBalanceColor(double balance) {
-    if (balance > 0.3) return Colors.green;
-    if (balance < -0.3) return Colors.orange;
-    return Colors.blue;
+    if (balance > 0.3) return DesignTokens.successColor;
+    if (balance < -0.3) return DesignTokens.warningColor;
+    return DesignTokens.getPrimaryColor(context);
   }
 
   Color _getPatternColor(String type) {
     switch (type) {
-      case 'growth': return Colors.green;
-      case 'recurring': return Colors.blue;
+      case 'growth': return DesignTokens.successColor;
+      case 'recurring': return DesignTokens.getPrimaryColor(context);
       case 'awareness': return Colors.purple;
-      default: return AppTheme.primaryLight;
+      default: return DesignTokens.getPrimaryColor(context);
     }
   }
 

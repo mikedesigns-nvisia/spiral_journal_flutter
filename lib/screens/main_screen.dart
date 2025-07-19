@@ -7,6 +7,8 @@ import 'package:spiral_journal/screens/settings_screen.dart';
 import 'package:spiral_journal/design_system/design_tokens.dart';
 import 'package:spiral_journal/design_system/responsive_layout.dart';
 import 'package:spiral_journal/utils/iphone_detector.dart';
+import 'package:spiral_journal/services/navigation_service.dart';
+import 'package:spiral_journal/theme/app_theme.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -17,6 +19,21 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> {
   int _currentIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    // Set up the navigation service callback
+    NavigationService.instance.setTabChangeCallback(_switchToTab);
+  }
+
+  void _switchToTab(int index) {
+    if (index >= 0 && index < _screens.length) {
+      setState(() {
+        _currentIndex = index;
+      });
+    }
+  }
 
   final List<Widget> _screens = [
     const JournalScreen(),
@@ -51,21 +68,26 @@ class _MainScreenState extends State<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return AdaptiveScaffold(
-      backgroundColor: DesignTokens.getBackgroundPrimary(context),
-      padding: EdgeInsets.zero, // Let individual screens handle their own padding
-      body: _screens[_currentIndex],
-      bottomNavigationBar: AdaptiveBottomNavigation(
-        currentIndex: _currentIndex,
-        onTap: (index) {
-          setState(() {
-            _currentIndex = index;
-          });
-        },
-        items: _getAdaptiveNavItems(context),
-        backgroundColor: DesignTokens.getBackgroundPrimary(context),
-        selectedItemColor: DesignTokens.getPrimaryColor(context),
-        unselectedItemColor: DesignTokens.getTextTertiary(context),
+    return Container(
+      decoration: BoxDecoration(
+        gradient: AppTheme.getPrimaryGradient(context),
+      ),
+      child: AdaptiveScaffold(
+        backgroundColor: Colors.transparent,
+        padding: EdgeInsets.zero, // Let individual screens handle their own padding
+        body: _screens[_currentIndex],
+        bottomNavigationBar: AdaptiveBottomNavigation(
+          currentIndex: _currentIndex,
+          onTap: (index) {
+            setState(() {
+              _currentIndex = index;
+            });
+          },
+          items: _getAdaptiveNavItems(context),
+          backgroundColor: Colors.transparent,
+          selectedItemColor: DesignTokens.getPrimaryColor(context),
+          unselectedItemColor: DesignTokens.getTextTertiary(context),
+        ),
       ),
     );
   }

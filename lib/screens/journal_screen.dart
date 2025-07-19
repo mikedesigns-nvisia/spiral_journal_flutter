@@ -2,15 +2,21 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:spiral_journal/theme/app_theme.dart';
+import 'package:spiral_journal/design_system/design_tokens.dart';
+import 'package:spiral_journal/design_system/component_library.dart';
+import 'package:spiral_journal/design_system/responsive_layout.dart';
 import 'package:spiral_journal/widgets/mood_selector.dart';
 import 'package:spiral_journal/widgets/journal_input.dart';
 import 'package:spiral_journal/widgets/mind_reflection_card.dart';
 import 'package:spiral_journal/widgets/your_cores_card.dart';
+import 'package:spiral_journal/widgets/compact_analysis_counter.dart';
 import 'package:spiral_journal/providers/journal_provider.dart';
 import 'package:spiral_journal/providers/core_provider.dart';
 import 'package:spiral_journal/models/journal_entry.dart';
 import 'package:spiral_journal/services/ai_service_manager.dart';
+import 'package:spiral_journal/services/profile_service.dart';
+import 'package:spiral_journal/services/journal_service.dart';
+import 'package:spiral_journal/theme/app_theme.dart';
 import 'package:intl/intl.dart';
 
 class JournalScreen extends StatefulWidget {
@@ -28,11 +34,13 @@ class _JournalScreenState extends State<JournalScreen> {
   bool _isAnalyzing = false;
   String? _draftContent;
   String? _analysisInsight;
+  String _userName = 'there'; // Default fallback name
 
   @override
   void initState() {
     super.initState();
     _loadDraftContent();
+    _loadUserName();
   }
 
   @override
@@ -99,6 +107,22 @@ class _JournalScreenState extends State<JournalScreen> {
     }
   }
 
+  Future<void> _loadUserName() async {
+    try {
+      final profileService = ProfileService();
+      final displayName = await profileService.getDisplayName();
+      
+      if (mounted) {
+        setState(() {
+          _userName = displayName;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading user name: $e');
+      // Keep default fallback name 'there'
+    }
+  }
+
   void _showDraftRecoveryDialog(String draftContent) {
     showDialog(
       context: context,
@@ -114,10 +138,10 @@ class _JournalScreenState extends State<JournalScreen> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: AppTheme.getColorWithOpacity(AppTheme.backgroundTertiary, 0.5),
+                  color: DesignTokens.getColorWithOpacity(DesignTokens.getBackgroundTertiary(context), 0.5),
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(
-                    color: AppTheme.getColorWithOpacity(AppTheme.getPrimaryColor(context), 0.3),
+                    color: DesignTokens.getColorWithOpacity(DesignTokens.getPrimaryColor(context), 0.3),
                   ),
                 ),
                 child: Text(
@@ -161,7 +185,7 @@ class _JournalScreenState extends State<JournalScreen> {
             children: [
               Icon(
                 Icons.psychology_rounded,
-                color: AppTheme.getPrimaryColor(context),
+                color: DesignTokens.getPrimaryColor(context),
               ),
               const SizedBox(width: 8),
               const Text('AI Analysis'),
@@ -202,7 +226,7 @@ class _JournalScreenState extends State<JournalScreen> {
                       return Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
-                          color: AppTheme.getMoodColor(emotion),
+                          color: DesignTokens.getMoodColor(emotion),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Text(
@@ -234,7 +258,7 @@ class _JournalScreenState extends State<JournalScreen> {
                           Icon(
                             Icons.circle,
                             size: 6,
-                            color: AppTheme.getTextSecondary(context),
+                            color: DesignTokens.getTextSecondary(context),
                           ),
                           const SizedBox(width: 8),
                           Expanded(
@@ -408,9 +432,9 @@ class _JournalScreenState extends State<JournalScreen> {
   Future<void> _saveEntry() async {
     if (_journalController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please write something before saving!'),
-          backgroundColor: AppTheme.accentRed,
+        SnackBar(
+          content: const Text('Please write something before saving!'),
+          backgroundColor: DesignTokens.errorColor,
         ),
       );
       return;
@@ -418,9 +442,41 @@ class _JournalScreenState extends State<JournalScreen> {
 
     if (_selectedMoods.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please select at least one mood!'),
-          backgroundColor: AppTheme.accentRed,
+        SnackBar(
+          content: const Text('Please select at least one mood!'),
+          backgroundColor: DesignTokens.errorColor,
+        ),
+      );
+      return;
+    }
+
+    // Phase 5: Check 24-hour entry limit
+    final journalService = JournalService();
+    final canCreateEntry = await journalService.canCreateEntryToday();
+    
+    if (!canCreateEntry) {
+      final todaysEntry = await journalService.getTodaysEntry();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'You\'ve already created an entry today! Come back tomorrow to continue your journey.',
+          ),
+          backgroundColor: DesignTokens.warningColor,
+          duration: const Duration(seconds: 4),
+          action: todaysEntry != null 
+              ? SnackBarAction(
+                  label: 'View Today\'s Entry',
+                  onPressed: () {
+                    // Navigate to journal history or show today's entry
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Today\'s entry: "${todaysEntry.content.length > 50 ? todaysEntry.content.substring(0, 50) + '...' : todaysEntry.content}"'),
+                        duration: const Duration(seconds: 3),
+                      ),
+                    );
+                  },
+                )
+              : null,
         ),
       );
       return;
@@ -501,114 +557,122 @@ class _JournalScreenState extends State<JournalScreen> {
     final now = DateTime.now();
     final dateFormatter = DateFormat('EEEE, MMMM d');
 
-    return Scaffold(
-      backgroundColor: AppTheme.getBackgroundPrimary(context),
+    return AdaptiveScaffold(
+      backgroundColor: DesignTokens.getBackgroundPrimary(context),
+      padding: EdgeInsets.zero, // Remove default padding to avoid double padding
       body: Container(
         decoration: BoxDecoration(
-          gradient: AppTheme.getPrimaryGradient(context),
+          gradient: DesignTokens.getPrimaryGradient(context),
         ),
-        child: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Header with app title and date
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: AppTheme.accentYellow,
-                            borderRadius: BorderRadius.circular(12),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header with app title, date, and analysis counter
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: DesignTokens.getColorWithOpacity(
+                            DesignTokens.getPrimaryColor(context), 
+                            0.15
                           ),
-                          child: Icon(
-                            Icons.auto_stories_rounded,
-                            color: AppTheme.getPrimaryColor(context),
-                            size: 24,
-                          ),
+                          borderRadius: BorderRadius.circular(12),
                         ),
-                        const SizedBox(width: 16),
-                        Text(
-                          'Spiral Journal',
-                          style: Theme.of(context).textTheme.headlineLarge,
+                        child: Icon(
+                          Icons.auto_stories_rounded,
+                          color: DesignTokens.getPrimaryColor(context),
+                          size: 24,
                         ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      dateFormatter.format(now),
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: AppTheme.getTextTertiary(context),
                       ),
-                    ),
-                  ],
-                ),
-                
-                const SizedBox(height: 32),
-                
-                // Greeting
-                Text(
-                  'Hi Kenzie, How are you feeling today?',
-                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                    color: AppTheme.getTextPrimary(context),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: ResponsiveText(
+                          'Spiral Journal',
+                          baseFontSize: DesignTokens.fontSizeXXXL,
+                          fontWeight: DesignTokens.fontWeightBold,
+                          color: DesignTokens.getTextPrimary(context),
+                        ),
+                      ),
+                      // Compact Analysis Counter aligned with title
+                      const CompactAnalysisCounter(),
+                    ],
                   ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                
-                const SizedBox(height: 24),
-                
-                // Mood Selector
-                MoodSelector(
-                  selectedMoods: _selectedMoods,
-                  onMoodChanged: (moods) {
-                    setState(() {
-                      _selectedMoods.clear();
-                      _selectedMoods.addAll(moods);
-                    });
-                  },
-                  aiDetectedMoods: _aiDetectedMoods,
-                  isAnalyzing: _isAnalyzing,
-                  onAcceptAIMoods: _aiDetectedMoods.isNotEmpty ? _acceptAllAIMoods : null,
-                ),
-                
-                const SizedBox(height: 24),
-                
-                // Journal Input
-                Consumer<JournalProvider>(
-                  builder: (context, journalProvider, child) {
-                    return JournalInput(
-                      controller: _journalController,
-                      onChanged: (text) {
-                        // Handle text changes if needed
-                      },
-                      onSave: _saveEntry,
-                      isSaving: journalProvider.isLoading,
-                      isAnalyzing: _isAnalyzing,
-                      onAutoSave: _saveDraftContent,
-                      onTriggerAnalysis: _triggerAIAnalysis,
-                      draftContent: _draftContent,
-                    );
-                  },
-                ),
-                
-                const SizedBox(height: 24),
-                
-                // Mind Reflection Card
-                const MindReflectionCard(),
-                
-                const SizedBox(height: 24),
-                
-                // Your Cores Card
-                const YourCoresCard(),
-                
-                const SizedBox(height: 100), // Extra space for bottom navigation
-              ],
-            ),
+                  const SizedBox(height: 8),
+                  ResponsiveText(
+                    dateFormatter.format(now),
+                    baseFontSize: DesignTokens.fontSizeM,
+                    fontWeight: DesignTokens.fontWeightRegular,
+                    color: DesignTokens.getTextTertiary(context),
+                  ),
+                ],
+              ),
+              
+              const SizedBox(height: 32),
+              
+              // Greeting
+              ResponsiveText(
+                'Hi $_userName, how are you feeling today?',
+                baseFontSize: DesignTokens.fontSizeXXL,
+                fontWeight: DesignTokens.fontWeightSemiBold,
+                color: DesignTokens.getTextPrimary(context),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+              
+              const SizedBox(height: 24),
+              
+              // Mood Selector
+              MoodSelector(
+                selectedMoods: _selectedMoods,
+                onMoodChanged: (moods) {
+                  setState(() {
+                    _selectedMoods.clear();
+                    _selectedMoods.addAll(moods);
+                  });
+                },
+                aiDetectedMoods: _aiDetectedMoods,
+                isAnalyzing: _isAnalyzing,
+                onAcceptAIMoods: _aiDetectedMoods.isNotEmpty ? _acceptAllAIMoods : null,
+              ),
+              
+              const SizedBox(height: 24),
+              
+              // Journal Input
+              Consumer<JournalProvider>(
+                builder: (context, journalProvider, child) {
+                  return JournalInput(
+                    controller: _journalController,
+                    onChanged: (text) {
+                      // Handle text changes if needed
+                    },
+                    onSave: _saveEntry,
+                    isSaving: journalProvider.isLoading,
+                    isAnalyzing: _isAnalyzing,
+                    onAutoSave: _saveDraftContent,
+                    onTriggerAnalysis: _triggerAIAnalysis,
+                    draftContent: _draftContent,
+                  );
+                },
+              ),
+              
+              const SizedBox(height: 24),
+              
+              // Mind Reflection Card
+              const MindReflectionCard(),
+              
+              const SizedBox(height: 24),
+              
+              // Your Cores Card
+              const YourCoresCard(),
+              
+              const SizedBox(height: 100), // Extra space for bottom navigation
+            ],
           ),
         ),
       ),

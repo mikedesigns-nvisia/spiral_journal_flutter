@@ -110,7 +110,10 @@ class _CoreLibraryScreenState extends State<CoreLibraryScreen> with TickerProvid
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: AppTheme.accentYellow,
+                color: AppTheme.getColorWithOpacity(
+                  AppTheme.getPrimaryColor(context), 
+                  0.15
+                ),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(
@@ -149,7 +152,7 @@ class _CoreLibraryScreenState extends State<CoreLibraryScreen> with TickerProvid
         gradient: LinearGradient(
           colors: [
             AppTheme.getPrimaryColor(context).withOpacity(0.1),
-            AppTheme.accentYellow.withOpacity(0.1),
+            AppTheme.getPrimaryColor(context).withOpacity(0.05),
           ],
         ),
         borderRadius: BorderRadius.circular(16),
@@ -245,7 +248,7 @@ class _CoreLibraryScreenState extends State<CoreLibraryScreen> with TickerProvid
             crossAxisCount: 2,
             crossAxisSpacing: 16,
             mainAxisSpacing: 16,
-            childAspectRatio: 0.85,
+            childAspectRatio: 1.1, // Further increased to give much more height
           ),
           itemCount: _cores.length,
           itemBuilder: (context, index) {
@@ -262,7 +265,7 @@ class _CoreLibraryScreenState extends State<CoreLibraryScreen> with TickerProvid
     return GestureDetector(
       onTap: () => _showCoreDetail(core),
       child: Container(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: AppTheme.getBackgroundSecondary(context),
           borderRadius: BorderRadius.circular(16),
@@ -272,17 +275,19 @@ class _CoreLibraryScreenState extends State<CoreLibraryScreen> with TickerProvid
           ),
         ),
         child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             // Progress Circle
             SizedBox(
-              width: 80,
-              height: 80,
+              width: 70,
+              height: 70,
               child: Stack(
                 children: [
                   // Background circle
                   Container(
-                    width: 80,
-                    height: 80,
+                    width: 70,
+                    height: 70,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       color: color.withOpacity(0.1),
@@ -290,11 +295,11 @@ class _CoreLibraryScreenState extends State<CoreLibraryScreen> with TickerProvid
                   ),
                   // Progress circle
                   CustomPaint(
-                    size: const Size(80, 80),
+                    size: const Size(70, 70),
                     painter: CircularProgressPainter(
                       progress: core.currentLevel,
                       color: color,
-                      strokeWidth: 6,
+                      strokeWidth: 5,
                     ),
                   ),
                   // Center content
@@ -305,14 +310,15 @@ class _CoreLibraryScreenState extends State<CoreLibraryScreen> with TickerProvid
                         Icon(
                           _getCoreIcon(core.id),
                           color: color,
-                          size: 24,
+                          size: 22,
                         ),
-                        const SizedBox(height: 4),
+                        const SizedBox(height: 2),
                         Text(
                           '${(core.currentLevel * 100).round()}%',
                           style: Theme.of(context).textTheme.bodySmall?.copyWith(
                             fontWeight: FontWeight.w600,
                             color: color,
+                            fontSize: 10,
                           ),
                         ),
                       ],
@@ -321,35 +327,12 @@ class _CoreLibraryScreenState extends State<CoreLibraryScreen> with TickerProvid
                 ],
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
+            // Core name only
             Text(
               core.name,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              style: Theme.of(context).textTheme.titleSmall?.copyWith(
                 fontWeight: FontWeight.w600,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: _getTrendColor(core.trend).withOpacity(0.1),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(
-                core.trend.toUpperCase(),
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: _getTrendColor(core.trend),
-                  fontWeight: FontWeight.w600,
-                  fontSize: 10,
-                ),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              core.description,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: AppTheme.getTextSecondary(context),
               ),
               textAlign: TextAlign.center,
               maxLines: 2,
@@ -392,7 +375,7 @@ class _CoreLibraryScreenState extends State<CoreLibraryScreen> with TickerProvid
         color: AppTheme.getBackgroundSecondary(context),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: AppTheme.accentYellow.withOpacity(0.3),
+          color: AppTheme.getPrimaryColor(context).withOpacity(0.3),
           width: 1,
         ),
       ),
@@ -403,7 +386,7 @@ class _CoreLibraryScreenState extends State<CoreLibraryScreen> with TickerProvid
             children: [
               Icon(
                 Icons.auto_awesome,
-                color: AppTheme.accentYellow,
+                color: AppTheme.getPrimaryColor(context),
                 size: 20,
               ),
               const SizedBox(width: 8),
@@ -424,7 +407,7 @@ class _CoreLibraryScreenState extends State<CoreLibraryScreen> with TickerProvid
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: AppTheme.accentYellow.withOpacity(0.1),
+              color: AppTheme.getPrimaryColor(context).withOpacity(0.1),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Text(

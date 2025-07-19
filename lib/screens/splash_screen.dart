@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:spiral_journal/theme/app_theme.dart';
+import 'package:spiral_journal/widgets/app_background.dart';
 
 class SplashScreen extends StatefulWidget {
   final Duration displayDuration;
@@ -68,83 +69,85 @@ class _SplashScreenState extends State<SplashScreen> {
     // Add debug logging
     debugPrint('SplashScreen: Building splash screen widget');
     
-    return Scaffold(
-      backgroundColor: AppTheme.getBackgroundPrimary(context),
-      body: SafeArea(
-        child: GestureDetector(
-          onTap: _handleTap,
-          child: Padding(
-            padding: const EdgeInsets.all(32.0),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                // Main app title
-                Text(
-                  'Spiral Journal',
-                  style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-                    fontSize: 32,
-                    fontWeight: FontWeight.w700,
-                    color: AppTheme.getPrimaryColor(context),
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                
-                const SizedBox(height: 16),
-                
-                // Optional tagline
-                Text(
-                  'AI-powered personal growth through journaling',
-                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                    color: AppTheme.getTextSecondary(context),
-                    fontSize: 16,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                
-                const Spacer(),
-                
-                // Attribution section
-                Column(
-                  children: [
-                    // Powered by Anthropic
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          'Powered by ',
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: AppTheme.getTextTertiary(context),
-                            fontSize: 12,
-                          ),
-                        ),
-                        Text(
-                          'Anthropic',
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: AppTheme.getPrimaryColor(context),
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ],
+    return AppBackground(
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        body: SafeArea(
+          child: GestureDetector(
+            onTap: _handleTap,
+            child: Padding(
+              padding: const EdgeInsets.all(32.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  // Main app title
+                  Text(
+                    'Spiral Journal',
+                    style: Theme.of(context).textTheme.headlineLarge?.copyWith(
+                      fontSize: 32,
+                      fontWeight: FontWeight.w700,
+                      color: AppTheme.getPrimaryColor(context),
                     ),
-                    
-                    const SizedBox(height: 8),
-                    
-                    // Made by Mike
-                    Text(
-                      'Made by Mike',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppTheme.getTextTertiary(context),
-                        fontSize: 12,
+                    textAlign: TextAlign.center,
+                  ),
+                  
+                  const SizedBox(height: 16),
+                  
+                  // Optional tagline
+                  Text(
+                    'AI-powered personal growth through journaling',
+                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                      color: AppTheme.getTextSecondary(context),
+                      fontSize: 16,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  
+                  const Spacer(),
+                  
+                  // Attribution section
+                  Column(
+                    children: [
+                      // Powered by Anthropic
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            'Powered by ',
+                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: AppTheme.getTextTertiary(context),
+                              fontSize: 12,
+                            ),
+                          ),
+                          Text(
+                            'Anthropic',
+                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: AppTheme.getPrimaryColor(context),
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
                       ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
-                ),
-                
-                const SizedBox(height: 32),
-              ],
+                      
+                      const SizedBox(height: 8),
+                      
+                      // Made by Mike
+                      Text(
+                        'Made by Mike',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: AppTheme.getTextTertiary(context),
+                          fontSize: 12,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
+                  
+                  const SizedBox(height: 32),
+                ],
+              ),
             ),
           ),
         ),

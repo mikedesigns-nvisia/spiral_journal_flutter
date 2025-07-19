@@ -134,77 +134,116 @@ class _JournalHistoryScreenState extends State<JournalHistoryScreen> {
   }
 
   Widget _buildEntryCard(JournalEntry entry) {
-    return Card(
-      child: InkWell(
-        onTap: () {
-          AnimationUtils.lightImpact();
-          _showEntryDetails(entry);
-        },
-        borderRadius: BorderRadius.circular(16),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        DateFormat('MMM d').format(entry.date),
-                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                          fontWeight: FontWeight.w600,
+    return Dismissible(
+      key: Key('journal_entry_${entry.id}'),
+      direction: DismissDirection.endToStart,
+      background: Container(
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 20),
+        decoration: BoxDecoration(
+          color: AppTheme.accentRed,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Theme.of(context).brightness == Brightness.dark 
+                  ? Icons.delete_outline 
+                  : Icons.delete_rounded,
+              color: Colors.white,
+              size: 28,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Delete',
+              style: AppTheme.getTextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: Colors.white,
+              ),
+            ),
+          ],
+        ),
+      ),
+      confirmDismiss: (direction) async {
+        return await _showDeleteConfirmation(entry);
+      },
+      onDismissed: (direction) {
+        _deleteEntry(entry);
+      },
+      child: Card(
+        child: InkWell(
+          onTap: () {
+            AnimationUtils.lightImpact();
+            _showEntryDetails(entry);
+          },
+          borderRadius: BorderRadius.circular(16),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          DateFormat('MMM d').format(entry.date),
+                          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
-                      ),
-                      Text(
-                        entry.dayOfWeek,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: AppTheme.getTextTertiary(context),
+                        Text(
+                          entry.dayOfWeek,
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: AppTheme.getTextTertiary(context),
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(width: 12),
-                  if (entry.moods.isNotEmpty)
-                    Expanded(
-                      child: Align(
-                        alignment: Alignment.centerRight,
-                        child: Wrap(
-                          spacing: 4,
-                          runSpacing: 4,
-                          alignment: WrapAlignment.end,
-                          children: entry.moods.take(3).map((mood) {
-                            return Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-                              decoration: BoxDecoration(
-                                color: AppTheme.getMoodColor(mood),
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: Text(
-                                mood,
-                                style: AppTheme.getTextStyle(
-                                  fontSize: 9,
-                                  fontWeight: FontWeight.w500,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            );
-                          }).toList(),
-                        ),
-                      ),
+                      ],
                     ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Text(
-                entry.preview,
-                style: Theme.of(context).textTheme.bodyMedium,
-                maxLines: 3,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
+                    const SizedBox(width: 12),
+                    if (entry.moods.isNotEmpty)
+                      Expanded(
+                        child: Align(
+                          alignment: Alignment.centerRight,
+                          child: Wrap(
+                            spacing: 4,
+                            runSpacing: 4,
+                            alignment: WrapAlignment.end,
+                            children: entry.moods.take(3).map((mood) {
+                              return Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                                decoration: BoxDecoration(
+                                  color: AppTheme.getMoodColor(mood),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Text(
+                                  mood,
+                                  style: AppTheme.getTextStyle(
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.w500,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  entry.preview,
+                  style: Theme.of(context).textTheme.bodyMedium,
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -304,34 +343,39 @@ class _JournalHistoryScreenState extends State<JournalHistoryScreen> {
                 ),
               ),
               const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: ValidationConstants.validMoods.map((mood) {
-                  final isSelected = journalProvider.selectedMoods.contains(mood);
-                  return FilterChip(
-                    label: Text(mood),
-                    selected: isSelected,
-                    onSelected: (selected) {
-                      final newMoods = List<String>.from(journalProvider.selectedMoods);
-                      if (selected) {
-                        newMoods.add(mood);
-                      } else {
-                        newMoods.remove(mood);
-                      }
-                      journalProvider.setMoodFilter(newMoods);
-                    },
-                    backgroundColor: Theme.of(context).brightness == Brightness.dark 
-                        ? AppTheme.darkBackgroundTertiary 
-                        : AppTheme.backgroundTertiary,
-                    selectedColor: AppTheme.getMoodColor(mood),
-                    labelStyle: AppTheme.getTextStyle(
-                      fontSize: 12,
-                      fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                      color: isSelected ? Colors.white : AppTheme.getTextSecondary(context),
-                    ),
-                  );
-                }).toList(),
+              SizedBox(
+                height: 120, // Fixed height to prevent overflow
+                child: SingleChildScrollView(
+                  child: Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: ValidationConstants.validMoods.map((mood) {
+                      final isSelected = journalProvider.selectedMoods.contains(mood);
+                      return FilterChip(
+                        label: Text(mood),
+                        selected: isSelected,
+                        onSelected: (selected) {
+                          final newMoods = List<String>.from(journalProvider.selectedMoods);
+                          if (selected) {
+                            newMoods.add(mood);
+                          } else {
+                            newMoods.remove(mood);
+                          }
+                          journalProvider.setMoodFilter(newMoods);
+                        },
+                        backgroundColor: Theme.of(context).brightness == Brightness.dark 
+                            ? AppTheme.darkBackgroundTertiary 
+                            : AppTheme.backgroundTertiary,
+                        selectedColor: AppTheme.getMoodColor(mood),
+                        labelStyle: AppTheme.getTextStyle(
+                          fontSize: 12,
+                          fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                          color: isSelected ? Colors.white : AppTheme.getTextSecondary(context),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ),
               ),
               
               const SizedBox(height: 16),
@@ -440,6 +484,142 @@ class _JournalHistoryScreenState extends State<JournalHistoryScreen> {
     if (picked != null) {
       provider.setDateRangeFilter(provider.startDate, picked);
     }
+  }
+
+  Future<bool?> _showDeleteConfirmation(JournalEntry entry) async {
+    final wordCount = entry.content.trim().split(RegExp(r'\s+')).length;
+    
+    return showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Row(
+            children: [
+              Icon(
+                Icons.warning_rounded,
+                color: AppTheme.accentRed,
+                size: 28,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Delete Journal Entry',
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Are you sure you want to permanently delete this journal entry from ${DateFormat('MMMM d, y').format(entry.date)}?',
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppTheme.accentRed.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: AppTheme.accentRed.withOpacity(0.3),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.info_outline,
+                      size: 20,
+                      color: AppTheme.accentRed,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'This will permanently delete $wordCount ${wordCount == 1 ? 'word' : 'words'}. This action cannot be undone.',
+                        style: AppTheme.getTextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                          color: AppTheme.accentRed,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(false);
+              },
+              child: Text(
+                'Cancel',
+                style: TextStyle(
+                  color: AppTheme.getTextSecondary(context),
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).pop(true);
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.accentRed,
+                foregroundColor: Colors.white,
+              ),
+              child: Text(
+                'Delete',
+                style: AppTheme.getTextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _deleteEntry(JournalEntry entry) {
+    final journalProvider = Provider.of<JournalProvider>(context, listen: false);
+    
+    // Delete the entry from the provider
+    journalProvider.deleteEntry(entry.id);
+    
+    // Show success message
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            Icon(
+              Icons.check_circle,
+              color: Colors.white,
+              size: 20,
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                'Journal entry from ${DateFormat('MMM d').format(entry.date)} deleted',
+                style: const TextStyle(fontWeight: FontWeight.w500),
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: AppTheme.accentGreen,
+        duration: const Duration(seconds: 2),
+      ),
+    );
+    
+    // Add haptic feedback
+    AnimationUtils.mediumImpact();
   }
 
   Widget _buildContent(JournalProvider journalProvider) {
@@ -663,7 +843,7 @@ class _JournalHistoryScreenState extends State<JournalHistoryScreen> {
                                   await journalProvider.refresh();
                                   if (mounted && journalProvider.error == null) {
                                     ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
+                                      SnackBar(
                                         content: Text('Entries refreshed! 🔄'),
                                         backgroundColor: AppTheme.accentGreen,
                                         duration: Duration(seconds: 2),

@@ -11,6 +11,8 @@ import 'package:spiral_journal/models/user_preferences.dart';
 import 'package:spiral_journal/screens/ai_settings_screen.dart';
 import 'package:spiral_journal/utils/sample_data_generator.dart';
 import 'package:spiral_journal/services/accessibility_service.dart';
+import 'package:spiral_journal/services/journal_service.dart';
+import 'package:spiral_journal/services/core_library_service.dart';
 import 'package:spiral_journal/widgets/testflight_feedback_widget.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -260,6 +262,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     'Refresh Cores',
                     'Recalculate emotional cores from all entries',
                     _refreshCores,
+                  ),
+                  _buildActionItem(
+                    Icons.restore,
+                    'Reset Cores',
+                    'Reset all emotional cores to default state',
+                    _resetCores,
+                    isDestructive: true,
                   ),
                   _buildActionItem(
                     Icons.delete_forever,
@@ -585,7 +594,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           color: AppTheme.getTextSecondary(context),
         ),
       ),
-      trailing: const Icon(
+      trailing: Icon(
         Icons.arrow_forward_ios,
         size: 16,
         color: AppTheme.textTertiary,
@@ -654,7 +663,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         if (!isAvailable) {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
+              SnackBar(
                 content: Text('Biometric authentication is not available on this device'),
                 backgroundColor: AppTheme.accentRed,
               ),
@@ -675,7 +684,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         if (!didAuthenticate) {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
+              SnackBar(
                 content: Text('Biometric authentication failed'),
                 backgroundColor: AppTheme.accentRed,
               ),
@@ -1056,7 +1065,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       // This would typically navigate to a PIN change screen
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+          SnackBar(
             content: Text('PIN change feature will be implemented with PIN setup screen'),
             backgroundColor: AppTheme.accentGreen,
           ),
@@ -1131,7 +1140,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+          SnackBar(
             content: Text('Emotional cores refreshed! 🧠'),
             backgroundColor: AppTheme.accentGreen,
           ),
@@ -1142,6 +1151,89 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Failed to refresh cores: $e'),
+            backgroundColor: AppTheme.accentRed,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _resetCores() async {
+    // Show confirmation dialog first
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Reset Cores'),
+        content: const Text(
+          'This will reset all emotional cores to their default state. All progress and insights will be lost. This action cannot be undone.\n\nAre you sure you want to continue?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.accentRed,
+            ),
+            child: const Text('Reset Cores'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    final coreProvider = Provider.of<CoreProvider>(context, listen: false);
+
+    try {
+      // Show loading dialog
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const AlertDialog(
+          content: Row(
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(width: 16),
+              Text('Resetting cores...'),
+            ],
+          ),
+        ),
+      );
+
+      // Import the services we need
+      final journalService = JournalService();
+      final coreLibraryService = CoreLibraryService();
+      final journalProvider = Provider.of<JournalProvider>(context, listen: false);
+      
+      // Clear all journal entries first (this clears the data that EmotionalMirrorService uses)
+      await journalService.clearAllData(); // This calls both journal and core clearing
+      
+      // Clear SharedPreferences cache for cores
+      await coreLibraryService.resetCores();
+      
+      // Refresh providers to show the reset data
+      await journalProvider.initialize(); // Clear journal entries from provider
+      await coreProvider.initialize(); // Reset cores in provider
+
+      if (mounted) {
+        Navigator.of(context).pop(); // Close loading dialog
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Emotional cores reset to default state! 🔄'),
+            backgroundColor: AppTheme.accentGreen,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.of(context).pop(); // Close loading dialog
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to reset cores: $e'),
             backgroundColor: AppTheme.accentRed,
           ),
         );
@@ -1215,7 +1307,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         Navigator.of(context).pop(); // Close loading dialog
         
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+          SnackBar(
             content: Text('All data cleared. Please restart the app to set up a new PIN.'),
             backgroundColor: AppTheme.accentGreen,
             duration: Duration(seconds: 5),
@@ -1314,7 +1406,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         Navigator.of(context).pop(); // Close loading dialog
         
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+          SnackBar(
             content: Text('Sample data generated! Check your journal and emotional mirror 📊'),
             backgroundColor: AppTheme.accentGreen,
           ),

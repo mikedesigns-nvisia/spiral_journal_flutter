@@ -7,22 +7,28 @@ import 'package:spiral_journal/constants/app_constants.dart';
 import 'package:spiral_journal/theme/app_theme.dart';
 import 'package:spiral_journal/services/theme_service.dart';
 import 'package:spiral_journal/screens/main_screen.dart';
-import 'package:spiral_journal/screens/auth_screen.dart';
 import 'package:spiral_journal/screens/splash_screen.dart';
-import 'package:spiral_journal/screens/pin_setup_screen.dart';
-import 'package:spiral_journal/screens/pin_entry_screen.dart';
+import 'package:spiral_journal/screens/profile_setup_screen.dart';
 import 'package:spiral_journal/screens/privacy_dashboard_screen.dart';
 import 'package:spiral_journal/screens/data_export_screen.dart';
+import 'package:spiral_journal/screens/onboarding_screen.dart';
+import 'package:spiral_journal/screens/pin_setup_screen.dart';
 import 'package:spiral_journal/services/journal_service.dart';
 import 'package:spiral_journal/services/ai_service_manager.dart';
-import 'package:spiral_journal/services/pin_auth_service.dart';
+import 'package:spiral_journal/services/profile_service.dart';
 import 'package:spiral_journal/services/app_initializer.dart';
+import 'package:spiral_journal/services/settings_service.dart';
+import 'package:spiral_journal/services/pin_auth_service.dart';
+import 'package:spiral_journal/services/navigation_service.dart';
 import 'package:spiral_journal/controllers/splash_screen_controller.dart';
+import 'package:spiral_journal/controllers/onboarding_controller.dart';
 import 'package:spiral_journal/providers/journal_provider.dart';
 import 'package:spiral_journal/providers/core_provider.dart';
 import 'package:spiral_journal/utils/app_error_handler.dart';
 import 'package:spiral_journal/config/api_key_setup.dart';
 import 'package:spiral_journal/config/local_config.dart';
+import 'package:spiral_journal/widgets/app_background.dart';
+import 'package:spiral_journal/utils/ios_theme_enforcer.dart';
 
 void main() async {
   final startTime = DateTime.now();
@@ -42,6 +48,7 @@ void main() async {
   
   // Initialize critical services in parallel
   final themeServiceFuture = ThemeService().initialize();
+  final iOSThemeEnforcerFuture = iOSThemeEnforcer.initialize();
   
   // Start the app UI while other services initialize in the background
   runApp(const SpiralJournalApp());
@@ -50,6 +57,7 @@ void main() async {
   await Future.wait([
     analyticsInitFuture,
     themeServiceFuture,
+    iOSThemeEnforcerFuture,
     _initializeBackgroundServices(),
   ]);
   
@@ -112,7 +120,16 @@ class SpiralJournalApp extends StatelessWidget {
           create: (context) => CoreProvider()..initialize(),
         ),
         ChangeNotifierProvider(
-          create: (context) => ThemeService(),
+          create: (context) => ThemeService()..initialize(),
+        ),
+        ChangeNotifierProvider(
+          create: (context) => SettingsService(),
+        ),
+        Provider<PinAuthService>(
+          create: (context) => PinAuthService(),
+        ),
+        Provider<NavigationService>(
+          create: (context) => NavigationService(),
         ),
       ],
       child: Consumer<ThemeService>(
@@ -126,14 +143,39 @@ class SpiralJournalApp extends StatelessWidget {
                 theme: AppTheme.lightTheme,
                 darkTheme: AppTheme.darkTheme,
                 themeMode: themeMode,
-                home: const AuthWrapper(),
+                home: Builder(
+                  builder: (context) {
+                    // Apply iOS theme enforcement if needed
+                    if (iOSThemeEnforcer.needsEnforcement()) {
+                      // Update system UI overlay for iOS
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        iOSThemeEnforcer.updateSystemUIOverlay(context);
+                      });
+                      return const AuthWrapper().withiOSThemeEnforcement(context);
+                    }
+                    return const AuthWrapper();
+                  },
+                ),
+                navigatorKey: NavigationService.navigatorKey,
                 routes: {
-                  '/auth': (context) => const AuthScreen(),
-                  '/main': (context) => const MainScreen(),
-                  '/pin-setup': (context) => const PinSetupScreen(),
-                  '/pin-entry': (context) => const PinEntryScreen(),
-                  '/privacy-dashboard': (context) => const PrivacyDashboardScreen(),
-                  '/data-export': (context) => const DataExportScreen(),
+                  '/main': (context) => iOSThemeEnforcer.needsEnforcement() 
+                    ? const MainScreen().withiOSThemeEnforcement(context)
+                    : const MainScreen(),
+                  '/onboarding': (context) => iOSThemeEnforcer.needsEnforcement()
+                    ? const OnboardingScreen().withiOSThemeEnforcement(context)
+                    : const OnboardingScreen(),
+                  '/profile-setup': (context) => iOSThemeEnforcer.needsEnforcement()
+                    ? const ProfileSetupScreen().withiOSThemeEnforcement(context)
+                    : const ProfileSetupScreen(),
+                  '/pin-setup': (context) => iOSThemeEnforcer.needsEnforcement()
+                    ? const PinSetupScreen().withiOSThemeEnforcement(context)
+                    : const PinSetupScreen(),
+                  '/privacy-dashboard': (context) => iOSThemeEnforcer.needsEnforcement()
+                    ? const PrivacyDashboardScreen().withiOSThemeEnforcement(context)
+                    : const PrivacyDashboardScreen(),
+                  '/data-export': (context) => iOSThemeEnforcer.needsEnforcement()
+                    ? const DataExportScreen().withiOSThemeEnforcement(context)
+                    : const DataExportScreen(),
                 },
                 debugShowCheckedModeBanner: false,
               );
@@ -153,16 +195,15 @@ class AuthWrapper extends StatefulWidget {
 }
 
 class _AuthWrapperState extends State<AuthWrapper> {
-  // Focused manager classes
-  final PinAuthService _pinAuthService = PinAuthService();
+  // Services for TestFlight version
+  final ProfileService _profileService = ProfileService();
   final SplashScreenController _splashController = SplashScreenController();
   final AppInitializer _appInitializer = AppInitializer();
   
   // Simplified state management
   bool _showSplash = true;
   bool _isLoading = true;
-  bool _needsPinSetup = false;
-  bool _needsPinEntry = false;
+  bool _needsProfileSetup = false;
   String? _initializationError;
   
   // Initialization state
@@ -174,9 +215,9 @@ class _AuthWrapperState extends State<AuthWrapper> {
     _initializeApp();
   }
 
-  /// Simplified initialization using the new architecture
+  /// Simplified initialization for TestFlight version
   Future<void> _initializeApp() async {
-    debugPrint('AuthWrapper: Starting app initialization');
+    debugPrint('AuthWrapper: Starting TestFlight app initialization');
     if (!mounted) return;
     
     setState(() {
@@ -197,29 +238,45 @@ class _AuthWrapperState extends State<AuthWrapper> {
         return;
       }
 
-      // Step 2: Check PIN authentication state
-      debugPrint('AuthWrapper: Step 2 - Checking PIN authentication state');
-      final pinAuthStatus = await _pinAuthService.getAuthStatus();
-      debugPrint('AuthWrapper: PIN status - hasPinSet: ${pinAuthStatus.hasPinSet}, isFirstLaunch: ${pinAuthStatus.isFirstLaunch}');
+      // Step 2: Check if onboarding has been completed
+      debugPrint('AuthWrapper: Step 2 - Checking onboarding status');
+      final hasCompletedOnboarding = await OnboardingController.hasCompletedOnboarding();
+      debugPrint('AuthWrapper: User has completed onboarding: $hasCompletedOnboarding');
 
-      // Step 3: Check splash screen settings
-      debugPrint('AuthWrapper: Step 3 - Checking splash screen settings');
+      if (!hasCompletedOnboarding) {
+        // Navigate to onboarding
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+          Navigator.of(context).pushReplacementNamed('/onboarding');
+        }
+        return;
+      }
+
+      // Step 3: Initialize profile service
+      debugPrint('AuthWrapper: Step 3 - Initializing profile service');
+      await _profileService.initialize();
+
+      // Step 4: Check if user has completed profile setup
+      debugPrint('AuthWrapper: Step 4 - Checking profile setup status');
+      final hasProfile = await _profileService.hasProfile();
+      debugPrint('AuthWrapper: User has profile: $hasProfile');
+
+      // Step 5: Check splash screen settings
+      debugPrint('AuthWrapper: Step 5 - Checking splash screen settings');
       final shouldShowSplash = await _splashController.shouldShowSplash();
       debugPrint('AuthWrapper: Should show splash: $shouldShowSplash');
 
-      // Step 4: Update UI state based on results
+      // Step 6: Update UI state based on results
       if (mounted) {
-        final needsPinSetup = !pinAuthStatus.hasPinSet || pinAuthStatus.isFirstLaunch;
-        final needsPinEntry = pinAuthStatus.hasPinSet && !pinAuthStatus.isFirstLaunch;
-        
-        debugPrint('AuthWrapper: Final state - needsPinSetup: $needsPinSetup, needsPinEntry: $needsPinEntry, showSplash: $shouldShowSplash');
-        
         setState(() {
-          _needsPinSetup = needsPinSetup;
-          _needsPinEntry = needsPinEntry;
+          _needsProfileSetup = !hasProfile;
           _showSplash = shouldShowSplash;
           _isLoading = false;
         });
+        
+        debugPrint('AuthWrapper: Final state - needsProfileSetup: $_needsProfileSetup, showSplash: $_showSplash');
       }
 
     } catch (e) {
@@ -229,8 +286,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
       if (mounted) {
         setState(() {
           _initializationError = e.toString();
-          _needsPinSetup = true; // Safe default
-          _needsPinEntry = false; // Safe default
+          _needsProfileSetup = true; // Safe default
           _showSplash = true; // Safe default
           _isLoading = false;
         });
@@ -243,8 +299,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
     if (mounted) {
       setState(() {
         _initializationError = result.errorMessage;
-        _needsPinSetup = true; // Safe default
-        _needsPinEntry = false; // Safe default
+        _needsProfileSetup = true; // Safe default
         _showSplash = true; // Safe default
         _isLoading = false;
       });
@@ -253,7 +308,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
 
   /// Called when splash screen completes
   void _onSplashComplete() {
-    debugPrint('AuthWrapper: Splash screen completed, transitioning to main app');
+    debugPrint('AuthWrapper: Splash screen completed, transitioning to next screen');
     _splashController.onSplashComplete();
     
     if (mounted) {
@@ -280,31 +335,33 @@ class _AuthWrapperState extends State<AuthWrapper> {
       debugPrint('AuthWrapper: Displaying splash screen');
       return SplashScreen(
         onComplete: _onSplashComplete,
-        displayDuration: const Duration(seconds: 2), // Shorter duration
+        displayDuration: const Duration(seconds: 2),
       );
     }
 
     // Show loading indicator during initialization
     if (_isLoading) {
       debugPrint('AuthWrapper: Displaying loading screen');
-      return Scaffold(
-        backgroundColor: AppTheme.getBackgroundPrimary(context),
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              CircularProgressIndicator(
-                color: AppTheme.getPrimaryColor(context),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'Loading...',
-                style: TextStyle(
-                  color: AppTheme.getTextSecondary(context),
-                  fontSize: 16,
+      return AppBackground(
+        child: Scaffold(
+          backgroundColor: Colors.transparent,
+          body: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                CircularProgressIndicator(
+                  color: AppTheme.getPrimaryColor(context),
                 ),
-              ),
-            ],
+                const SizedBox(height: 16),
+                Text(
+                  'Loading...',
+                  style: TextStyle(
+                    color: AppTheme.getTextSecondary(context),
+                    fontSize: 16,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       );
@@ -316,19 +373,10 @@ class _AuthWrapperState extends State<AuthWrapper> {
       return _buildErrorScreen();
     }
 
-    // Navigate to appropriate screen based on PIN authentication state
-    // In debug mode, skip PIN authentication to allow easy access for development
-    if (kDebugMode) {
-      debugPrint('AuthWrapper: Debug mode - displaying MainScreen');
-      return const MainScreen();
-    }
-    
-    if (_needsPinSetup) {
-      debugPrint('AuthWrapper: Displaying PIN setup screen');
-      return const PinSetupScreen();
-    } else if (_needsPinEntry) {
-      debugPrint('AuthWrapper: Displaying PIN entry screen');
-      return const PinEntryScreen();
+    // Navigate to appropriate screen based on profile setup status
+    if (_needsProfileSetup) {
+      debugPrint('AuthWrapper: Displaying profile setup screen');
+      return const ProfileSetupScreen();
     } else {
       debugPrint('AuthWrapper: Displaying main screen');
       return const MainScreen();
@@ -337,58 +385,60 @@ class _AuthWrapperState extends State<AuthWrapper> {
 
   /// Builds the error screen with retry functionality
   Widget _buildErrorScreen() {
-    return Scaffold(
-      backgroundColor: AppTheme.getBackgroundPrimary(context),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(AppConstants.largePadding),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.error_outline,
-                size: AppConstants.largeIconSize,
-                color: AppTheme.getPrimaryColor(context),
-              ),
-              const SizedBox(height: AppConstants.defaultPadding),
-              Text(
-                'Initialization Error',
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  color: AppTheme.getTextPrimary(context),
-                  fontWeight: FontWeight.bold,
+    return AppBackground(
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        body: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(AppConstants.largePadding),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.error_outline,
+                  size: AppConstants.largeIconSize,
+                  color: AppTheme.getPrimaryColor(context),
                 ),
-              ),
-              const SizedBox(height: AppConstants.smallPadding),
-              Text(
-                _initializationResult?.timedOut == true
-                    ? 'The app took too long to start. This might be due to a slow connection or system issue.'
-                    : 'There was a problem starting the app. This might be due to a temporary issue.',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: AppTheme.getTextSecondary(context),
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: AppConstants.largePadding),
-              ElevatedButton(
-                onPressed: _retryInitialization,
-                child: const Text('Retry'),
-              ),
-              const SizedBox(height: AppConstants.defaultPadding),
-              TextButton(
-                onPressed: () {
-                  // Skip to auth screen as fallback
-                  Navigator.of(context).pushReplacementNamed('/auth');
-                },
-                child: Text(
-                  'Continue Anyway',
-                  style: AppTheme.getTextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w400,
-                    color: AppTheme.getTextSecondary(context),
+                const SizedBox(height: AppConstants.defaultPadding),
+                Text(
+                  'Initialization Error',
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    color: AppTheme.getTextPrimary(context),
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
-              ),
-            ],
+                const SizedBox(height: AppConstants.smallPadding),
+                Text(
+                  _initializationResult?.timedOut == true
+                      ? 'The app took too long to start. This might be due to a slow connection or system issue.'
+                      : 'There was a problem starting the app. This might be due to a temporary issue.',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: AppTheme.getTextSecondary(context),
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: AppConstants.largePadding),
+                ElevatedButton(
+                  onPressed: _retryInitialization,
+                  child: const Text('Retry'),
+                ),
+                const SizedBox(height: AppConstants.defaultPadding),
+                TextButton(
+                  onPressed: () {
+                    // Skip to profile setup as fallback
+                    Navigator.of(context).pushReplacementNamed('/profile-setup');
+                  },
+                  child: Text(
+                    'Continue Anyway',
+                    style: AppTheme.getTextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w400,
+                      color: AppTheme.getTextSecondary(context),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
