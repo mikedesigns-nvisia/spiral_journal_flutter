@@ -9,6 +9,7 @@ import '../services/theme_service.dart';
 import '../services/settings_service.dart';
 import '../services/pin_auth_service.dart';
 import '../services/navigation_service.dart';
+import '../services/navigation_flow_controller.dart';
 
 /// Main onboarding screen with slide flow and navigation
 class OnboardingScreen extends StatefulWidget {
@@ -23,7 +24,6 @@ class _OnboardingScreenState extends State<OnboardingScreen>
   late OnboardingController _controller;
   late PageController _pageController;
   late AnimationController _backgroundController;
-  late Animation<double> _backgroundAnimation;
 
   @override
   void initState() {
@@ -33,9 +33,10 @@ class _OnboardingScreenState extends State<OnboardingScreen>
   }
 
   void _setupControllers() {
-    final themeService = Provider.of<ThemeService>(context, listen: false);
-    final settingsService = Provider.of<SettingsService>(context, listen: false);
-    final pinAuthService = Provider.of<PinAuthService>(context, listen: false);
+    // Create services directly instead of using Provider to avoid dependency issues
+    final themeService = ThemeService();
+    final settingsService = SettingsService();
+    final pinAuthService = PinAuthService();
 
     _controller = OnboardingController(
       themeService: themeService,
@@ -54,14 +55,6 @@ class _OnboardingScreenState extends State<OnboardingScreen>
       duration: const Duration(seconds: 20),
       vsync: this,
     );
-
-    _backgroundAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _backgroundController,
-      curve: Curves.linear,
-    ));
 
     _backgroundController.repeat();
   }
@@ -89,28 +82,40 @@ class _OnboardingScreenState extends State<OnboardingScreen>
   Widget build(BuildContext context) {
     return ChangeNotifierProvider.value(
       value: _controller,
-      child: Scaffold(
-        body: AppBackground(
-          child: SafeArea(
-            child: Consumer<OnboardingController>(
-              builder: (context, controller, child) {
-                return Column(
-                  children: [
-                    // Header with progress and skip button
-                    _buildHeader(context, controller),
-                    
-                    // Main content area
-                    Expanded(
-                      child: _buildPageView(context, controller),
-                    ),
-                    
-                    // Progress indicator
-                    _buildProgressIndicator(context, controller),
-                    
-                    SizedBox(height: DesignTokens.spaceL),
-                  ],
-                );
-              },
+      child: PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (didPop, result) async {
+          if (!didPop) {
+            final flowController = NavigationFlowController.instance;
+            final canPop = await flowController.handleBackButton('/onboarding');
+            if (canPop && context.mounted) {
+              Navigator.of(context).pop();
+            }
+          }
+        },
+        child: Scaffold(
+          body: AppBackground(
+            child: SafeArea(
+              child: Consumer<OnboardingController>(
+                builder: (context, controller, child) {
+                  return Column(
+                    children: [
+                      // Header with progress and skip button
+                      _buildHeader(context, controller),
+                      
+                      // Main content area
+                      Expanded(
+                        child: _buildPageView(context, controller),
+                      ),
+                      
+                      // Progress indicator
+                      _buildProgressIndicator(context, controller),
+                      
+                      SizedBox(height: DesignTokens.spaceL),
+                    ],
+                  );
+                },
+              ),
             ),
           ),
         ),
@@ -216,10 +221,22 @@ class _OnboardingScreenState extends State<OnboardingScreen>
       
       await controller.completeOnboarding();
       
-      // Navigate to main app
-      if (mounted) {
-        final navigationService = Provider.of<NavigationService>(context, listen: false);
-        await navigationService.navigateToMainApp();
+      // Update navigation flow controller state
+      final flowController = NavigationFlowController.instance;
+      if (flowController.isFlowActive) {
+        flowController.updateStateFromRoute('/onboarding');
+        // Advance to next state (profile setup)
+        if (mounted) {
+          await flowController.advanceToNextState(context);
+        }
+      } else {
+        // Navigate back to AuthWrapper to check profile setup (original behavior)
+        if (mounted) {
+          Navigator.of(context).pushNamedAndRemoveUntil(
+            '/',
+            (route) => false,
+          );
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -293,7 +310,8 @@ class OnboardingEntryScreen extends StatelessWidget {
         if (hasCompleted) {
           // Navigate to main app
           WidgetsBinding.instance.addPostFrameCallback((_) {
-            final navigationService = Provider.of<NavigationService>(context, listen: false);
+            // Create navigation service directly instead of using Provider
+            final navigationService = NavigationService();
             navigationService.navigateToMainApp();
           });
           return _buildLoadingScreen(context);

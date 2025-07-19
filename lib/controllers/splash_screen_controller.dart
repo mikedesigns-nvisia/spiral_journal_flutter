@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'dart:async';
 import 'package:spiral_journal/services/settings_service.dart';
+import 'package:spiral_journal/services/fresh_install_manager.dart';
 
 /// Controls splash screen behavior and lifecycle management.
 /// 
@@ -46,9 +47,20 @@ class SplashScreenController {
   /// Returns true if splash screen is enabled in settings and should be displayed,
   /// false otherwise. Uses cached configuration when available and valid.
   /// 
+  /// In fresh install mode, always shows splash screen to ensure proper timing
+  /// for the onboarding flow.
+  /// 
   /// In case of errors, defaults to showing splash screen for safety.
   Future<bool> shouldShowSplash() async {
     try {
+      // In fresh install mode, always show splash screen
+      if (FreshInstallManager.isFreshInstallMode) {
+        if (FreshInstallManager.config.enableLogging) {
+          debugPrint('SplashScreenController: Fresh install mode - forcing splash screen display');
+        }
+        return true;
+      }
+      
       final config = await getSplashConfiguration();
       return config.enabled;
     } catch (e) {
@@ -61,12 +73,16 @@ class SplashScreenController {
   /// Called when the splash screen completes its display cycle.
   /// 
   /// This method handles any cleanup or state updates needed after
-  /// the splash screen finishes. Currently, it primarily serves as
-  /// a hook for future functionality and logging.
+  /// the splash screen finishes. In fresh install mode, ensures proper
+  /// navigation to onboarding flow.
   void onSplashComplete() {
     try {
       // Log splash completion for debugging
-      debugPrint('Splash screen completed successfully');
+      if (FreshInstallManager.isFreshInstallMode && FreshInstallManager.config.enableLogging) {
+        debugPrint('Splash screen completed in fresh install mode - ready for onboarding');
+      } else {
+        debugPrint('Splash screen completed successfully');
+      }
       
       // Future: Could add analytics tracking here
       // Future: Could trigger post-splash initialization tasks
@@ -82,9 +98,22 @@ class SplashScreenController {
   /// Returns a [SplashConfiguration] object containing all splash screen
   /// settings. Uses caching to avoid repeated settings service calls.
   /// 
+  /// In fresh install mode, returns configuration optimized for onboarding flow.
+  /// 
   /// Throws [SplashConfigurationException] if configuration cannot be loaded.
   Future<SplashConfiguration> getSplashConfiguration() async {
     try {
+      // In fresh install mode, use fresh install configuration
+      if (FreshInstallManager.isFreshInstallMode) {
+        return SplashConfiguration(
+          enabled: true,
+          displayDuration: FreshInstallManager.config.splashDuration,
+          lastUpdated: DateTime.now(),
+          isFreshInstallMode: true,
+          showFreshInstallIndicator: FreshInstallManager.config.showIndicator,
+        );
+      }
+      
       // Check if we have a valid cached configuration
       if (_cachedConfiguration != null && 
           _configurationCacheTime != null &&
@@ -99,6 +128,8 @@ class SplashScreenController {
         enabled: enabled,
         displayDuration: const Duration(seconds: 2), // Standard splash duration
         lastUpdated: DateTime.now(),
+        isFreshInstallMode: false,
+        showFreshInstallIndicator: false,
       );
 
       // Cache the configuration
@@ -114,6 +145,8 @@ class SplashScreenController {
         enabled: true, // Default to showing splash
         displayDuration: const Duration(seconds: 2),
         lastUpdated: DateTime.now(),
+        isFreshInstallMode: FreshInstallManager.isFreshInstallMode,
+        showFreshInstallIndicator: FreshInstallManager.config.showIndicator,
       );
     }
   }
@@ -173,11 +206,19 @@ class SplashConfiguration {
   
   /// When this configuration was last updated
   final DateTime lastUpdated;
+  
+  /// Whether the app is currently in fresh install mode
+  final bool isFreshInstallMode;
+  
+  /// Whether to show fresh install mode indicator
+  final bool showFreshInstallIndicator;
 
   const SplashConfiguration({
     required this.enabled,
     required this.displayDuration,
     required this.lastUpdated,
+    this.isFreshInstallMode = false,
+    this.showFreshInstallIndicator = false,
   });
 
   @override
@@ -185,7 +226,9 @@ class SplashConfiguration {
     return 'SplashConfiguration('
         'enabled: $enabled, '
         'displayDuration: ${displayDuration.inSeconds}s, '
-        'lastUpdated: $lastUpdated'
+        'lastUpdated: $lastUpdated, '
+        'isFreshInstallMode: $isFreshInstallMode, '
+        'showFreshInstallIndicator: $showFreshInstallIndicator'
         ')';
   }
 
@@ -194,11 +237,15 @@ class SplashConfiguration {
     bool? enabled,
     Duration? displayDuration,
     DateTime? lastUpdated,
+    bool? isFreshInstallMode,
+    bool? showFreshInstallIndicator,
   }) {
     return SplashConfiguration(
       enabled: enabled ?? this.enabled,
       displayDuration: displayDuration ?? this.displayDuration,
       lastUpdated: lastUpdated ?? this.lastUpdated,
+      isFreshInstallMode: isFreshInstallMode ?? this.isFreshInstallMode,
+      showFreshInstallIndicator: showFreshInstallIndicator ?? this.showFreshInstallIndicator,
     );
   }
 }

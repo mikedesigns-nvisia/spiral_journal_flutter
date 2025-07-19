@@ -10,11 +10,9 @@ class SampleDataGenerator {
   /// This version works offline without requiring AI services
   /// DISABLED for TestFlight production builds
   static Future<void> generateSampleData() async {
-    // Disable sample data generation for production/TestFlight builds
-    if (kReleaseMode) {
-      debugPrint('🚫 Sample data generation disabled in production builds');
-      return;
-    }
+    // ALWAYS disable sample data generation for TestFlight and production
+    debugPrint('🚫 Sample data generation disabled for TestFlight/production builds');
+    return;
     
     try {
       debugPrint('🔄 Starting sample data generation (debug mode only)...');

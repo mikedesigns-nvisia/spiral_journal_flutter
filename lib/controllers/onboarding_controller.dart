@@ -200,6 +200,10 @@ class OnboardingController extends ChangeNotifier {
         await _settingsService.setPinSetupRequested(true);
       }
 
+      // Disable splash screen after onboarding completion
+      // User has seen the onboarding, no need to show splash again
+      await _settingsService.setSplashScreenEnabled(false);
+
     } catch (e) {
       debugPrint('OnboardingController _applyQuickSetupConfig error: $e');
     }

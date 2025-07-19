@@ -160,6 +160,8 @@ class _PrivacyDashboardScreenState extends State<PrivacyDashboardScreen> {
         title: const Text('Privacy Dashboard'),
         backgroundColor: DesignTokens.getPrimaryColor(context),
         foregroundColor: Colors.white,
+        elevation: 0,
+        centerTitle: true,
       ),
       backgroundColor: DesignTokens.getBackgroundPrimary(context),
       body: _isLoadingStats

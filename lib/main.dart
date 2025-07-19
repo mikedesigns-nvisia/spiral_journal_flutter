@@ -29,6 +29,7 @@ import 'package:spiral_journal/config/api_key_setup.dart';
 import 'package:spiral_journal/config/local_config.dart';
 import 'package:spiral_journal/widgets/app_background.dart';
 import 'package:spiral_journal/utils/ios_theme_enforcer.dart';
+import 'package:spiral_journal/services/fresh_install_manager.dart';
 
 void main() async {
   final startTime = DateTime.now();
@@ -36,6 +37,17 @@ void main() async {
   
   // Initialize error handling system first
   AppErrorHandler.initialize();
+  
+  // Initialize fresh install manager early - MUST happen before widget tree builds
+  try {
+    await FreshInstallManager.initialize();
+    if (FreshInstallManager.isFreshInstallMode) {
+      debugPrint('Fresh install mode active - data cleared');
+    }
+  } catch (e) {
+    debugPrint('Fresh install initialization failed: $e');
+    // Continue with app launch even if fresh install fails
+  }
   
   // Initialize local configuration system (replaces Firebase)
   await LocalConfig.initialize();
@@ -64,6 +76,11 @@ void main() async {
   // Log app launch time
   final launchTime = DateTime.now().difference(startTime);
   AnalyticsService().logAppLaunchTime(launchTime);
+  
+  // Log fresh install status for debugging
+  if (FreshInstallManager.config.enableLogging) {
+    debugPrint('App launch completed - Fresh install mode: ${FreshInstallManager.isFreshInstallMode}');
+  }
 }
 
 /// Initialize local analytics service
@@ -85,9 +102,21 @@ Future<void> _initializeLocalAnalytics() async {
       FlutterError.presentError(details);
     };
     
+    // Log fresh install related errors if they occur
+    if (FreshInstallManager.config.enableLogging) {
+      AnalyticsService().logEvent('fresh_install_analytics_initialized', {
+        'fresh_install_mode': FreshInstallManager.isFreshInstallMode,
+      });
+    }
+    
   } catch (e) {
     // Continue without analytics if initialization fails
     debugPrint('Local analytics initialization failed: $e');
+    
+    // Log fresh install related analytics failure
+    if (FreshInstallManager.config.enableLogging) {
+      debugPrint('Fresh install mode: ${FreshInstallManager.isFreshInstallMode} - Analytics init failed');
+    }
   }
 }
 
@@ -99,10 +128,20 @@ Future<void> _initializeBackgroundServices() async {
       JournalService().initialize(),
       AIServiceManager().initialize(),
     ]);
+    
+    // Log successful background service initialization in fresh install mode
+    if (FreshInstallManager.config.enableLogging) {
+      debugPrint('Background services initialized - Fresh install mode: ${FreshInstallManager.isFreshInstallMode}');
+    }
   } catch (e) {
     debugPrint('Background service initialization error: $e');
     // Log error but don't crash the app
     AnalyticsService().logError('background_init_error', context: e.toString());
+    
+    // Log fresh install context for debugging
+    if (FreshInstallManager.config.enableLogging) {
+      debugPrint('Background service init failed in fresh install mode: ${FreshInstallManager.isFreshInstallMode}');
+    }
   }
 }
 
@@ -120,10 +159,7 @@ class SpiralJournalApp extends StatelessWidget {
           create: (context) => CoreProvider()..initialize(),
         ),
         ChangeNotifierProvider(
-          create: (context) => ThemeService()..initialize(),
-        ),
-        ChangeNotifierProvider(
-          create: (context) => SettingsService(),
+          create: (context) => SettingsService()..initialize(),
         ),
         Provider<PinAuthService>(
           create: (context) => PinAuthService(),
@@ -132,10 +168,10 @@ class SpiralJournalApp extends StatelessWidget {
           create: (context) => NavigationService(),
         ),
       ],
-      child: Consumer<ThemeService>(
-        builder: (context, themeService, child) {
+      child: Consumer<SettingsService>(
+        builder: (context, settingsService, child) {
           return FutureBuilder<ThemeMode>(
-            future: themeService.getThemeMode(),
+            future: settingsService.getThemeMode(),
             builder: (context, snapshot) {
               final themeMode = snapshot.data ?? ThemeMode.system;
               return MaterialApp(
@@ -277,6 +313,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
         });
         
         debugPrint('AuthWrapper: Final state - needsProfileSetup: $_needsProfileSetup, showSplash: $_showSplash');
+        debugPrint('AuthWrapper: Next screen will be: ${_needsProfileSetup ? 'ProfileSetupScreen' : 'MainScreen'}');
       }
 
     } catch (e) {
@@ -335,7 +372,11 @@ class _AuthWrapperState extends State<AuthWrapper> {
       debugPrint('AuthWrapper: Displaying splash screen');
       return SplashScreen(
         onComplete: _onSplashComplete,
-        displayDuration: const Duration(seconds: 2),
+        displayDuration: FreshInstallManager.isFreshInstallMode 
+            ? FreshInstallManager.config.splashDuration 
+            : const Duration(seconds: 2),
+        showFreshInstallIndicator: FreshInstallManager.isFreshInstallMode && 
+            FreshInstallManager.config.showIndicator,
       );
     }
 

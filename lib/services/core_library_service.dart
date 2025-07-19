@@ -324,8 +324,8 @@ class CoreLibraryService {
         id: config.id,
         name: config.name,
         description: config.description,
-        currentLevel: config.baselineLevel,
-        previousLevel: config.baselineLevel,
+        currentLevel: 0.0, // Start fresh for TestFlight users
+        previousLevel: 0.0, // Start fresh for TestFlight users
         lastUpdated: DateTime.now(),
         trend: 'stable',
         color: config.color,

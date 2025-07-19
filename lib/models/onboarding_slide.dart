@@ -68,6 +68,24 @@ class OnboardingSlide {
     );
   }
 
+  factory OnboardingSlide.howItWorks() {
+    return const OnboardingSlide(
+      id: 'how_it_works',
+      title: 'How Your Journey Unfolds',
+      content: 'Write naturally whenever you feel like it. Our AI processes your entries overnight, so you wake up to fresh insights about your emotional patterns and growth.',
+      keyPoints: [
+        'Write freely - no prompts or structure needed',
+        'AI analyzes your entries within 24 hours',
+        'Wake up to personalized insights',
+        'Track your emotional evolution over time',
+        'See patterns you might have missed',
+      ],
+      ctaText: 'I understand the process',
+      type: OnboardingSlideType.howItWorks,
+      visualAsset: 'process_flow',
+    );
+  }
+
   factory OnboardingSlide.accessibility() {
     return const OnboardingSlide(
       id: 'accessibility',
@@ -120,6 +138,7 @@ class OnboardingSlide {
       OnboardingSlide.welcome(),
       OnboardingSlide.privacy(),
       OnboardingSlide.aiIntelligence(),
+      OnboardingSlide.howItWorks(),
       OnboardingSlide.accessibility(),
       OnboardingSlide.settings(),
       OnboardingSlide.readyToBegin(),
@@ -131,6 +150,7 @@ enum OnboardingSlideType {
   welcome,
   privacy,
   aiIntelligence,
+  howItWorks,
   accessibility,
   settings,
   completion,

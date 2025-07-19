@@ -6,6 +6,7 @@ import '../theme/app_theme.dart';
 import '../constants/app_constants.dart';
 import '../screens/main_screen.dart';
 import '../widgets/app_background.dart';
+import '../services/navigation_flow_controller.dart';
 
 /// Profile setup screen for TestFlight version
 /// Collects basic user information: first name and birthday
@@ -108,13 +109,23 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
         // Provide haptic feedback
         HapticFeedback.lightImpact();
         
-        // Navigate to main screen
-        if (mounted) {
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(
-              builder: (context) => const MainScreen(),
-            ),
-          );
+        // Update navigation flow controller and navigate
+        final flowController = NavigationFlowController.instance;
+        if (flowController.isFlowActive) {
+          flowController.updateStateFromRoute('/profile-setup');
+          // Advance to next state (main screen)
+          if (mounted) {
+            await flowController.advanceToNextState(context);
+          }
+        } else {
+          // Navigate to main screen (original behavior)
+          if (mounted) {
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(
+                builder: (context) => const MainScreen(),
+              ),
+            );
+          }
         }
       } else {
         setState(() {
@@ -141,15 +152,26 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return AppBackground(
-      child: Scaffold(
-        backgroundColor: Colors.transparent,
-        body: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(AppConstants.largePadding),
-            child: Form(
-              key: _formKey,
-              child: Column(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (!didPop) {
+          final flowController = NavigationFlowController.instance;
+          final canPop = await flowController.handleBackButton('/profile-setup');
+          if (canPop && context.mounted) {
+            Navigator.of(context).pop();
+          }
+        }
+      },
+      child: AppBackground(
+        child: Scaffold(
+          backgroundColor: Colors.transparent,
+          body: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(AppConstants.largePadding),
+              child: Form(
+                key: _formKey,
+                child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                 const SizedBox(height: AppConstants.extraLargePadding),
@@ -294,10 +316,10 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                   Container(
                     padding: const EdgeInsets.all(AppConstants.defaultPadding),
                     decoration: BoxDecoration(
-                      color: Colors.red.withOpacity(0.1),
+                      color: Colors.red.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(AppConstants.borderRadius),
                       border: Border.all(
-                        color: Colors.red.withOpacity(0.3),
+                        color: Colors.red.withValues(alpha: 0.3),
                       ),
                     ),
                     child: Row(
@@ -357,6 +379,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                 
                 const SizedBox(height: AppConstants.largePadding),
                 ],
+                ),
               ),
             ),
           ),

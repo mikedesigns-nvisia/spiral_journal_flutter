@@ -177,40 +177,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
               
               const SizedBox(height: 24),
               
-              // Accessibility
-              _buildSettingsSection(
-                'Accessibility',
-                [
-                  _buildSwitchItem(
-                    Icons.contrast,
-                    'High Contrast Mode',
-                    'Increase contrast for better visibility',
-                    _currentPreferences.highContrastEnabled,
-                    _toggleHighContrast,
-                  ),
-                  _buildSwitchItem(
-                    Icons.text_fields,
-                    'Large Text',
-                    'Increase text size for better readability',
-                    _currentPreferences.largeTextEnabled,
-                    _toggleLargeText,
-                  ),
-                  _buildSwitchItem(
-                    Icons.motion_photos_off,
-                    'Reduce Motion',
-                    'Minimize animations and transitions',
-                    _currentPreferences.reducedMotionEnabled,
-                    _toggleReducedMotion,
-                  ),
-                  _buildSwitchItem(
-                    Icons.accessibility,
-                    'Screen Reader Support',
-                    'Optimize for screen readers and voice-over',
-                    _currentPreferences.screenReaderEnabled,
-                    _toggleScreenReader,
-                  ),
-                ],
-              ),
+              // Accessibility section temporarily hidden for TestFlight
+              // Will be re-enabled in future updates
               
               const SizedBox(height: 24),
               
@@ -339,12 +307,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ),
                       ),
                     ),
-                    _buildActionItem(
-                      Icons.data_usage,
-                      'Generate Sample Data',
-                      'Create sample journal entries for testing',
-                      _generateSampleData,
-                    ),
+                    // Sample data generation removed for TestFlight
+                    // Will be re-enabled for development builds
                   ],
                 ),
               ],

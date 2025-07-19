@@ -9,6 +9,7 @@ import 'package:spiral_journal/design_system/responsive_layout.dart';
 import 'package:spiral_journal/utils/iphone_detector.dart';
 import 'package:spiral_journal/services/navigation_service.dart';
 import 'package:spiral_journal/theme/app_theme.dart';
+import 'package:spiral_journal/services/navigation_flow_controller.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -25,6 +26,14 @@ class _MainScreenState extends State<MainScreen> {
     super.initState();
     // Set up the navigation service callback
     NavigationService.instance.setTabChangeCallback(_switchToTab);
+    
+    // Update navigation flow controller state when main screen loads
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final flowController = NavigationFlowController.instance;
+      if (flowController.isFlowActive) {
+        flowController.updateStateFromRoute('/main');
+      }
+    });
   }
 
   void _switchToTab(int index) {
@@ -43,28 +52,6 @@ class _MainScreenState extends State<MainScreen> {
     const SettingsScreen(),
   ];
 
-  final List<BottomNavigationBarItem> _navItems = [
-    const BottomNavigationBarItem(
-      icon: Icon(Icons.edit_note_rounded),
-      label: 'Journal',
-    ),
-    const BottomNavigationBarItem(
-      icon: Icon(Icons.history_rounded),
-      label: 'History',
-    ),
-    const BottomNavigationBarItem(
-      icon: Icon(Icons.psychology_rounded),
-      label: 'Mirror',
-    ),
-    const BottomNavigationBarItem(
-      icon: Icon(Icons.auto_awesome_rounded),
-      label: 'Insights',
-    ),
-    const BottomNavigationBarItem(
-      icon: Icon(Icons.settings_rounded),
-      label: 'Settings',
-    ),
-  ];
 
   @override
   Widget build(BuildContext context) {

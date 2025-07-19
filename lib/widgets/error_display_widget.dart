@@ -23,6 +23,7 @@ class ErrorDisplayWidget extends StatelessWidget {
     final errorColor = _getErrorColor(context);
 
     return ComponentLibrary.card(
+      context: context,
       margin: ComponentTokens.errorDisplayMargin,
       padding: ComponentTokens.errorDisplayPadding,
       child: Column(

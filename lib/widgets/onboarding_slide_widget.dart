@@ -217,6 +217,9 @@ class _OnboardingSlideWidgetState extends State<OnboardingSlideWidget>
       case 'brain_heart':
         iconData = Icons.psychology;
         break;
+      case 'process_flow':
+        iconData = Icons.schedule;
+        break;
       case 'diverse_hands':
         iconData = Icons.accessibility_new;
         break;
