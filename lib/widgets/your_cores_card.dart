@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:spiral_journal/theme/app_theme.dart';
+import 'package:spiral_journal/design_system/design_tokens.dart';
 import 'package:spiral_journal/providers/core_provider.dart';
+import 'package:spiral_journal/services/navigation_service.dart';
+import 'package:spiral_journal/widgets/base_card.dart';
 
 
 class YourCoresCard extends StatelessWidget {
@@ -9,143 +12,84 @@ class YourCoresCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        gradient: AppTheme.getCardGradient(context),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: Theme.of(context).brightness == Brightness.dark 
-              ? AppTheme.darkBackgroundTertiary 
-              : AppTheme.backgroundTertiary
-        ),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: AppTheme.accentYellow,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(
-                    Icons.auto_awesome_rounded,
-                    color: AppTheme.getPrimaryColor(context),
-                    size: 20,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Text(
-                  'Your Cores',
-                  style: Theme.of(context).textTheme.headlineSmall,
-                ),
-              ],
+    return BaseCard(
+      margin: EdgeInsets.zero,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header section using standardized component
+          CardHeader(
+            icon: Icons.auto_awesome_rounded,
+            title: 'Your Cores',
+          ),
+          SizedBox(height: DesignTokens.spaceXL),
+          
+          // Subtitle with consistent styling
+          Text(
+            'Active emotional patterns shaping your mindset',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: DesignTokens.getTextSecondary(context),
             ),
-            const SizedBox(height: 16),
-            Text(
-              'Active emotional patterns shaping your mindset',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: AppTheme.getTextSecondary(context),
-              ),
-            ),
-            const SizedBox(height: 16),
-            // Core items using Provider
-            Consumer<CoreProvider>(
-              builder: (context, coreProvider, child) {
-                if (coreProvider.isLoading) {
-                  return const Center(
-                    child: Padding(
-                      padding: EdgeInsets.all(16.0),
-                      child: CircularProgressIndicator(),
-                    ),
-                  );
-                } else if (coreProvider.topCores.isEmpty) {
-                  return Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Text(
-                        'Start journaling to develop your cores!',
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: AppTheme.getTextTertiary(context),
-                        ),
-                        textAlign: TextAlign.center,
+          ),
+          SizedBox(height: DesignTokens.spaceXL),
+          
+          // Core items using Provider
+          Consumer<CoreProvider>(
+            builder: (context, coreProvider, child) {
+              if (coreProvider.isLoading) {
+                return Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(DesignTokens.spaceXL),
+                    child: CircularProgressIndicator(),
+                  ),
+                );
+              } else if (coreProvider.topCores.isEmpty) {
+                return Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(DesignTokens.spaceXL),
+                    child: Text(
+                      'Start journaling to develop your cores!',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: DesignTokens.getTextTertiary(context),
                       ),
+                      textAlign: TextAlign.center,
                     ),
-                  );
-                } else {
-                  return Column(
-                    children: coreProvider.topCores.asMap().entries.map((entry) {
-                      final index = entry.key;
-                      final core = entry.value;
-                      return Column(
-                        children: [
-                          if (index > 0) const SizedBox(height: 12),
-                          _buildCoreItem(
-                            context,
-                            core.name,
-                            '${core.percentage.round()}%',
-                            core.trend,
-                            _getCoreColor(core.color),
-                            _getCoreIcon(core.name),
-                          ),
-                        ],
-                      );
-                    }).toList(),
-                  );
-                }
-              },
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    'Based on your journal patterns',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: AppTheme.getTextTertiary(context),
-                    ),
-                    overflow: TextOverflow.ellipsis,
                   ),
-                ),
-                const SizedBox(width: 8),
-                Flexible(
-                  child: TextButton(
-                    onPressed: () {
-                      // Navigate to core library
-                    },
-                    style: TextButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      minimumSize: Size.zero,
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
+                );
+              } else {
+                return Column(
+                  children: coreProvider.topCores.asMap().entries.map((entry) {
+                    final index = entry.key;
+                    final core = entry.value;
+                    return Column(
                       children: [
-                        Text(
-                          'Explore All',
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: AppTheme.getPrimaryColor(context),
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        const SizedBox(width: 4),
-                        Icon(
-                          Icons.arrow_forward_ios_rounded,
-                          size: 12,
-                          color: AppTheme.getPrimaryColor(context),
+                        if (index > 0) SizedBox(height: DesignTokens.spaceL),
+                        _buildCoreItem(
+                          context,
+                          core.name,
+                          '${core.percentage.round()}%',
+                          core.trend,
+                          _getCoreColor(core.color),
+                          _getCoreIcon(core.name),
                         ),
                       ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
+                    );
+                  }).toList(),
+                );
+              }
+            },
+          ),
+          SizedBox(height: DesignTokens.spaceXL),
+          
+          // Footer section using standardized component
+          CardFooter(
+            description: 'Based on your journal patterns',
+            ctaText: 'Explore All',
+            onCtaPressed: () {
+              NavigationService.instance.switchToTab(NavigationService.insightsTab);
+            },
+          ),
+        ],
       ),
     );
   }
@@ -194,33 +138,35 @@ class YourCoresCard extends StatelessWidget {
             : Icons.trending_flat_rounded;
     
     final trendColor = trend == 'rising' 
-        ? AppTheme.accentGreen 
+        ? DesignTokens.accentGreen 
         : trend == 'declining' 
-            ? AppTheme.accentRed 
-            : AppTheme.primaryOrange;
+            ? DesignTokens.accentRed 
+            : DesignTokens.primaryOrange;
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(DesignTokens.spaceXL),
       decoration: BoxDecoration(
-        color: AppTheme.getColorWithOpacity(coreColor, 0.1),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppTheme.getColorWithOpacity(coreColor, 0.3)),
+        color: DesignTokens.getColorWithOpacity(coreColor, 0.1),
+        borderRadius: BorderRadius.circular(DesignTokens.radiusL),
+        border: Border.all(
+          color: DesignTokens.getColorWithOpacity(coreColor, 0.3),
+        ),
       ),
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(8),
+            padding: EdgeInsets.all(DesignTokens.spaceM),
             decoration: BoxDecoration(
-              color: AppTheme.getColorWithOpacity(coreColor, 0.8),
-              borderRadius: BorderRadius.circular(8),
+              color: DesignTokens.getColorWithOpacity(coreColor, 0.8),
+              borderRadius: BorderRadius.circular(DesignTokens.radiusM),
             ),
             child: Icon(
               icon,
               color: Colors.white,
-              size: 20,
+              size: DesignTokens.iconSizeM,
             ),
           ),
-          const SizedBox(width: 12),
+          SizedBox(width: DesignTokens.spaceL),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -229,17 +175,17 @@ class YourCoresCard extends StatelessWidget {
                   name,
                   style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                     fontWeight: FontWeight.w600,
-                    color: AppTheme.getTextPrimary(context),
+                    color: DesignTokens.getTextPrimary(context),
                   ),
                 ),
                 Row(
                   children: [
                     Icon(
                       trendIcon,
-                      size: 16,
+                      size: DesignTokens.iconSizeS,
                       color: trendColor,
                     ),
-                    const SizedBox(width: 4),
+                    SizedBox(width: DesignTokens.spaceS),
                     Text(
                       trend.toUpperCase(),
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
@@ -255,7 +201,7 @@ class YourCoresCard extends StatelessWidget {
           Text(
             percentage,
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-              color: AppTheme.getTextPrimary(context),
+              color: DesignTokens.getTextPrimary(context),
               fontWeight: FontWeight.w700,
             ),
           ),
