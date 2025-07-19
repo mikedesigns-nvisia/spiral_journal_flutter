@@ -1,9 +1,9 @@
 import 'package:flutter/foundation.dart';
 import '../models/core.dart';
-import '../services/journal_service.dart';
+import '../services/core_library_service.dart';
 
 class CoreProvider with ChangeNotifier {
-  final JournalService _journalService = JournalService();
+  final CoreLibraryService _coreLibraryService = CoreLibraryService();
   
   List<EmotionalCore> _allCores = [];
   List<EmotionalCore> _topCores = [];
@@ -42,7 +42,7 @@ class CoreProvider with ChangeNotifier {
       _setLoading(true);
       _error = null;
       
-      final cores = await _journalService.getAllCores();
+      final cores = await _coreLibraryService.getAllCores();
       _allCores = cores;
       
       notifyListeners();
@@ -60,8 +60,10 @@ class CoreProvider with ChangeNotifier {
       _setLoading(true);
       _error = null;
       
-      final cores = await _journalService.getTopCores(limit);
-      _topCores = cores;
+      final cores = await _coreLibraryService.getAllCores();
+      // Sort by current level and take top cores
+      cores.sort((a, b) => b.currentLevel.compareTo(a.currentLevel));
+      _topCores = cores.take(limit).toList();
       
       notifyListeners();
     } catch (e) {
@@ -78,7 +80,7 @@ class CoreProvider with ChangeNotifier {
       _setLoading(true);
       _error = null;
       
-      await _journalService.updateCore(core);
+      await _coreLibraryService.updateCore(core);
       
       // Update local lists
       final allIndex = _allCores.indexWhere((c) => c.id == core.id);
@@ -96,7 +98,6 @@ class CoreProvider with ChangeNotifier {
     } catch (e) {
       _error = e.toString();
       notifyListeners();
-      return false;
     } finally {
       _setLoading(false);
     }
