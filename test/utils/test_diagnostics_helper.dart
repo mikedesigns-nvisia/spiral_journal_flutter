@@ -452,6 +452,25 @@ class TestDiagnosticsHelper {
       fail(errorMessage);
     }
   }
+
+  /// Provides detailed error messages for navigation failures
+  static String getNavigationErrorMessage({
+    required String expectedBehavior,
+    required String actualBehavior,
+    String? suggestion,
+  }) {
+    final buffer = StringBuffer();
+    
+    buffer.writeln('Navigation Failure:');
+    buffer.writeln('- Expected: $expectedBehavior');
+    buffer.writeln('- Actual: $actualBehavior');
+    
+    if (suggestion != null) {
+      buffer.writeln('\nSuggestion: $suggestion');
+    }
+    
+    return buffer.toString();
+  }
 }
 
 /// Extension on WidgetTester to provide diagnostic helpers
