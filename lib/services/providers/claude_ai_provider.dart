@@ -483,7 +483,7 @@ You MUST respond with a valid JSON object containing exactly this structure:
 ```json
 {
   "primary_emotions": ["emotion1", "emotion2"],
-  "emotional_intensity": 6.5,
+  "emotional_intensity": 0.65,
   "growth_indicators": ["indicator1", "indicator2", "indicator3"],
   "core_adjustments": {
     "Optimism": 0.1,
@@ -501,7 +501,7 @@ You MUST respond with a valid JSON object containing exactly this structure:
   "emotional_patterns": [
     {
       "category": "Pattern Category",
-      "title": "Pattern Title",
+      "title": "Pattern Title", 
       "description": "Detailed description of the emotional pattern observed",
       "type": "growth"
     }
@@ -520,15 +520,19 @@ You MUST respond with a valid JSON object containing exactly this structure:
 - **Social Connection**: Observe relationships, empathy, community involvement
 - **Growth Mindset**: Detect learning from mistakes, embracing challenges, curiosity
 
-### Emotional Intensity (0-10 scale):
-Rate the overall emotional intensity of the entry based on language, mood indicators, and content depth.
+### Emotional Intensity (0.0-1.0 scale):
+**IMPORTANT**: Use 0.0 to 1.0 scale, NOT 0-10. Examples:
+- 0.1-0.3: Low intensity (calm, peaceful entries)
+- 0.4-0.6: Medium intensity (typical daily reflection)
+- 0.7-0.9: High intensity (strong emotions, significant events)
+- 1.0: Maximum intensity (life-changing events, extreme emotions)
 
 ### Growth Indicators:
-Identify 2-4 specific areas where the user is showing personal development or positive patterns.
+Identify 2-4 specific areas where the user is showing personal development or positive patterns. These become `keyThemes` in the app.
 
 ### Mind Reflection:
 - **Title**: Create an engaging title that captures the main emotional theme
-- **Summary**: 2-3 encouraging sentences about their emotional journey
+- **Summary**: 2-3 encouraging sentences about their emotional journey  
 - **Insights**: 3 specific, actionable insights based on the entry content
 
 ### Emotional Patterns:
@@ -541,6 +545,7 @@ Identify recurring themes or behaviors. Types can be: "growth", "challenge", "aw
 3. **Encouraging Tone**: Always supportive and growth-focused
 4. **Specific References**: Insights should reference actual content from the entry
 5. **Balanced Analysis**: Not every core needs adjustment; some may remain at 0.0
+6. **Correct Intensity Scale**: Use 0.0-1.0 scale for emotional_intensity
 
 ## Example Analysis:
 
@@ -550,7 +555,7 @@ Identify recurring themes or behaviors. Types can be: "growth", "challenge", "aw
 ```json
 {
   "primary_emotions": ["pride", "satisfaction", "determination"],
-  "emotional_intensity": 7.0,
+  "emotional_intensity": 0.7,
   "growth_indicators": ["problem-solving", "emotional regulation", "creative thinking"],
   "core_adjustments": {
     "Optimism": 0.2,
@@ -565,7 +570,7 @@ Identify recurring themes or behaviors. Types can be: "growth", "challenge", "aw
     "summary": "You've shown remarkable growth in transforming challenges into opportunities. Your ability to shift perspective and find innovative solutions demonstrates real emotional maturity and creative thinking.",
     "insights": [
       "Your creative approach to workplace challenges shows growing problem-solving skills",
-      "Managing stress by reframing problems demonstrates strong emotional regulation",
+      "Managing stress by reframing problems demonstrates strong emotional regulation", 
       "Taking pride in your accomplishments builds confidence and resilience"
     ]
   },
@@ -580,6 +585,17 @@ Identify recurring themes or behaviors. Types can be: "growth", "challenge", "aw
   "entry_insight": "Your ability to transform workplace stress into creative solutions shows real emotional intelligence and growth mindset development."
 }
 ```
+
+## Data Storage Notes:
+
+The app stores analysis data in the following structure:
+- `primary_emotions` → `EmotionalAnalysis.primaryEmotions`
+- `emotional_intensity` → `EmotionalAnalysis.emotionalIntensity` (0.0-1.0)
+- `growth_indicators` → `EmotionalAnalysis.keyThemes` 
+- `entry_insight` → `EmotionalAnalysis.personalizedInsight`
+- `core_adjustments` → Used to update personality cores in database
+- `mind_reflection` → Processed by UI but not stored directly in database
+- `emotional_patterns` → Processed by EmotionalAnalyzer for pattern recognition
 
 Now analyze the following journal entry and provide insights in the exact format specified above.''';
   }
@@ -772,7 +788,7 @@ Keep it personal, supportive, and focused on their emotional journey.
 
     return {
       "primary_emotions": entry.moods.take(2).toList(),
-      "emotional_intensity": 6.0,
+      "emotional_intensity": 0.6,
       "growth_indicators": ["self_reflection", "emotional_awareness", "mindful_writing"],
       "core_adjustments": coreAdjustments,
       "mind_reflection": {
@@ -822,7 +838,7 @@ Keep it personal, supportive, and focused on their emotional journey.
   Map<String, dynamic> _getDefaultAnalysis() {
     return {
       "primary_emotions": ["neutral"],
-      "emotional_intensity": 5.0,
+      "emotional_intensity": 0.5,
       "growth_indicators": ["self_reflection"],
       "core_adjustments": {
         "Optimism": 0.0,

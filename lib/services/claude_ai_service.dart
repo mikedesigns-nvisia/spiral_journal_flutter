@@ -1,11 +1,14 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/journal_entry.dart';
+import '../models/daily_journal.dart';
 import '../models/core.dart';
 import '../utils/app_error_handler.dart';
+import '../config/environment.dart';
 import 'secure_api_key_service.dart';
 import 'providers/claude_ai_provider.dart';
 import 'ai_service_interface.dart';
+import 'usage_tracking_service.dart';
 
 /// Legacy Claude AI Service - DEPRECATED
 /// 
