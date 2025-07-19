@@ -71,12 +71,13 @@ class JournalService {
   Future<String> createJournalEntry({
     required String content,
     required List<String> moods,
+    EntryStatus status = EntryStatus.saved,
   }) async {
     try {
       final entry = JournalEntry.create(
         content: content,
         moods: moods,
-      );
+      ).copyWith(status: status);
       
       try {
         // Calculate core updates first
@@ -102,6 +103,42 @@ class JournalService {
       }
     } catch (e) {
       debugPrint('JournalService createJournalEntry error: $e');
+      rethrow;
+    }
+  }
+
+  // Save draft entry (autosave functionality)
+  Future<String> saveDraftEntry({
+    required String content,
+    required List<String> moods,
+    String? existingEntryId,
+  }) async {
+    try {
+      if (existingEntryId != null) {
+        // Update existing draft
+        final existingEntry = await getEntryById(existingEntryId);
+        if (existingEntry != null && existingEntry.isEditable) {
+          final updatedEntry = existingEntry.copyWith(
+            content: content,
+            moods: moods,
+            status: EntryStatus.draft,
+            updatedAt: DateTime.now(),
+          );
+          await updateEntry(updatedEntry);
+          return existingEntryId;
+        }
+      }
+      
+      // Create new draft entry
+      final entry = JournalEntry.create(
+        content: content,
+        moods: moods,
+      ).copyWith(status: EntryStatus.draft);
+      
+      final entryId = await _journalDao.insertJournalEntry(entry);
+      return entryId;
+    } catch (e) {
+      debugPrint('JournalService saveDraftEntry error: $e');
       rethrow;
     }
   }

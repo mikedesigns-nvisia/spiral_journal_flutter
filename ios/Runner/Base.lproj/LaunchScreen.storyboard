@@ -16,23 +16,87 @@
                     <view key="view" contentMode="scaleToFill" id="Ze5-6b-2t3">
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
-                            <imageView opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="scaleAspectFit" image="LaunchImage" translatesAutoresizingMaskIntoConstraints="NO" id="YRO-k0-Ey4">
-                            </imageView>
-                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Spiral Journal" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="8ie-xW-0ye">
-                                <rect key="frame" x="20" y="439" width="335" height="21"/>
-                                <fontDescription key="fontDescription" type="system" weight="semibold" pointSize="24"/>
+                            <!-- Main app title -->
+                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Spiral Journal" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="main-title">
+                                <fontDescription key="fontDescription" type="system" weight="bold" pointSize="32"/>
                                 <color key="textColor" red="0.525" green="0.322" blue="0.098" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
                                 <nil key="highlightedColor"/>
                             </label>
+                            
+                            <!-- Tagline -->
+                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="AI-powered personal growth through journaling" textAlignment="center" lineBreakMode="tailTruncation" numberOfLines="2" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="tagline">
+                                <fontDescription key="fontDescription" type="system" pointSize="16"/>
+                                <color key="textColor" red="0.4" green="0.4" blue="0.4" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                                <nil key="highlightedColor"/>
+                            </label>
+                            
+                            <!-- Attribution container view -->
+                            <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="attribution-container">
+                                <subviews>
+                                    <!-- Powered by Anthropic -->
+                                    <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="powered-by-container">
+                                        <subviews>
+                                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Powered by " textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="powered-by-text">
+                                                <fontDescription key="fontDescription" type="system" pointSize="12"/>
+                                                <color key="textColor" red="0.6" green="0.6" blue="0.6" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                                                <nil key="highlightedColor"/>
+                                            </label>
+                                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Anthropic" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="anthropic-text">
+                                                <fontDescription key="fontDescription" type="system" weight="bold" pointSize="12"/>
+                                                <color key="textColor" red="0.525" green="0.322" blue="0.098" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                                                <nil key="highlightedColor"/>
+                                            </label>
+                                        </subviews>
+                                        <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                        <constraints>
+                                            <constraint firstItem="powered-by-text" firstAttribute="leading" secondItem="powered-by-container" secondAttribute="leading" id="powered-by-leading"/>
+                                            <constraint firstItem="powered-by-text" firstAttribute="centerY" secondItem="powered-by-container" secondAttribute="centerY" id="powered-by-center-y"/>
+                                            <constraint firstItem="anthropic-text" firstAttribute="leading" secondItem="powered-by-text" secondAttribute="trailing" id="anthropic-leading"/>
+                                            <constraint firstItem="anthropic-text" firstAttribute="centerY" secondItem="powered-by-container" secondAttribute="centerY" id="anthropic-center-y"/>
+                                            <constraint firstAttribute="trailing" secondItem="anthropic-text" secondAttribute="trailing" id="anthropic-trailing"/>
+                                            <constraint firstAttribute="top" secondItem="powered-by-text" secondAttribute="top" id="powered-by-top"/>
+                                            <constraint firstAttribute="bottom" secondItem="powered-by-text" secondAttribute="bottom" id="powered-by-bottom"/>
+                                        </constraints>
+                                    </view>
+                                    
+                                    <!-- Made by Mike -->
+                                    <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Made by Mike" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="made-by-text">
+                                        <fontDescription key="fontDescription" type="system" pointSize="12"/>
+                                        <color key="textColor" red="0.6" green="0.6" blue="0.6" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                                        <nil key="highlightedColor"/>
+                                    </label>
+                                </subviews>
+                                <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                <constraints>
+                                    <constraint firstItem="powered-by-container" firstAttribute="top" secondItem="attribution-container" secondAttribute="top" id="powered-by-container-top"/>
+                                    <constraint firstItem="powered-by-container" firstAttribute="centerX" secondItem="attribution-container" secondAttribute="centerX" id="powered-by-container-center-x"/>
+                                    <constraint firstItem="made-by-text" firstAttribute="top" secondItem="powered-by-container" secondAttribute="bottom" constant="8" id="made-by-top"/>
+                                    <constraint firstItem="made-by-text" firstAttribute="centerX" secondItem="attribution-container" secondAttribute="centerX" id="made-by-center-x"/>
+                                    <constraint firstItem="made-by-text" firstAttribute="leading" relation="greaterThanOrEqual" secondItem="attribution-container" secondAttribute="leading" id="made-by-leading"/>
+                                    <constraint firstAttribute="trailing" relation="greaterThanOrEqual" secondItem="made-by-text" secondAttribute="trailing" id="made-by-trailing"/>
+                                    <constraint firstAttribute="bottom" secondItem="made-by-text" secondAttribute="bottom" id="attribution-container-bottom"/>
+                                </constraints>
+                            </view>
                         </subviews>
                         <color key="backgroundColor" red="0.988" green="0.969" blue="0.957" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
                         <constraints>
-                            <constraint firstItem="YRO-k0-Ey4" firstAttribute="centerX" secondItem="Ze5-6b-2t3" secondAttribute="centerX" id="1a2-6s-vTC"/>
-                            <constraint firstItem="YRO-k0-Ey4" firstAttribute="centerY" secondItem="Ze5-6b-2t3" secondAttribute="centerY" id="4X2-HB-R7a"/>
-                            <constraint firstItem="8ie-xW-0ye" firstAttribute="top" secondItem="YRO-k0-Ey4" secondAttribute="bottom" constant="20" id="Kzo-t9-V3l"/>
-                            <constraint firstItem="8ie-xW-0ye" firstAttribute="leading" secondItem="Ze5-6b-2t3" secondAttribute="leading" constant="20" id="MfP-vx-nX0"/>
-                            <constraint firstAttribute="trailing" secondItem="8ie-xW-0ye" secondAttribute="trailing" constant="20" id="OZV-Vh-mqD"/>
-                            <constraint firstItem="8ie-xW-0ye" firstAttribute="centerX" secondItem="Ze5-6b-2t3" secondAttribute="centerX" id="ZEH-qu-HZ9"/>
+                            <!-- Main title constraints -->
+                            <constraint firstItem="main-title" firstAttribute="centerX" secondItem="Ze5-6b-2t3" secondAttribute="centerX" id="main-title-center-x"/>
+                            <constraint firstItem="main-title" firstAttribute="centerY" secondItem="Ze5-6b-2t3" secondAttribute="centerY" id="main-title-center-y"/>
+                            <constraint firstItem="main-title" firstAttribute="leading" relation="greaterThanOrEqual" secondItem="Ze5-6b-2t3" secondAttribute="leading" constant="32" id="main-title-leading"/>
+                            <constraint firstAttribute="trailing" relation="greaterThanOrEqual" secondItem="main-title" secondAttribute="trailing" constant="32" id="main-title-trailing"/>
+                            
+                            <!-- Tagline constraints -->
+                            <constraint firstItem="tagline" firstAttribute="top" secondItem="main-title" secondAttribute="bottom" constant="16" id="tagline-top"/>
+                            <constraint firstItem="tagline" firstAttribute="centerX" secondItem="Ze5-6b-2t3" secondAttribute="centerX" id="tagline-center-x"/>
+                            <constraint firstItem="tagline" firstAttribute="leading" relation="greaterThanOrEqual" secondItem="Ze5-6b-2t3" secondAttribute="leading" constant="32" id="tagline-leading"/>
+                            <constraint firstAttribute="trailing" relation="greaterThanOrEqual" secondItem="tagline" secondAttribute="trailing" constant="32" id="tagline-trailing"/>
+                            
+                            <!-- Attribution constraints -->
+                            <constraint firstItem="attribution-container" firstAttribute="centerX" secondItem="Ze5-6b-2t3" secondAttribute="centerX" id="attribution-center-x"/>
+                            <constraint firstItem="xbc-2k-c8Z" firstAttribute="top" secondItem="attribution-container" secondAttribute="bottom" constant="32" id="attribution-to-bottom-guide"/>
+                            <constraint firstItem="attribution-container" firstAttribute="leading" relation="greaterThanOrEqual" secondItem="Ze5-6b-2t3" secondAttribute="leading" constant="32" id="attribution-leading"/>
+                            <constraint firstAttribute="trailing" relation="greaterThanOrEqual" secondItem="attribution-container" secondAttribute="trailing" constant="32" id="attribution-trailing"/>
                         </constraints>
                     </view>
                 </viewController>
@@ -41,7 +105,4 @@
             <point key="canvasLocation" x="53" y="375"/>
         </scene>
     </scenes>
-    <resources>
-        <image name="LaunchImage" width="168" height="185"/>
-    </resources>
 </document>

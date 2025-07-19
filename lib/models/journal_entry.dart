@@ -1,3 +1,10 @@
+/// Entry status enumeration
+enum EntryStatus {
+  draft,     // Entry is being written/edited
+  saved,     // Entry is saved but can still be edited (same day)
+  processed  // Entry is processed and cannot be edited (past days)
+}
+
 /// Represents the AI analysis results for a journal entry
 class EmotionalAnalysis {
   final List<String> primaryEmotions;
@@ -59,6 +66,10 @@ class JournalEntry {
   final double? emotionalIntensity; // 0.0 to 1.0
   final List<String> keyThemes; // Main themes from AI analysis
   final String? personalizedInsight; // AI-generated personal insight
+  
+  // Entry status tracking
+  final EntryStatus status; // draft, saved, processed
+  final bool isEditable; // Whether entry can be edited
 
   JournalEntry({
     required this.id,
@@ -78,7 +89,19 @@ class JournalEntry {
     this.emotionalIntensity,
     this.keyThemes = const [],
     this.personalizedInsight,
-  });
+    this.status = EntryStatus.draft,
+    bool? isEditable,
+  }) : isEditable = isEditable ?? _calculateEditability(date, status);
+
+  // Helper method to calculate if entry is editable
+  static bool _calculateEditability(DateTime entryDate, EntryStatus status) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final entryDay = DateTime(entryDate.year, entryDate.month, entryDate.day);
+    
+    // Entry is editable if it's from today and not processed
+    return entryDay.isAtSameMomentAs(today) && status != EntryStatus.processed;
+  }
 
   // Create a new entry with current date
   factory JournalEntry.create({
@@ -105,6 +128,11 @@ class JournalEntry {
   }
 
   factory JournalEntry.fromJson(Map<String, dynamic> json) {
+    final status = EntryStatus.values.firstWhere(
+      (e) => e.toString() == 'EntryStatus.${json['status']}',
+      orElse: () => EntryStatus.draft,
+    );
+    
     return JournalEntry(
       id: json['id'],
       userId: json['userId'] ?? 'local_user',
@@ -125,6 +153,8 @@ class JournalEntry {
       emotionalIntensity: json['emotionalIntensity']?.toDouble(),
       keyThemes: List<String>.from(json['keyThemes'] ?? []),
       personalizedInsight: json['personalizedInsight'],
+      status: status,
+      isEditable: json['isEditable'],
     );
   }
 
@@ -147,6 +177,8 @@ class JournalEntry {
       'emotionalIntensity': emotionalIntensity,
       'keyThemes': keyThemes,
       'personalizedInsight': personalizedInsight,
+      'status': status.toString().split('.').last,
+      'isEditable': isEditable,
     };
   }
 
@@ -189,6 +221,8 @@ class JournalEntry {
     double? emotionalIntensity,
     List<String>? keyThemes,
     String? personalizedInsight,
+    EntryStatus? status,
+    bool? isEditable,
   }) {
     return JournalEntry(
       id: id ?? this.id,
@@ -208,6 +242,8 @@ class JournalEntry {
       emotionalIntensity: emotionalIntensity ?? this.emotionalIntensity,
       keyThemes: keyThemes ?? this.keyThemes,
       personalizedInsight: personalizedInsight ?? this.personalizedInsight,
+      status: status ?? this.status,
+      isEditable: isEditable ?? this.isEditable,
     );
   }
 }

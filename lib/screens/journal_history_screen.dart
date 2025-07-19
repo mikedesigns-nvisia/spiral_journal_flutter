@@ -6,6 +6,7 @@ import 'package:spiral_journal/providers/journal_provider.dart';
 import 'package:spiral_journal/models/journal_entry.dart';
 import 'package:spiral_journal/constants/validation_constants.dart';
 import 'package:spiral_journal/widgets/loading_state_widget.dart';
+import 'package:spiral_journal/widgets/journal_edit_modal.dart';
 import 'package:spiral_journal/utils/animation_utils.dart';
 import 'package:intl/intl.dart';
 
@@ -134,6 +135,9 @@ class _JournalHistoryScreenState extends State<JournalHistoryScreen> {
   }
 
   Widget _buildEntryCard(JournalEntry entry) {
+    final isEditable = entry.isEditable;
+    final isToday = _isToday(entry.date);
+    
     return Dismissible(
       key: Key('journal_entry_${entry.id}'),
       direction: DismissDirection.endToStart,
@@ -176,7 +180,11 @@ class _JournalHistoryScreenState extends State<JournalHistoryScreen> {
         child: InkWell(
           onTap: () {
             AnimationUtils.lightImpact();
-            _showEntryDetails(entry);
+            if (isEditable) {
+              _editEntry(entry);
+            } else {
+              _showEntryDetails(entry);
+            }
           },
           borderRadius: BorderRadius.circular(16),
           child: Padding(
@@ -190,11 +198,33 @@ class _JournalHistoryScreenState extends State<JournalHistoryScreen> {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          DateFormat('MMM d').format(entry.date),
-                          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                            fontWeight: FontWeight.w600,
-                          ),
+                        Row(
+                          children: [
+                            Text(
+                              DateFormat('MMM d').format(entry.date),
+                              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            if (isEditable) ...[
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: AppTheme.accentGreen,
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  'Editable',
+                                  style: AppTheme.getTextStyle(
+                                    fontSize: 8,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
                         ),
                         Text(
                           entry.dayOfWeek,
@@ -242,10 +272,56 @@ class _JournalHistoryScreenState extends State<JournalHistoryScreen> {
                   maxLines: 3,
                   overflow: TextOverflow.ellipsis,
                 ),
+                if (isEditable) ...[
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.edit_rounded,
+                        size: 14,
+                        color: AppTheme.accentGreen,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Tap to edit',
+                        style: AppTheme.getTextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                          color: AppTheme.accentGreen,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ],
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  bool _isToday(DateTime date) {
+    final now = DateTime.now();
+    return date.year == now.year && date.month == now.month && date.day == now.day;
+  }
+
+  void _editEntry(JournalEntry entry) {
+    // Show modal for editing instead of navigation
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => JournalEditModal(
+        entry: entry,
+        onSaved: () {
+          // Refresh the journal entries after saving
+          final journalProvider = Provider.of<JournalProvider>(context, listen: false);
+          journalProvider.refresh();
+        },
+        onCancelled: () {
+          // Optional: Handle cancellation if needed
+        },
       ),
     );
   }

@@ -32,9 +32,12 @@ class _JournalScreenState extends State<JournalScreen> {
   final List<String> _aiDetectedMoods = [];
   
   bool _isAnalyzing = false;
+  bool _isSaving = false;
   String? _draftContent;
   String? _analysisInsight;
   String _userName = 'there'; // Default fallback name
+  JournalEntry? _todaysEntry; // Track today's entry for editing
+  String? _currentDraftId; // Track current draft ID for autosave
 
   @override
   void initState() {

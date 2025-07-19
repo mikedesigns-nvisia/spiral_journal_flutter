@@ -269,6 +269,9 @@ class _JournalInputState extends State<JournalInput> {
           Spacer(),
           // Show word count or character count for user feedback
           _buildWordCount(context),
+          SizedBox(width: DesignTokens.spaceM),
+          // Save button
+          _buildSaveButton(context),
         ],
       ),
     );
@@ -327,6 +330,43 @@ class _JournalInputState extends State<JournalInput> {
           color: DesignTokens.getTextTertiary(context),
         ),
       ],
+    );
+  }
+
+  Widget _buildSaveButton(BuildContext context) {
+    final hasContent = widget.controller.text.trim().isNotEmpty;
+    
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      child: IconButton(
+        onPressed: hasContent && !widget.isSaving ? widget.onSave : null,
+        icon: widget.isSaving 
+            ? SizedBox(
+                width: DesignTokens.iconSizeM,
+                height: DesignTokens.iconSizeM,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    Colors.white,
+                  ),
+                ),
+              )
+            : Icon(
+                Icons.save_rounded,
+                size: DesignTokens.iconSizeM,
+                color: Colors.white,
+              ),
+        style: IconButton.styleFrom(
+          foregroundColor: Colors.white,
+          backgroundColor: hasContent 
+              ? DesignTokens.getPrimaryColor(context)
+              : DesignTokens.getTextTertiary(context),
+          padding: EdgeInsets.all(DesignTokens.spaceM),
+          minimumSize: Size(DesignTokens.buttonHeight, DesignTokens.buttonHeight),
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        ),
+        tooltip: hasContent ? 'Save entry' : 'Write something to save',
+      ),
     );
   }
 
