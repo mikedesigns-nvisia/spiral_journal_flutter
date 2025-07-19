@@ -98,6 +98,7 @@ class CoreProvider with ChangeNotifier {
     } catch (e) {
       _error = e.toString();
       notifyListeners();
+      return false;
     } finally {
       _setLoading(false);
     }
