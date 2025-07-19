@@ -330,6 +330,7 @@ class AdaptiveCard extends StatelessWidget {
     );
 
     return ComponentLibrary.card(
+      context: context,
       child: child,
       padding: adaptivePadding,
       margin: adaptiveMargin,
@@ -404,14 +405,6 @@ class AdaptiveBottomNavigation extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: backgroundColor ?? DesignTokens.getBackgroundPrimary(context),
-        border: Border(
-          top: BorderSide(
-            color: Theme.of(context).brightness == Brightness.dark
-                ? DesignTokens.darkBackgroundTertiary
-                : DesignTokens.backgroundTertiary,
-            width: 1,
-          ),
-        ),
       ),
       child: SafeArea(
         child: BottomNavigationBar(

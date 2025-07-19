@@ -132,6 +132,7 @@ class ComponentLibrary {
   
   /// Standard card following design system
   static Widget card({
+    required BuildContext context,
     required Widget child,
     EdgeInsets? padding,
     EdgeInsets? margin,
@@ -143,7 +144,7 @@ class ComponentLibrary {
     return Container(
       margin: margin ?? ComponentTokens.cardDefaultMargin,
       child: Material(
-        color: backgroundColor ?? DesignTokens.backgroundSecondary,
+        color: backgroundColor ?? DesignTokens.getBackgroundSecondary(context),
         elevation: elevation ?? ComponentTokens.cardDefaultElevation,
         borderRadius: BorderRadius.circular(ComponentTokens.cardDefaultRadius),
         child: InkWell(
@@ -154,7 +155,7 @@ class ComponentLibrary {
             decoration: hasBorder ? BoxDecoration(
               borderRadius: BorderRadius.circular(ComponentTokens.cardDefaultRadius),
               border: Border.all(
-                color: DesignTokens.backgroundTertiary,
+                color: DesignTokens.getBackgroundTertiary(context),
                 width: ComponentTokens.cardBorderWidth,
               ),
             ) : null,
@@ -200,6 +201,7 @@ class ComponentLibrary {
   
   /// Standard text field following design system
   static Widget textField({
+    required BuildContext context,
     required String label,
     String? hint,
     String? helperText,
@@ -226,7 +228,7 @@ class ComponentLibrary {
               style: DesignTokens.getTextStyle(
                 fontSize: DesignTokens.fontSizeM,
                 fontWeight: DesignTokens.fontWeightMedium,
-                color: DesignTokens.textSecondary,
+                color: DesignTokens.getTextSecondary(context),
               ),
               children: required ? [
                 TextSpan(
@@ -257,19 +259,19 @@ class ComponentLibrary {
             prefixIcon: prefixIcon,
             suffixIcon: suffixIcon,
             filled: true,
-            fillColor: DesignTokens.backgroundSecondary,
+            fillColor: DesignTokens.getBackgroundSecondary(context),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(DesignTokens.inputRadius),
-              borderSide: const BorderSide(color: DesignTokens.backgroundTertiary),
+              borderSide: BorderSide(color: DesignTokens.getBackgroundTertiary(context)),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(DesignTokens.inputRadius),
-              borderSide: const BorderSide(color: DesignTokens.backgroundTertiary),
+              borderSide: BorderSide(color: DesignTokens.getBackgroundTertiary(context)),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(DesignTokens.inputRadius),
-              borderSide: const BorderSide(
-                color: DesignTokens.primaryOrange, 
+              borderSide: BorderSide(
+                color: DesignTokens.getPrimaryColor(context), 
                 width: DesignTokens.inputFocusedBorderWidth,
               ),
             ),
@@ -281,13 +283,13 @@ class ComponentLibrary {
             hintStyle: DesignTokens.getTextStyle(
               fontSize: DesignTokens.fontSizeM,
               fontWeight: DesignTokens.fontWeightRegular,
-              color: DesignTokens.textTertiary,
+              color: DesignTokens.getTextTertiary(context),
             ),
           ),
           style: DesignTokens.getTextStyle(
             fontSize: DesignTokens.fontSizeM,
             fontWeight: DesignTokens.fontWeightRegular,
-            color: DesignTokens.textPrimary,
+            color: DesignTokens.getTextPrimary(context),
           ),
         ),
         if (helperText != null) ...[
@@ -297,7 +299,7 @@ class ComponentLibrary {
             style: DesignTokens.getTextStyle(
               fontSize: DesignTokens.fontSizeS,
               fontWeight: DesignTokens.fontWeightRegular,
-              color: DesignTokens.textTertiary,
+              color: DesignTokens.getTextTertiary(context),
             ),
           ),
         ],

@@ -113,73 +113,70 @@ class _AccessibleWidgetState extends State<AccessibleWidget> {
 
   @override
   Widget build(BuildContext context) {
-    Widget child = widget.child;
+    // Build the widget tree from inside out to avoid circular references
+    Widget result = widget.child;
 
     // Apply minimum touch target size
     final minSize = widget.minTouchTargetSize ?? 
                    _accessibilityService.getMinimumTouchTargetSize();
     
-    child = ConstrainedBox(
+    result = ConstrainedBox(
       constraints: BoxConstraints(
         minWidth: minSize,
         minHeight: minSize,
       ),
-      child: child,
+      child: result,
     );
 
     // Apply padding if specified
     if (widget.padding != null) {
-      child = Padding(
+      result = Padding(
         padding: widget.padding!,
-        child: child,
-      );
-    }
-
-    // Add focus and keyboard handling
-    if (widget.focusable) {
-      child = Focus(
-        focusNode: _focusNode,
-        autofocus: widget.autoFocus,
-        onKeyEvent: (node, event) {
-          return _handleKeyEvent(event);
-        },
-        child: Builder(
-          builder: (context) {
-            return Container(
-              decoration: _isFocused ? BoxDecoration(
-                border: Border.all(
-                  color: Theme.of(context).focusColor,
-                  width: 2.0,
-                ),
-                borderRadius: BorderRadius.circular(4.0),
-              ) : null,
-              child: child,
-            );
-          },
-        ),
+        child: result,
       );
     }
 
     // Add gesture detection
     if (widget.onTap != null || widget.onLongPress != null) {
-      child = GestureDetector(
+      result = GestureDetector(
         onTap: widget.onTap,
         onLongPress: widget.onLongPress,
-        child: child,
+        child: result,
       );
     }
 
     // Add tooltip if specified
     if (widget.tooltip != null) {
-      child = Tooltip(
+      result = Tooltip(
         message: widget.tooltip!,
-        child: child,
+        child: result,
+      );
+    }
+
+    // Add focus and keyboard handling - simplified approach
+    if (widget.focusable) {
+      result = Focus(
+        focusNode: _focusNode,
+        autofocus: widget.autoFocus,
+        onKeyEvent: (node, event) {
+          return _handleKeyEvent(event);
+        },
+        child: Container(
+          decoration: _isFocused ? BoxDecoration(
+            border: Border.all(
+              color: Theme.of(context).focusColor,
+              width: 2.0,
+            ),
+            borderRadius: BorderRadius.circular(4.0),
+          ) : null,
+          child: result,
+        ),
       );
     }
 
     // Add semantic information
     if (!widget.excludeSemantics) {
-      child = Semantics(
+      result = Semantics(
         label: widget.semanticLabel,
         hint: widget.semanticHint,
         value: widget.semanticValue,
@@ -188,11 +185,11 @@ class _AccessibleWidgetState extends State<AccessibleWidget> {
         focused: _isFocused,
         onTap: widget.onTap,
         onLongPress: widget.onLongPress,
-        child: child,
+        child: result,
       );
     }
 
-    return child;
+    return result;
   }
 }
 

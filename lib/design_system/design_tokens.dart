@@ -39,7 +39,7 @@ class DesignTokens {
   /// Dark theme text colors
   static const Color darkTextPrimary = Color(0xFFE8E3E0);
   static const Color darkTextSecondary = Color(0xFFB8B3B0);
-  static const Color darkTextTertiary = Color(0xFF8A8580);
+  static const Color darkTextTertiary = Color(0xFFD8D3D0);
   
   /// Semantic mood colors (theme-agnostic)
   static const Color moodHappy = Color(0xFFE78B1B);
@@ -65,6 +65,23 @@ class DesignTokens {
   static const Color warningColor = Color(0xFFFF9800);
   static const Color errorColor = Color(0xFFBA1A1A);
   static const Color infoColor = Color(0xFF2196F3);
+  
+  // ============================================================================
+  // AI CONTENT COLORS
+  // ============================================================================
+  
+  /// AI-generated content colors (theme-agnostic)
+  static const Color aiInsightPrimary = Color(0xFF6366F1); // Indigo for AI insights
+  static const Color aiInsightSecondary = Color(0xFF8B5CF6); // Purple for AI analysis
+  static const Color aiSuggestionColor = Color(0xFF10B981); // Emerald for suggestions
+  static const Color aiWarningColor = Color(0xFFF59E0B); // Amber for AI warnings
+  static const Color aiHighlightColor = Color(0xFFEC4899); // Pink for AI highlights
+  
+  /// AI content background colors
+  static const Color aiContentBackground = Color(0xFFF8FAFC); // Light blue-gray
+  static const Color aiContentBorder = Color(0xFFE2E8F0); // Slate border
+  static const Color darkAiContentBackground = Color(0xFF1E293B); // Dark slate
+  static const Color darkAiContentBorder = Color(0xFF334155); // Dark slate border
   
   // ============================================================================
   // TYPOGRAPHY SYSTEM
@@ -116,43 +133,49 @@ class DesignTokens {
   static const double lineHeightRelaxed = 1.6;
   
   // ============================================================================
-  // SPACING SYSTEM
+  // SPACING SYSTEM - GOLDEN RATIO BASED
   // ============================================================================
   
-  /// Spacing scale based on 4px grid
-  static const double spaceXXS = 2.0;
-  static const double spaceXS = 4.0;
-  static const double spaceS = 8.0;
-  static const double spaceM = 12.0;
-  static const double spaceL = 16.0;
-  static const double spaceXL = 20.0;
-  static const double spaceXXL = 24.0;
-  static const double spaceXXXL = 32.0;
-  static const double spaceHuge = 48.0;
+  /// Golden ratio constant (φ ≈ 1.618)
+  static const double goldenRatio = 1.618;
   
-  /// Component-specific spacing
-  static const double cardPadding = spaceXL;
-  static const double screenPadding = spaceL;
-  static const double buttonPadding = spaceM;
-  static const double inputPadding = spaceL;
+  /// Spacing scale based on 4px base unit with golden ratio progression
+  /// Optimized for iPhone 12/13/14/15 (390px width) - the most common iPhone
+  static const double spaceXXS = 2.0;   // 4 ÷ φ² ≈ 1.5 → 2px
+  static const double spaceXS = 3.0;    // 4 ÷ φ ≈ 2.5 → 3px
+  static const double spaceS = 4.0;     // Base unit (4px)
+  static const double spaceM = 6.0;     // 4 × φ ≈ 6.5 → 6px
+  static const double spaceL = 10.0;    // 4 × φ² ≈ 10.5 → 10px
+  static const double spaceXL = 16.0;   // 4 × φ³ ≈ 17 → 16px
+  static const double spaceXXL = 26.0;  // 4 × φ⁴ ≈ 27.5 → 26px
+  static const double spaceXXXL = 42.0; // 4 × φ⁵ ≈ 44.5 → 42px
+  static const double spaceHuge = 68.0; // 4 × φ⁶ ≈ 72 → 68px
+  
+  /// Component-specific spacing using golden ratio scale
+  static const double cardPadding = spaceXL;      // 16px - optimal for cards
+  static const double screenPadding = spaceXL;    // 16px - optimal for screen edges
+  static const double buttonPadding = spaceL;     // 10px - optimal for button padding
+  static const double inputPadding = spaceXL;     // 16px - optimal for input fields
   
   // ============================================================================
-  // BORDER RADIUS SYSTEM
+  // BORDER RADIUS SYSTEM - GOLDEN RATIO BASED
   // ============================================================================
   
-  static const double radiusXS = 4.0;
-  static const double radiusS = 8.0;
-  static const double radiusM = 12.0;
-  static const double radiusL = 16.0;
-  static const double radiusXL = 20.0;
-  static const double radiusXXL = 24.0;
-  static const double radiusRound = 50.0;
+  /// Border radius following golden ratio progression
+  static const double radiusXXS = 2.0;   // 4 ÷ φ² ≈ 1.5 → 2px
+  static const double radiusXS = 3.0;    // 4 ÷ φ ≈ 2.5 → 3px
+  static const double radiusS = 4.0;     // Base unit
+  static const double radiusM = 6.0;     // 4 × φ ≈ 6.5 → 6px
+  static const double radiusL = 10.0;    // 4 × φ² ≈ 10.5 → 10px
+  static const double radiusXL = 16.0;   // 4 × φ³ ≈ 17 → 16px
+  static const double radiusXXL = 26.0;  // 4 × φ⁴ ≈ 27.5 → 26px
+  static const double radiusRound = 50.0; // Maintained for circular elements
   
-  /// Component-specific radius
-  static const double cardRadius = radiusL;
-  static const double buttonRadius = radiusS;
-  static const double inputRadius = radiusM;
-  static const double chipRadius = radiusXL;
+  /// Component-specific radius using golden ratio
+  static const double cardRadius = radiusL;      // 10px - optimal for cards
+  static const double buttonRadius = radiusM;    // 6px - optimal for buttons
+  static const double inputRadius = radiusM;     // 6px - optimal for inputs
+  static const double chipRadius = radiusXL;     // 16px - optimal for chips
   
   // ============================================================================
   // ELEVATION SYSTEM
@@ -223,13 +246,14 @@ class DesignTokens {
   static const double loadingIndicatorSizeLarge = 60.0;
   static const double loadingStrokeWidth = 3.0;
   
-  /// Icon specifications
-  static const double iconSizeXS = 12.0;
-  static const double iconSizeS = 16.0;
-  static const double iconSizeM = 20.0;
-  static const double iconSizeL = 24.0;
-  static const double iconSizeXL = 32.0;
-  static const double iconSizeXXL = 48.0;
+  /// Icon specifications - golden ratio based
+  static const double iconSizeXXS = 6.0;   // 4 × φ ≈ 6.5 → 6px
+  static const double iconSizeXS = 10.0;   // 4 × φ² ≈ 10.5 → 10px
+  static const double iconSizeS = 16.0;    // 4 × φ³ ≈ 17 → 16px
+  static const double iconSizeM = 20.0;    // Adjusted for usability
+  static const double iconSizeL = 24.0;    // Adjusted for usability
+  static const double iconSizeXL = 32.0;   // Maintained for larger icons
+  static const double iconSizeXXL = 48.0;  // Maintained for largest icons
   
   // ============================================================================
   // LAYOUT TOKENS
@@ -315,16 +339,75 @@ class DesignTokens {
   /// Get mood color by name
   static Color getMoodColor(String mood) {
     switch (mood.toLowerCase()) {
+      // Positive moods - warm, bright colors
       case 'happy':
+      case 'joyful':
         return moodHappy;
       case 'content':
+      case 'peaceful':
+      case 'calm':
         return moodContent;
-      case 'unsure':
-        return moodUnsure;
-      case 'sad':
-        return moodSad;
       case 'energetic':
+      case 'excited':
         return moodEnergetic;
+      case 'grateful':
+      case 'loving':
+        return const Color(0xFFE91E63); // Pink
+      case 'confident':
+      case 'proud':
+        return const Color(0xFF9C27B0); // Purple
+      case 'motivated':
+      case 'determined':
+        return const Color(0xFF3F51B5); // Indigo
+      case 'creative':
+      case 'inspired':
+        return const Color(0xFF673AB7); // Deep Purple
+      case 'social':
+      case 'compassionate':
+        return const Color(0xFF009688); // Teal
+      case 'optimistic':
+      case 'hopeful':
+        return const Color(0xFFFF9800); // Orange
+      case 'focused':
+      case 'accomplished':
+        return const Color(0xFF4CAF50); // Green
+      case 'playful':
+      case 'curious':
+        return const Color(0xFFFFEB3B); // Yellow
+      case 'relaxed':
+        return const Color(0xFF00BCD4); // Cyan
+      case 'adventurous':
+        return const Color(0xFFFF5722); // Deep Orange
+      
+      // Neutral moods - muted colors
+      case 'reflective':
+        return const Color(0xFF607D8B); // Blue Grey
+      case 'unsure':
+      case 'confused':
+        return moodUnsure;
+      case 'restless':
+        return const Color(0xFF795548); // Brown
+      
+      // Challenging moods - cooler, darker colors
+      case 'sad':
+      case 'melancholy':
+        return moodSad;
+      case 'tired':
+        return const Color(0xFF9E9E9E); // Grey
+      case 'stressed':
+      case 'overwhelmed':
+        return const Color(0xFFFF5252); // Red Accent
+      case 'anxious':
+      case 'worried':
+        return const Color(0xFFFF7043); // Deep Orange Light
+      case 'frustrated':
+      case 'angry':
+        return const Color(0xFFF44336); // Red
+      case 'lonely':
+        return const Color(0xFF5C6BC0); // Indigo Light
+      case 'disappointed':
+        return const Color(0xFF8BC34A); // Light Green (muted)
+      
       default:
         return primaryOrange;
     }
@@ -362,6 +445,43 @@ class DesignTokens {
       default:
         return primaryOrange;
     }
+  }
+  
+  /// Get AI content color by type
+  static Color getAiContentColor(String type) {
+    switch (type.toLowerCase()) {
+      case 'insight':
+      case 'analysis':
+        return aiInsightPrimary;
+      case 'reflection':
+      case 'pattern':
+        return aiInsightSecondary;
+      case 'suggestion':
+      case 'recommendation':
+        return aiSuggestionColor;
+      case 'warning':
+      case 'concern':
+        return aiWarningColor;
+      case 'highlight':
+      case 'important':
+        return aiHighlightColor;
+      default:
+        return aiInsightPrimary;
+    }
+  }
+  
+  /// Get theme-aware AI content background
+  static Color getAiContentBackground(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark 
+        ? darkAiContentBackground 
+        : aiContentBackground;
+  }
+  
+  /// Get theme-aware AI content border
+  static Color getAiContentBorder(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark 
+        ? darkAiContentBorder 
+        : aiContentBorder;
   }
   
   /// Apply opacity to color consistently
@@ -524,30 +644,70 @@ class DesignTokens {
   // GRADIENT DEFINITIONS
   // ============================================================================
   
-  /// Primary gradients
+  /// Primary gradients for light theme
   static const LinearGradient primaryGradient = LinearGradient(
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-    colors: [accentYellow, backgroundPrimary],
+    begin: Alignment.topCenter,
+    end: Alignment.bottomCenter,
+    colors: [
+      Color(0xFFFFF8F5), // backgroundPrimary
+      Color(0xFFFAEBE0), // backgroundSecondary
+      Color(0xFFF2DFD1), // backgroundTertiary
+    ],
+    stops: [0.0, 0.6, 1.0],
   );
   
   static const LinearGradient cardGradient = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: [Color(0xFFFEFD90), backgroundPrimary],
+    colors: [
+      Color(0xFFFFF8F5), // backgroundPrimary
+      Color(0xFFFAEBE0), // backgroundSecondary
+    ],
+    stops: [0.0, 1.0],
+  );
+  
+  /// Subtle accent gradient for light theme
+  static const LinearGradient accentGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [
+      Color(0xFFFFDCBF), // accentYellow
+      Color(0xFFFFF8F5), // backgroundPrimary
+    ],
+    stops: [0.0, 1.0],
   );
   
   /// Dark theme gradients
   static const LinearGradient darkPrimaryGradient = LinearGradient(
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-    colors: [darkBackgroundTertiary, darkBackgroundSecondary],
+    begin: Alignment.topCenter,
+    end: Alignment.bottomCenter,
+    colors: [
+      Color(0xFF121212), // darkBackgroundPrimary
+      Color(0xFF1E1E1E), // darkBackgroundSecondary
+      Color(0xFF2C2C2C), // darkBackgroundTertiary
+    ],
+    stops: [0.0, 0.6, 1.0],
   );
   
   static const LinearGradient darkCardGradient = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: [darkSurface, darkBackgroundTertiary],
+    colors: [
+      Color(0xFF1E1E1E), // darkBackgroundSecondary
+      Color(0xFF2C2C2C), // darkBackgroundTertiary
+    ],
+    stops: [0.0, 1.0],
+  );
+  
+  /// Subtle accent gradient for dark theme
+  static const LinearGradient darkAccentGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [
+      Color(0xFF2C2C2C), // darkBackgroundTertiary
+      Color(0xFF383838), // darkSurface
+    ],
+    stops: [0.0, 1.0],
   );
   
   /// Get theme-aware gradient
