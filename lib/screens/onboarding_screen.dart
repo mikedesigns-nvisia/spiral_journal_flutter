@@ -181,8 +181,12 @@ class _OnboardingScreenState extends State<OnboardingScreen>
               ? QuickSetupWidget(
                   controller: controller,
                   onConfigChanged: () {
-                    // Optional: Add haptic feedback or animations
+                    // Trigger rebuild to apply theme changes immediately
                     _triggerConfigChangeAnimation();
+                    // Force rebuild of the entire widget tree to apply theme changes
+                    if (mounted) {
+                      setState(() {});
+                    }
                   },
                 )
               : null,
@@ -209,9 +213,22 @@ class _OnboardingScreenState extends State<OnboardingScreen>
     }
   }
 
-  void _handleSkip(OnboardingController controller) {
+  void _handleSkip(OnboardingController controller) async {
     controller.onOnboardingSkipped();
-    controller.skipOnboarding();
+    
+    // Navigate directly to profile setup instead of just skipping to end
+    final flowController = NavigationFlowController.instance;
+    if (flowController.isFlowActive) {
+      // Skip directly to profile setup in the flow
+      if (mounted) {
+        await flowController.skipToProfileSetup(context);
+      }
+    } else {
+      // Fallback: navigate to profile setup directly
+      if (mounted) {
+        Navigator.of(context).pushReplacementNamed('/profile-setup');
+      }
+    }
   }
 
   Future<void> _completeOnboarding(OnboardingController controller) async {

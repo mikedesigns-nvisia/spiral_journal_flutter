@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:spiral_journal/design_system/design_tokens.dart';
 import '../models/onboarding_slide.dart';
 import '../controllers/onboarding_controller.dart';
+import '../services/theme_service.dart';
 
 /// Quick setup widget for configuring basic app preferences during onboarding
 class QuickSetupWidget extends StatelessWidget {
@@ -76,8 +77,28 @@ class QuickSetupWidget extends StatelessWidget {
                   context: context,
                   label: theme,
                   isSelected: isSelected,
-                  onTap: () {
+                  onTap: () async {
                     controller.updateThemePreference(theme);
+                    
+                    // Apply theme change immediately for real-time preview
+                    final themeService = ThemeService();
+                    await themeService.initialize();
+                    
+                    ThemeMode themeMode;
+                    switch (theme.toLowerCase()) {
+                      case 'light':
+                        themeMode = ThemeMode.light;
+                        break;
+                      case 'dark':
+                        themeMode = ThemeMode.dark;
+                        break;
+                      case 'auto':
+                      default:
+                        themeMode = ThemeMode.system;
+                        break;
+                    }
+                    
+                    await themeService.setThemeMode(themeMode);
                     onConfigChanged?.call();
                   },
                   icon: _getThemeIcon(theme),

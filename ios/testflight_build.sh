@@ -161,7 +161,7 @@ pod install
 
 # Build archive
 print_status "Building archive..."
-if ! xcodebuild -workspace Runner.xcworkspace -scheme Runner -configuration Release -archivePath build/Runner.xcarchive archive; then
+if ! xcodebuild -workspace Runner.xcworkspace -scheme Runner -configuration Release -destination generic/platform=iOS -archivePath build/Runner.xcarchive archive; then
     print_error "Failed to build archive"
     exit 1
 fi

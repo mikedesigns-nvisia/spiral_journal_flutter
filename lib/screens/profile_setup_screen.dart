@@ -172,12 +172,12 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
               child: Form(
                 key: _formKey,
                 child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                const SizedBox(height: AppConstants.extraLargePadding),
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                    const SizedBox(height: AppConstants.extraLargePadding),
                 
-                // Welcome header
-                Text(
+                    // Welcome header
+                    Text(
                   'Welcome to Spiral Journal',
                   style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                     color: AppTheme.getTextPrimary(context),
@@ -186,9 +186,9 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                   textAlign: TextAlign.center,
                 ),
                 
-                const SizedBox(height: AppConstants.smallPadding),
-                
-                Text(
+                    const SizedBox(height: AppConstants.smallPadding),
+                    
+                    Text(
                   'Let\'s get started with some basic information',
                   style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                     color: AppTheme.getTextSecondary(context),
@@ -196,10 +196,10 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                   textAlign: TextAlign.center,
                 ),
                 
-                const SizedBox(height: AppConstants.extraLargePadding),
-                
-                // First name input
-                Text(
+                    const SizedBox(height: AppConstants.extraLargePadding),
+                    
+                    // First name input
+                    Text(
                   'First Name',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     color: AppTheme.getTextPrimary(context),
@@ -207,9 +207,9 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                   ),
                 ),
                 
-                const SizedBox(height: AppConstants.smallPadding),
-                
-                TextFormField(
+                    const SizedBox(height: AppConstants.smallPadding),
+                    
+                    TextFormField(
                   controller: _firstNameController,
                   decoration: InputDecoration(
                     hintText: 'Enter your first name',
@@ -254,10 +254,10 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                   },
                 ),
                 
-                const SizedBox(height: AppConstants.largePadding),
-                
-                // Birthday selection
-                Text(
+                    const SizedBox(height: AppConstants.largePadding),
+                    
+                    // Birthday selection
+                    Text(
                   'Birthday',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     color: AppTheme.getTextPrimary(context),
@@ -265,9 +265,9 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                   ),
                 ),
                 
-                const SizedBox(height: AppConstants.smallPadding),
-                
-                InkWell(
+                    const SizedBox(height: AppConstants.smallPadding),
+                    
+                    InkWell(
                   onTap: _selectBirthday,
                   borderRadius: BorderRadius.circular(AppConstants.borderRadius),
                   child: Container(
@@ -309,44 +309,44 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                   ),
                 ),
                 
-                const Spacer(),
-                
-                // Error message
-                if (_errorMessage != null) ...[
-                  Container(
-                    padding: const EdgeInsets.all(AppConstants.defaultPadding),
-                    decoration: BoxDecoration(
-                      color: Colors.red.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(AppConstants.borderRadius),
-                      border: Border.all(
-                        color: Colors.red.withValues(alpha: 0.3),
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.error_outline,
-                          color: Colors.red,
-                          size: 20,
-                        ),
-                        const SizedBox(width: AppConstants.smallPadding),
-                        Expanded(
-                          child: Text(
-                            _errorMessage!,
-                            style: const TextStyle(
-                              color: Colors.red,
-                              fontSize: 14,
-                            ),
+                    const Spacer(),
+                    
+                    // Error message
+                    if (_errorMessage != null) ...[
+                      Container(
+                        padding: const EdgeInsets.all(AppConstants.defaultPadding),
+                        decoration: BoxDecoration(
+                          color: Colors.red.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(AppConstants.borderRadius),
+                          border: Border.all(
+                            color: Colors.red.withValues(alpha: 0.3),
                           ),
                         ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: AppConstants.defaultPadding),
-                ],
-                
-                // Get started button
-                ElevatedButton(
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.error_outline,
+                              color: Colors.red,
+                              size: 20,
+                            ),
+                            const SizedBox(width: AppConstants.smallPadding),
+                            Expanded(
+                              child: Text(
+                                _errorMessage!,
+                                style: const TextStyle(
+                                  color: Colors.red,
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: AppConstants.defaultPadding),
+                    ],
+                    
+                    // Get started button
+                    ElevatedButton(
                   onPressed: _isLoading ? null : _saveProfile,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppTheme.getPrimaryColor(context),
@@ -377,8 +377,8 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                         ),
                 ),
                 
-                const SizedBox(height: AppConstants.largePadding),
-                ],
+                    const SizedBox(height: AppConstants.largePadding),
+                  ],
                 ),
               ),
             ),

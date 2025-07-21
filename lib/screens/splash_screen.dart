@@ -4,7 +4,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:spiral_journal/theme/app_theme.dart';
 import 'package:spiral_journal/widgets/app_background.dart';
 import 'package:spiral_journal/services/navigation_flow_controller.dart';
-import 'package:spiral_journal/services/fresh_install_manager.dart';
 
 class SplashScreen extends StatefulWidget {
   final Duration displayDuration;
@@ -30,9 +29,6 @@ class _SplashScreenState extends State<SplashScreen> {
   void initState() {
     super.initState();
     debugPrint('SplashScreen: Initializing with duration: ${widget.displayDuration.inSeconds}s');
-    if (FreshInstallManager.isFreshInstallMode && FreshInstallManager.config.enableLogging) {
-      debugPrint('SplashScreen: Fresh install mode active - showing indicator: ${widget.showFreshInstallIndicator}');
-    }
     _startTimer();
   }
 
@@ -189,40 +185,6 @@ class _SplashScreenState extends State<SplashScreen> {
                     textAlign: TextAlign.center,
                   ),
                   
-                  // Fresh install mode indicator
-                  if (widget.showFreshInstallIndicator && FreshInstallManager.isFreshInstallMode) ...[
-                    const SizedBox(height: 24),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: AppTheme.getPrimaryColor(context).withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: AppTheme.getPrimaryColor(context).withOpacity(0.3),
-                          width: 1,
-                        ),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.refresh,
-                            size: 14,
-                            color: AppTheme.getPrimaryColor(context),
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            'Fresh Install Mode',
-                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: AppTheme.getPrimaryColor(context),
-                              fontSize: 12,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
                   
                   const Spacer(),
                   

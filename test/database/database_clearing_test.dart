@@ -216,9 +216,9 @@ void main() {
         // Verify comprehensive clearing
         expect(result.success, isTrue);
         expect(result.databaseResult.success, isTrue);
-        expect(result.preferencesCleared, isTrue);
-        expect(result.secureStorageCleared, isTrue);
-        expect(result.cachesCleared, isTrue);
+        expect(result.preferencesResult.success, isTrue);
+        expect(result.secureStorageResult.success, isTrue);
+        expect(result.cacheResult.success, isTrue);
         expect(result.hasErrors, isFalse);
 
         // Verify database is empty

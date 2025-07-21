@@ -149,6 +149,17 @@ class NavigationFlowController extends ChangeNotifier {
     return await _navigateToState(context, nextState);
   }
 
+  /// Skip directly to profile setup (for onboarding skip functionality)
+  Future<bool> skipToProfileSetup(BuildContext context) async {
+    if (!_isFlowActive || _isNavigating) {
+      debugPrint('NavigationFlowController: Cannot skip - flow inactive or already navigating');
+      return false;
+    }
+
+    debugPrint('NavigationFlowController: Skipping to profile setup');
+    return await _navigateToState(context, NavigationState.profileSetup);
+  }
+
   /// Navigate to a specific state
   Future<bool> _navigateToState(BuildContext context, NavigationState targetState) async {
     if (_isNavigating) {

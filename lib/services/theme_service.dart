@@ -73,10 +73,23 @@ class ThemeService extends ChangeNotifier {
   /// Load theme preferences from storage
   Future<void> _loadThemePreferences() async {
     try {
-      final themeModeIndex = _prefs?.getInt(_themeModeKey);
-      if (themeModeIndex != null && themeModeIndex >= 0 && themeModeIndex < ThemeMode.values.length) {
-        _currentThemeMode = ThemeMode.values[themeModeIndex];
+      // Handle both int and string values for backward compatibility
+      final themeValue = _prefs?.get(_themeModeKey);
+      
+      if (themeValue is int) {
+        // New format: integer index
+        if (themeValue >= 0 && themeValue < ThemeMode.values.length) {
+          _currentThemeMode = ThemeMode.values[themeValue];
+        } else {
+          _currentThemeMode = ThemeMode.system;
+        }
+      } else if (themeValue is String) {
+        // Legacy format: string value - convert to new format
+        _currentThemeMode = themeModeFromString(themeValue);
+        // Save in new format
+        await _prefs?.setInt(_themeModeKey, _currentThemeMode.index);
       } else {
+        // No preference set
         _currentThemeMode = ThemeMode.system;
       }
     } catch (e) {
