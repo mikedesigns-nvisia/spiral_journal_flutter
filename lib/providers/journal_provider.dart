@@ -149,13 +149,17 @@ class JournalProvider with ChangeNotifier {
       _setLoading(true);
       _error = null;
       
-      await _journalService.createJournalEntry(
+      final entryId = await _journalService.createJournalEntry(
         content: content,
         moods: moods,
       );
       
-      // Refresh entries for current year
+      // Refresh entries for current year immediately
       await loadEntriesForYear(_selectedYear);
+      
+      // Queue the new entry for AI analysis in background
+      final newEntry = _entries.firstWhere((e) => e.id == entryId, orElse: () => throw Exception('Entry not found'));
+      await queueEntryForAnalysis(newEntry);
       
       return true;
     } catch (e) {

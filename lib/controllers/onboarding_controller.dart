@@ -42,8 +42,10 @@ class OnboardingController extends ChangeNotifier {
   /// Check if onboarding has been completed
   static Future<bool> hasCompletedOnboarding() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      return prefs.getBool(_onboardingCompletedKey) ?? false;
+      // Use SettingsService for consistent onboarding state management
+      final settingsService = SettingsService();
+      await settingsService.initialize();
+      return await settingsService.hasCompletedOnboarding();
     } catch (e) {
       debugPrint('OnboardingController hasCompletedOnboarding error: $e');
       return false;
@@ -56,8 +58,8 @@ class OnboardingController extends ChangeNotifier {
       _isLoading = true;
       notifyListeners();
 
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setBool(_onboardingCompletedKey, true);
+      // Use SettingsService to persist onboarding completion
+      await _settingsService.setOnboardingCompleted(true);
       
       // Save quick setup configuration
       await _saveQuickSetupConfig();
@@ -78,8 +80,13 @@ class OnboardingController extends ChangeNotifier {
   /// Reset onboarding (for testing/debugging)
   static Future<void> resetOnboarding() async {
     try {
+      // Use SettingsService for consistent onboarding state management
+      final settingsService = SettingsService();
+      await settingsService.initialize();
+      await settingsService.resetOnboardingStatus();
+      
+      // Still handle the quick setup config separately
       final prefs = await SharedPreferences.getInstance();
-      await prefs.remove(_onboardingCompletedKey);
       await prefs.remove(_quickSetupConfigKey);
     } catch (e) {
       debugPrint('OnboardingController resetOnboarding error: $e');

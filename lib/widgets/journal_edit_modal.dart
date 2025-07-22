@@ -389,8 +389,7 @@ class _JournalEditModalState extends State<JournalEditModal> {
                         _onContentChanged();
                       },
                       aiDetectedMoods: _aiDetectedMoods,
-                      isAnalyzing: _isAnalyzing,
-                      onAcceptAIMoods: _aiDetectedMoods.isNotEmpty ? _acceptAllAIMoods : null,
+                       onAcceptAIMoods: _aiDetectedMoods.isNotEmpty ? _acceptAllAIMoods : null,
                     ),
                     
                     const SizedBox(height: 24),
@@ -403,8 +402,6 @@ class _JournalEditModalState extends State<JournalEditModal> {
                       },
                       onSave: _saveEntry,
                       isSaving: _isSaving,
-                      isAnalyzing: _isAnalyzing,
-                      onTriggerAnalysis: _triggerAIAnalysis,
                     ),
                     
                     const SizedBox(height: 100), // Extra space for bottom actions

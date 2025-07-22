@@ -266,15 +266,49 @@ class CoreCombination {
 }
 
 class EmotionalPattern {
-  final String category;
   final String title;
   final String description;
   final String type; // 'growth', 'recurring', 'awareness'
+  final String category;
+  final double confidence;
+  final DateTime firstDetected;
+  final DateTime lastSeen;
+  final List<String> relatedEmotions;
 
   EmotionalPattern({
-    required this.category,
     required this.title,
     required this.description,
     required this.type,
+    required this.category,
+    required this.confidence,
+    required this.firstDetected,
+    required this.lastSeen,
+    required this.relatedEmotions,
   });
+
+  factory EmotionalPattern.fromJson(Map<String, dynamic> json) {
+    return EmotionalPattern(
+      title: json['title'],
+      description: json['description'],
+      type: json['type'],
+      category: json['category'] ?? 'General',
+      confidence: json['confidence']?.toDouble() ?? 0.0,
+      firstDetected: DateTime.parse(json['firstDetected']),
+      lastSeen: DateTime.parse(json['lastSeen']),
+      relatedEmotions: List<String>.from(json['relatedEmotions'] ?? []),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'title': title,
+      'description': description,
+      'type': type,
+      'category': category,
+      'confidence': confidence,
+      'firstDetected': firstDetected.toIso8601String(),
+      'lastSeen': lastSeen.toIso8601String(),
+      'relatedEmotions': relatedEmotions,
+    };
+  }
 }

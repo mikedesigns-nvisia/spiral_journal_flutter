@@ -83,10 +83,14 @@ class EmotionalAnalyzer {
             MapEntry(key, value.clamp(-1.0, 1.0))),
         emotionalPatterns: result.emotionalPatterns
             .map((pattern) => EmotionalPattern(
-              category: _sanitizeText(pattern.category),
               title: _sanitizeText(pattern.title),
               description: _sanitizeText(pattern.description, maxLength: 200),
               type: pattern.type,
+              category: _sanitizeText(pattern.category),
+              confidence: pattern.confidence,
+              firstDetected: pattern.firstDetected,
+              lastSeen: pattern.lastSeen,
+              relatedEmotions: pattern.relatedEmotions,
             ))
             .take(3) // Limit to 3 patterns max
             .toList(),
@@ -387,10 +391,20 @@ class EmotionalAnalyzer {
         return patterns.map((pattern) {
           final patternMap = pattern as Map<String, dynamic>;
           return EmotionalPattern(
-            category: patternMap['category'] as String? ?? 'Growth',
             title: patternMap['title'] as String? ?? 'Emotional Development',
             description: patternMap['description'] as String? ?? 'Developing emotional awareness',
             type: patternMap['type'] as String? ?? 'growth',
+            category: patternMap['category'] as String? ?? 'Growth',
+            confidence: (patternMap['confidence'] as num?)?.toDouble() ?? 0.7,
+            firstDetected: patternMap['firstDetected'] != null 
+                ? DateTime.parse(patternMap['firstDetected'])
+                : DateTime.now(),
+            lastSeen: patternMap['lastSeen'] != null 
+                ? DateTime.parse(patternMap['lastSeen'])
+                : DateTime.now(),
+            relatedEmotions: patternMap['relatedEmotions'] != null 
+                ? List<String>.from(patternMap['relatedEmotions'])
+                : [],
           );
         }).toList();
       }
@@ -437,10 +451,14 @@ class EmotionalAnalyzer {
       coreImpacts: {'Self-Awareness': 0.1},
       emotionalPatterns: [
         EmotionalPattern(
-          category: 'Growth',
           title: 'Journaling Practice',
           description: 'Building emotional awareness through writing',
           type: 'growth',
+          category: 'Growth',
+          confidence: 0.7,
+          firstDetected: DateTime.now(),
+          lastSeen: DateTime.now(),
+          relatedEmotions: entry.moods.isNotEmpty ? [entry.moods.first] : ['neutral'],
         ),
       ],
       growthIndicators: ['self_reflection'],
@@ -487,10 +505,14 @@ class EmotionalAnalyzer {
     final frequency = sortedMoods.first.value;
     
     return EmotionalPattern(
-      category: 'Mood Patterns',
       title: 'Dominant Emotional State',
       description: 'Your most frequent mood is "$topMood" appearing $frequency times, indicating a consistent emotional pattern.',
       type: 'recurring',
+      category: 'Mood Patterns',
+      confidence: 0.8,
+      firstDetected: DateTime.now().subtract(const Duration(days: 30)),
+      lastSeen: DateTime.now(),
+      relatedEmotions: [topMood],
     );
   }
 
@@ -509,10 +531,14 @@ class EmotionalAnalyzer {
     if (sortedDays.isNotEmpty && sortedDays.first.value > 1) {
       final topDay = sortedDays.first.key;
       return EmotionalPattern(
-        category: 'Temporal Patterns',
         title: 'Journaling Rhythm',
         description: 'You tend to journal most frequently on $topDay, showing a consistent reflection pattern.',
         type: 'recurring',
+        category: 'Temporal Patterns',
+        confidence: 0.7,
+        firstDetected: DateTime.now().subtract(const Duration(days: 21)),
+        lastSeen: DateTime.now(),
+        relatedEmotions: ['consistent', 'routine'],
       );
     }
     
@@ -527,17 +553,25 @@ class EmotionalAnalyzer {
     
     if (avgLength > 100) {
       return EmotionalPattern(
-        category: 'Expression Patterns',
         title: 'Detailed Reflection',
         description: 'Your entries average ${avgLength.round()} words, showing deep, thoughtful reflection.',
         type: 'growth',
+        category: 'Expression Patterns',
+        confidence: 0.8,
+        firstDetected: DateTime.now().subtract(const Duration(days: 14)),
+        lastSeen: DateTime.now(),
+        relatedEmotions: ['thoughtful', 'expressive'],
       );
     } else if (avgLength < 30) {
       return EmotionalPattern(
-        category: 'Expression Patterns',
         title: 'Concise Expression',
         description: 'Your entries are concise, averaging ${avgLength.round()} words. Consider expanding for deeper insights.',
         type: 'awareness',
+        category: 'Expression Patterns',
+        confidence: 0.6,
+        firstDetected: DateTime.now().subtract(const Duration(days: 14)),
+        lastSeen: DateTime.now(),
+        relatedEmotions: ['brief', 'focused'],
       );
     }
     
@@ -559,10 +593,14 @@ class EmotionalAnalyzer {
     
     if (avgIntensity > 2.5) {
       return EmotionalPattern(
-        category: 'Emotional Intensity',
         title: 'High Emotional Engagement',
         description: 'Your entries show high emotional intensity, indicating deep engagement with your feelings.',
         type: 'growth',
+        category: 'Emotional Intensity',
+        confidence: 0.8,
+        firstDetected: DateTime.now().subtract(const Duration(days: 7)),
+        lastSeen: DateTime.now(),
+        relatedEmotions: ['intense', 'engaged'],
       );
     }
     

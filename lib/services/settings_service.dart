@@ -401,6 +401,52 @@ class SettingsService extends ChangeNotifier {
     return _prefs?.getBool('pin_setup_requested') ?? false;
   }
 
+  /// Set onboarding completed status
+  /// 
+  /// This method persists the onboarding completion state using SharedPreferences.
+  /// When true, the app will skip the onboarding flow on subsequent launches.
+  /// 
+  /// @param completed Whether onboarding has been completed
+  Future<void> setOnboardingCompleted([bool completed = true]) async {
+    await _ensureInitialized();
+    
+    try {
+      await _prefs?.setBool('onboarding_completed', completed);
+      notifyListeners();
+    } catch (e) {
+      debugPrint('SettingsService setOnboardingCompleted error: $e');
+      rethrow;
+    }
+  }
+
+  /// Check if onboarding has been completed
+  /// 
+  /// Returns true if the user has completed the onboarding flow,
+  /// false otherwise or if the status cannot be determined.
+  /// 
+  /// @return Whether onboarding has been completed
+  Future<bool> hasCompletedOnboarding() async {
+    await _ensureInitialized();
+    return _prefs?.getBool('onboarding_completed') ?? false;
+  }
+
+  /// Reset onboarding completion status
+  /// 
+  /// This method is primarily for testing and debugging purposes.
+  /// It marks onboarding as not completed, forcing the user to go through
+  /// the onboarding flow again on next app launch.
+  Future<void> resetOnboardingStatus() async {
+    await _ensureInitialized();
+    
+    try {
+      await _prefs?.remove('onboarding_completed');
+      notifyListeners();
+    } catch (e) {
+      debugPrint('SettingsService resetOnboardingStatus error: $e');
+      rethrow;
+    }
+  }
+
   // Legacy compatibility methods (deprecated - use new methods instead)
   @deprecated
   Future<bool> isSplashScreenEnabled() => getSplashScreenEnabled();

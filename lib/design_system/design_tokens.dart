@@ -57,6 +57,7 @@ class DesignTokens {
   
   /// Accent and utility colors
   static const Color accentYellow = Color(0xFFFFDCBF);
+  static const Color accentBlue = Color(0xFF2196F3);
   static const Color accentGreen = Color(0xFF4C662B);
   static const Color accentRed = Color(0xFFBA1A1A);
   
@@ -334,6 +335,11 @@ class DesignTokens {
     return Theme.of(context).brightness == Brightness.dark 
         ? darkTextTertiary 
         : textTertiary;
+  }
+  
+  /// Get error color (theme-agnostic)
+  static Color getErrorColor(BuildContext context) {
+    return errorColor;
   }
   
   /// Get mood color by name

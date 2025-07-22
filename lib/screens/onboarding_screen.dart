@@ -315,8 +315,11 @@ class OnboardingEntryScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Use SettingsService for consistent onboarding state management
+    final settingsService = SettingsService();
+    
     return FutureBuilder<bool>(
-      future: OnboardingController.hasCompletedOnboarding(),
+      future: settingsService.initialize().then((_) => settingsService.hasCompletedOnboarding()),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return _buildLoadingScreen(context);
@@ -427,7 +430,12 @@ class OnboardingDebugScreen extends StatelessWidget {
             ),
             SizedBox(height: DesignTokens.spaceM),
             FutureBuilder<bool>(
-              future: OnboardingController.hasCompletedOnboarding(),
+              future: () async {
+                // Use SettingsService for consistent onboarding state management
+                final settingsService = SettingsService();
+                await settingsService.initialize();
+                return settingsService.hasCompletedOnboarding();
+              }(),
               builder: (context, snapshot) {
                 final completed = snapshot.data ?? false;
                 return Text(

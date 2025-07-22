@@ -220,6 +220,27 @@ class iPhoneDetector {
     }
   }
   
+  /// Get adaptive value based on iPhone size with specific values for each size
+  static T getAdaptiveValue<T>(BuildContext context, {
+    required T compact,
+    T? regular,
+    T? large,
+  }) {
+    final size = getCurrentiPhoneSize(context);
+    
+    switch (size) {
+      case iPhoneSize.compact:
+      case iPhoneSize.mini:
+        return compact;
+      case iPhoneSize.plus:
+      case iPhoneSize.proMax:
+        return large ?? regular ?? compact;
+      case iPhoneSize.regular:
+      default:
+        return regular ?? compact;
+    }
+  }
+  
   /// Get the number of columns for grid layouts based on iPhone size
   static int getAdaptiveColumns(BuildContext context, {
     int? compact,

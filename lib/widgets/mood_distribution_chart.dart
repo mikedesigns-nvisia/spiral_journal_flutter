@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import '../services/emotional_mirror_service.dart';
+import '../models/emotional_mirror_data.dart';
 import '../theme/app_theme.dart';
+import '../services/chart_optimization_service.dart';
 
 /// Widget for displaying mood distribution as a pie chart or bar chart
 class MoodDistributionChart extends StatelessWidget {
@@ -25,53 +26,56 @@ class MoodDistributionChart extends StatelessWidget {
       return _buildEmptyState(context);
     }
 
-    return Container(
-      height: height,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        gradient: AppTheme.getCardGradient(context),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: Theme.of(context).brightness == Brightness.dark 
-              ? AppTheme.darkBackgroundTertiary 
-              : AppTheme.backgroundTertiary
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                title,
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              if (distribution.aiDetectedMoods.isNotEmpty && distribution.manualMoods.isNotEmpty)
-                _buildToggleButton(context),
-            ],
+    return OptimizedChartWidget(
+      chartId: 'mood_distribution_${moods.length}',
+      chartBuilder: () => Container(
+        height: height,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          gradient: AppTheme.getCardGradient(context),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: Theme.of(context).brightness == Brightness.dark 
+                ? AppTheme.darkBackgroundTertiary 
+                : AppTheme.backgroundTertiary
           ),
-          const SizedBox(height: 16),
-          Expanded(
-            child: Row(
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                // Pie chart
-                Expanded(
-                  flex: 2,
-                  child: _buildPieChart(context, moods),
+                Text(
+                  title,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
-                const SizedBox(width: 16),
-                // Legend
-                Expanded(
-                  flex: 1,
-                  child: _buildLegend(context, moods),
-                ),
+                if (distribution.aiDetectedMoods.isNotEmpty && distribution.manualMoods.isNotEmpty)
+                  _buildToggleButton(context),
               ],
             ),
-          ),
-        ],
+            const SizedBox(height: 16),
+            Expanded(
+              child: Row(
+                children: [
+                  // Pie chart
+                  Expanded(
+                    flex: 2,
+                    child: _buildPieChart(context, moods),
+                  ),
+                  const SizedBox(width: 16),
+                  // Legend
+                  Expanded(
+                    flex: 1,
+                    child: _buildLegend(context, moods),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

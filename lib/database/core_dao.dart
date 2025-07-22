@@ -805,10 +805,20 @@ class CoreDao {
 
   EmotionalPattern _mapToEmotionalPattern(Map<String, dynamic> map) {
     return EmotionalPattern(
-      category: map['category'],
-      title: map['title'],
-      description: map['description'],
-      type: map['type'],
+      title: map['title'] ?? '',
+      description: map['description'] ?? '',
+      type: map['type'] ?? 'awareness',
+      category: map['category'] ?? 'General',
+      confidence: (map['confidence'] ?? 0.0).toDouble(),
+      firstDetected: map['firstDetected'] != null 
+          ? DateTime.parse(map['firstDetected'])
+          : DateTime.now(),
+      lastSeen: map['lastSeen'] != null 
+          ? DateTime.parse(map['lastSeen'])
+          : DateTime.now(),
+      relatedEmotions: map['relatedEmotions'] != null 
+          ? List<String>.from(map['relatedEmotions'].toString().split(',').where((e) => e.isNotEmpty))
+          : [],
     );
   }
 }

@@ -3,17 +3,13 @@ import 'dart:async';
 import 'package:spiral_journal/design_system/design_tokens.dart';
 import 'package:spiral_journal/design_system/component_library.dart';
 import 'package:spiral_journal/design_system/responsive_layout.dart';
-import 'package:spiral_journal/widgets/loading_state_widget.dart' as loading_widget;
-import 'package:spiral_journal/utils/animation_utils.dart';
 
 class JournalInput extends StatefulWidget {
   final TextEditingController controller;
   final Function(String) onChanged;
   final VoidCallback onSave;
   final bool isSaving;
-  final bool isAnalyzing;
   final Function(String)? onAutoSave;
-  final VoidCallback? onTriggerAnalysis;
   final String? draftContent;
 
   const JournalInput({
@@ -22,9 +18,7 @@ class JournalInput extends StatefulWidget {
     required this.onChanged,
     required this.onSave,
     this.isSaving = false,
-    this.isAnalyzing = false,
     this.onAutoSave,
-    this.onTriggerAnalysis,
     this.draftContent,
   });
 
@@ -80,37 +74,39 @@ class _JournalInputState extends State<JournalInput> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: DesignTokens.getBackgroundSecondary(context),
-        borderRadius: BorderRadius.circular(DesignTokens.cardRadius),
-        border: Border.all(
-          color: DesignTokens.getBackgroundTertiary(context),
-          width: 1,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: DesignTokens.getColorWithOpacity(
-              Colors.black,
-              0.1,
-            ),
-            blurRadius: DesignTokens.elevationS,
-            offset: const Offset(0, 2),
+    return GestureDetector(
+      onTap: () => FocusScope.of(context).unfocus(),
+      child: Container(
+        width: double.infinity,
+        decoration: BoxDecoration(
+          color: DesignTokens.getBackgroundSecondary(context),
+          borderRadius: BorderRadius.circular(DesignTokens.cardRadius),
+          border: Border.all(
+            color: DesignTokens.getBackgroundTertiary(context),
+            width: 1,
           ),
-        ],
-      ),
-      padding: EdgeInsets.all(DesignTokens.spaceL),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildHeader(context),
-          SizedBox(height: DesignTokens.spaceL),
-          _buildTextInput(context),
-          _buildAnalysisIndicator(context),
-          SizedBox(height: DesignTokens.spaceL),
-          _buildActionButtons(context),
-        ],
+          boxShadow: [
+            BoxShadow(
+              color: DesignTokens.getColorWithOpacity(
+                Colors.black,
+                0.1,
+              ),
+              blurRadius: DesignTokens.elevationS,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        padding: EdgeInsets.all(DesignTokens.spaceL),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildHeader(context),
+            SizedBox(height: DesignTokens.spaceL),
+            _buildTextInput(context),
+            SizedBox(height: DesignTokens.spaceL),
+            _buildActionButtons(context),
+          ],
+        ),
       ),
     );
   }
@@ -189,76 +185,14 @@ class _JournalInputState extends State<JournalInput> {
           hint: 'Share your thoughts, experiences, and reflections...\n\nTake your time to explore your feelings, describe your experiences, and reflect on what matters to you today.',
           controller: widget.controller,
           onChanged: _onTextChanged,
+          onSubmitted: (_) => FocusScope.of(context).unfocus(),
+          textInputAction: TextInputAction.done,
           maxLines: maxLines,
         ),
       ),
     );
   }
 
-  Widget _buildAnalysisIndicator(BuildContext context) {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.easeInOut,
-      height: widget.isAnalyzing ? null : 0,
-      child: widget.isAnalyzing ? Column(
-        children: [
-          SizedBox(height: DesignTokens.spaceM),
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: DesignTokens.spaceS),
-            child: AnimationUtils.fadeScaleTransition(
-              animation: const AlwaysStoppedAnimation(1.0),
-              child: Container(
-                padding: EdgeInsets.all(DesignTokens.spaceL),
-                decoration: BoxDecoration(
-                  color: DesignTokens.getColorWithOpacity(
-                    DesignTokens.getPrimaryColor(context), 
-                    0.1
-                  ),
-                  borderRadius: BorderRadius.circular(DesignTokens.radiusL),
-                  border: Border.all(
-                    color: DesignTokens.getColorWithOpacity(
-                      DesignTokens.getPrimaryColor(context), 
-                      0.3
-                    ),
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    loading_widget.LoadingStateWidget(
-                      type: loading_widget.LoadingType.dots,
-                      size: DesignTokens.iconSizeM,
-                      color: DesignTokens.getPrimaryColor(context),
-                    ),
-                    SizedBox(width: DesignTokens.spaceL),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          ResponsiveText(
-                            'AI Analysis in Progress',
-                            baseFontSize: DesignTokens.fontSizeM,
-                            fontWeight: DesignTokens.fontWeightSemiBold,
-                            color: DesignTokens.getTextPrimary(context),
-                          ),
-                          SizedBox(height: DesignTokens.spaceXS),
-                          ResponsiveText(
-                            'Analyzing your emotions and updating your cores...',
-                            baseFontSize: DesignTokens.fontSizeS,
-                            fontWeight: DesignTokens.fontWeightRegular,
-                            color: DesignTokens.getTextSecondary(context),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ],
-      ) : const SizedBox.shrink(),
-    );
-  }
 
   Widget _buildActionButtons(BuildContext context) {
     return Padding(

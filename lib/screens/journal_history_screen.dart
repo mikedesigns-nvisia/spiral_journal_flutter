@@ -224,6 +224,35 @@ class _JournalHistoryScreenState extends State<JournalHistoryScreen> {
                                 ),
                               ),
                             ],
+                            if (entry.isAnalyzed) ...[
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: AppTheme.moodEnergetic,
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      Icons.psychology_rounded,
+                                      size: 10,
+                                      color: Colors.white,
+                                    ),
+                                    const SizedBox(width: 2),
+                                    Text(
+                                      'AI',
+                                      style: AppTheme.getTextStyle(
+                                        fontSize: 8,
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
                           ],
                         ),
                         Text(
@@ -370,6 +399,155 @@ class _JournalHistoryScreenState extends State<JournalHistoryScreen> {
                 ),
                 const SizedBox(height: 16),
               ],
+              
+              // AI Analysis Section
+              if (entry.isAnalyzed && entry.aiAnalysis != null) ...[
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppTheme.accentGreen.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: AppTheme.accentGreen.withOpacity(0.3),
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.psychology_rounded,
+                            color: AppTheme.accentGreen,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            'AI Analysis',
+                            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                              fontWeight: FontWeight.w600,
+                              color: AppTheme.accentGreen,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      
+                      // Personal Insight
+                      if (entry.aiAnalysis!.personalizedInsight != null && 
+                          entry.aiAnalysis!.personalizedInsight!.isNotEmpty) ...[
+                        Text(
+                          'Personal Insight:',
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          entry.aiAnalysis!.personalizedInsight!,
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                        const SizedBox(height: 12),
+                      ],
+                      
+                      // AI Detected Emotions
+                      if (entry.aiAnalysis!.primaryEmotions.isNotEmpty) ...[
+                        Text(
+                          'AI Detected Emotions:',
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Wrap(
+                          spacing: 4,
+                          runSpacing: 4,
+                          children: entry.aiAnalysis!.primaryEmotions.map((emotion) {
+                            return Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: AppTheme.getMoodColor(emotion),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Text(
+                                emotion,
+                                style: AppTheme.getTextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w500,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                        const SizedBox(height: 12),
+                      ],
+                      
+                      // Key Themes
+                      if (entry.aiAnalysis!.keyThemes.isNotEmpty) ...[
+                        Text(
+                          'Key Themes:',
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        ...entry.aiAnalysis!.keyThemes.map((theme) {
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 2),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.circle,
+                                  size: 4,
+                                  color: AppTheme.getTextSecondary(context),
+                                ),
+                                const SizedBox(width: 6),
+                                Expanded(
+                                  child: Text(
+                                    theme,
+                                    style: Theme.of(context).textTheme.bodySmall,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        }).toList(),
+                        const SizedBox(height: 12),
+                      ],
+                      
+                      // Emotional Intensity
+                      Row(
+                        children: [
+                          Text(
+                            'Emotional Intensity: ',
+                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          Text(
+                            '${(entry.aiAnalysis!.emotionalIntensity * 10).toStringAsFixed(1)}/10',
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                        ],
+                      ),
+                      
+                      const SizedBox(height: 8),
+                      
+                      // Analysis timestamp
+                      Text(
+                        'Analyzed: ${DateFormat('MMM d, h:mm a').format(entry.aiAnalysis!.analyzedAt)}',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: AppTheme.getTextTertiary(context),
+                          fontSize: 10,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+              ],
+              
               Text(
                 'Entry:',
                 style: Theme.of(context).textTheme.bodyLarge?.copyWith(

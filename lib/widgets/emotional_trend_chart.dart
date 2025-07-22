@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import '../services/emotional_mirror_service.dart';
+import '../models/emotional_mirror_data.dart';
 import '../theme/app_theme.dart';
+import '../services/chart_optimization_service.dart';
 
 /// Widget for displaying emotional intensity trends over time
 class EmotionalTrendChart extends StatelessWidget {
@@ -21,32 +22,35 @@ class EmotionalTrendChart extends StatelessWidget {
       return _buildEmptyState(context);
     }
 
-    return Container(
-      height: height,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        gradient: AppTheme.getCardGradient(context),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: Theme.of(context).brightness == Brightness.dark 
-              ? AppTheme.darkBackgroundTertiary 
-              : AppTheme.backgroundTertiary
+    return OptimizedChartWidget(
+      chartId: 'emotional_trend_${trendPoints.length}',
+      chartBuilder: () => Container(
+        height: height,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          gradient: AppTheme.getCardGradient(context),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: Theme.of(context).brightness == Brightness.dark 
+                ? AppTheme.darkBackgroundTertiary 
+                : AppTheme.backgroundTertiary
+          ),
         ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w600,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
             ),
-          ),
-          const SizedBox(height: 16),
-          Expanded(
-            child: _buildChart(context),
-          ),
-        ],
+            const SizedBox(height: 16),
+            Expanded(
+              child: _buildChart(context),
+            ),
+          ],
+        ),
       ),
     );
   }

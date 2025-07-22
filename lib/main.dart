@@ -24,6 +24,7 @@ import 'package:spiral_journal/controllers/splash_screen_controller.dart';
 import 'package:spiral_journal/controllers/onboarding_controller.dart';
 import 'package:spiral_journal/providers/journal_provider.dart';
 import 'package:spiral_journal/providers/core_provider.dart';
+import 'package:spiral_journal/providers/emotional_mirror_provider.dart';
 import 'package:spiral_journal/utils/app_error_handler.dart';
 import 'package:spiral_journal/config/api_key_setup.dart';
 import 'package:spiral_journal/config/local_config.dart';
@@ -121,6 +122,9 @@ class SpiralJournalApp extends StatelessWidget {
         ),
         ChangeNotifierProvider(
           create: (context) => CoreProvider()..initialize(),
+        ),
+        ChangeNotifierProvider(
+          create: (context) => EmotionalMirrorProvider()..initialize(),
         ),
         ChangeNotifierProvider(
           create: (context) => SettingsService()..initialize(),

@@ -44,7 +44,7 @@ class _MainScreenState extends State<MainScreen> {
     }
   }
 
-  final List<Widget> _screens = [
+  List<Widget> get _screens => [
     const JournalScreen(),
     const JournalHistoryScreen(),
     const EmotionalMirrorScreen(),

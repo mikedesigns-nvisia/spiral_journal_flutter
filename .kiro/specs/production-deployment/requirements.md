@@ -100,4 +100,4 @@ The Spiral Journal Flutter app currently exists as a beautiful Material Design 3
 2. WHEN users encounter issues THEN the system SHALL provide crash reporting and error logging
 3. WHEN system performance degrades THEN the system SHALL alert administrators and provide diagnostic information
 4. WHEN updates are released THEN the system SHALL support seamless app updates without data loss
-5. IF there are service outages THEN the system SHALL have monitoring and alerting to enable quick resolution
+5. IF there are service outages THEN the system SHALL have monitori

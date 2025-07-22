@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../models/user_profile.dart';
 import '../services/profile_service.dart';
+import '../services/settings_service.dart';
 import '../theme/app_theme.dart';
 import '../constants/app_constants.dart';
 import '../screens/main_screen.dart';
@@ -106,6 +107,11 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
       final success = await _profileService.saveProfile(profile);
 
       if (success) {
+        // Mark onboarding as completed when profile is saved
+        final settingsService = SettingsService();
+        await settingsService.initialize();
+        await settingsService.setOnboardingCompleted(true);
+        
         // Provide haptic feedback
         HapticFeedback.lightImpact();
         

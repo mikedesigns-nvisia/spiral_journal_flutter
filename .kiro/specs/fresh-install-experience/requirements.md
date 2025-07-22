@@ -44,7 +44,7 @@ This feature ensures that every time the app is launched via `flutter run`, it b
 
 ### Requirement 4
 
-**User Story:** As a developer, I want this fresh install mode to be easily toggleable, so that I can switch between development and production testing modes.
+**User Story:** As a developer, I want this fresh install mode to be easily toggleable in system settings, so that I can switch between development and production testing modes.
 
 #### Acceptance Criteria
 

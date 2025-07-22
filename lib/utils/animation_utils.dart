@@ -346,6 +346,139 @@ class AnimationUtils {
       child: child,
     );
   }
+
+  /// Optimized slide transition for high-performance scenarios
+  static Widget optimizedSlideTransition({
+    required Widget child,
+    required Animation<double> animation,
+    SlideDirection direction = SlideDirection.fromRight,
+    bool useTransform3D = true,
+  }) {
+    Offset begin;
+    switch (direction) {
+      case SlideDirection.fromRight:
+        begin = const Offset(1.0, 0.0);
+        break;
+      case SlideDirection.fromLeft:
+        begin = const Offset(-1.0, 0.0);
+        break;
+      case SlideDirection.fromTop:
+        begin = const Offset(0.0, -1.0);
+        break;
+      case SlideDirection.fromBottom:
+        begin = const Offset(0.0, 1.0);
+        break;
+    }
+
+    if (useTransform3D) {
+      // Use Transform for better performance on supported devices
+      return AnimatedBuilder(
+        animation: animation,
+        builder: (context, child) {
+          final offset = Tween<Offset>(
+            begin: begin,
+            end: Offset.zero,
+          ).animate(CurvedAnimation(
+            parent: animation,
+            curve: Curves.easeOutCubic,
+          )).value;
+          
+          return Transform.translate(
+            offset: Offset(
+              offset.dx * MediaQuery.of(context).size.width,
+              offset.dy * MediaQuery.of(context).size.height,
+            ),
+            child: child,
+          );
+        },
+        child: child,
+      );
+    } else {
+      // Fallback to SlideTransition
+      return SlideTransition(
+        position: Tween<Offset>(
+          begin: begin,
+          end: Offset.zero,
+        ).animate(CurvedAnimation(
+          parent: animation,
+          curve: Curves.easeOutCubic,
+        )),
+        child: child,
+      );
+    }
+  }
+
+  /// High-performance fade transition
+  static Widget optimizedFadeTransition({
+    required Widget child,
+    required Animation<double> animation,
+    bool useOpacityLayer = false,
+  }) {
+    if (useOpacityLayer) {
+      return AnimatedBuilder(
+        animation: animation,
+        builder: (context, child) {
+          return Opacity(
+            opacity: animation.value,
+            child: child,
+          );
+        },
+        child: child,
+      );
+    } else {
+      return FadeTransition(
+        opacity: animation,
+        child: child,
+      );
+    }
+  }
+
+  /// Gesture-optimized page transition
+  static Widget gestureOptimizedTransition({
+    required Widget child,
+    required Animation<double> animation,
+    required Animation<double> secondaryAnimation,
+    SlideDirection direction = SlideDirection.fromRight,
+  }) {
+    // Primary transition
+    final primaryTransition = optimizedSlideTransition(
+      child: child,
+      animation: animation,
+      direction: direction,
+    );
+
+    // Secondary transition for the previous page
+    if (secondaryAnimation.value > 0.0) {
+      SlideDirection exitDirection;
+      switch (direction) {
+        case SlideDirection.fromRight:
+          exitDirection = SlideDirection.fromLeft;
+          break;
+        case SlideDirection.fromLeft:
+          exitDirection = SlideDirection.fromRight;
+          break;
+        case SlideDirection.fromTop:
+          exitDirection = SlideDirection.fromBottom;
+          break;
+        case SlideDirection.fromBottom:
+          exitDirection = SlideDirection.fromTop;
+          break;
+      }
+
+      return Stack(
+        children: [
+          optimizedSlideTransition(
+            child: Container(), // Placeholder for previous page
+            animation: secondaryAnimation,
+            direction: exitDirection,
+          ),
+          primaryTransition,
+        ],
+      );
+    }
+
+    return primaryTransition;
+  }
 }
 
 /// Directions for slide animations
