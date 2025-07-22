@@ -587,10 +587,19 @@ class _JournalScreenState extends State<JournalScreen> {
                           ),
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        child: Icon(
-                          Icons.auto_stories_rounded,
-                          color: DesignTokens.getPrimaryColor(context),
-                          size: 24,
+                        child: Image.asset(
+                          'assets/images/spiral_journal_icon.png',
+                          width: 24,
+                          height: 24,
+                          fit: BoxFit.contain,
+                          errorBuilder: (context, error, stackTrace) {
+                            // Fallback to original icon if image fails to load
+                            return Icon(
+                              Icons.auto_stories_rounded,
+                              color: DesignTokens.getPrimaryColor(context),
+                              size: 24,
+                            );
+                          },
                         ),
                       ),
                       const SizedBox(width: 16),
