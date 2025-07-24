@@ -2,116 +2,61 @@
 
 ## Introduction
 
-The Spiral Journal Flutter app currently exists as a beautiful Material Design 3 prototype with static data and dummy content. To get this app TestFlight-ready, we need to implement local data persistence, basic security, and core journaling functionality. This simplified approach focuses on creating a fully functional local journaling app that users can test, with cloud features to be added in future releases.
+The TestFlight Beta Description feature will create compelling, informative, and privacy-focused app descriptions and release notes for the TestFlight beta version of Spiral Journal. This content will effectively communicate the app's unique value proposition to beta testers while emphasizing its privacy-first approach, AI-powered insights, and emotional pattern tracking capabilities. The descriptions will be optimized for the TestFlight platform and will help attract and engage quality beta testers.
 
 ## Requirements
 
 ### Requirement 1
 
-**User Story:** As a user, I want to secure my journal with a PIN or passcode, so that my entries remain private on my device.
+**User Story:** As an app developer, I want to create a compelling TestFlight beta description, so that potential testers understand the app's purpose and unique features.
 
 #### Acceptance Criteria
 
-1. WHEN a user first opens the app THEN the system SHALL prompt them to set up a 4-6 digit PIN
-2. WHEN a user returns to the app THEN the system SHALL require PIN entry to access their journal
-3. WHEN a user enters the correct PIN THEN the system SHALL grant access to all journal features
-4. WHEN a user enters an incorrect PIN THEN the system SHALL show an error and allow retry
-5. IF a user forgets their PIN THEN the system SHALL provide a reset option that clears all local data
+1. WHEN a user views the TestFlight listing THEN the system SHALL display a clear, concise description of Spiral Journal's core purpose.
+2. WHEN displaying the app description THEN the system SHALL emphasize the privacy-first approach with local data storage.
+3. WHEN explaining the AI functionality THEN the system SHALL clarify that Claude AI only processes entries during analysis and stores no data.
+4. WHEN describing emotional pattern tracking THEN the system SHALL mention the 6 core emotional patterns (optimism, socializing, growth, resilience, creativity, self-awareness).
 
 ### Requirement 2
 
-**User Story:** As a user, I want my journal entries to be permanently saved on my device, so that I never lose my personal reflections.
+**User Story:** As an app developer, I want to create informative TestFlight release notes, so that testers understand what features to test in each build.
 
 #### Acceptance Criteria
 
-1. WHEN a user writes a journal entry THEN the system SHALL save it to local encrypted storage
-2. WHEN a user creates multiple entries THEN the system SHALL store them with proper timestamps
-3. WHEN a user closes and reopens the app THEN the system SHALL display all previously saved entries
-4. WHEN a user deletes an entry THEN the system SHALL remove it permanently from local storage
-5. IF the app crashes while writing THEN the system SHALL preserve any content in draft form
+1. WHEN a new TestFlight build is released THEN the system SHALL provide clear release notes detailing new features and improvements.
+2. WHEN listing changes THEN the system SHALL organize them into categories (New Features, Improvements, Bug Fixes).
+3. WHEN describing technical changes THEN the system SHALL translate them into user-focused benefits.
+4. WHEN a build contains privacy-related updates THEN the system SHALL highlight these changes prominently.
 
 ### Requirement 3
 
-**User Story:** As a user, I want AI analysis of my journal entries to provide insights about my emotional patterns, so that I can better understand myself.
+**User Story:** As an app developer, I want to include specific testing instructions in the TestFlight description, so that beta testers know what aspects to focus on.
 
 #### Acceptance Criteria
 
-1. WHEN a user completes a journal entry THEN the system SHALL analyze it using Claude AI for emotional insights
-2. WHEN AI analysis is complete THEN the system SHALL display the insights in the emotional mirror
-3. WHEN a user views their emotional mirror THEN the system SHALL show analysis based on their actual entries
-4. WHEN a user has multiple entries THEN the system SHALL identify patterns in their emotional journey
-5. IF AI analysis fails THEN the system SHALL gracefully handle the error and allow manual mood selection
-6. WHEN a user enables personalized insights in settings THEN the system SHALL include personalized feedback about their journal entry
-7. WHEN a user disables personalized insights THEN the system SHALL only show core updates without personal commentary
+1. WHEN testers view the TestFlight description THEN the system SHALL provide clear guidance on key areas to test.
+2. WHEN listing test priorities THEN the system SHALL include journaling flow, emotional analysis, and privacy controls.
+3. WHEN requesting feedback THEN the system SHALL specify what types of feedback are most valuable.
+4. WHEN providing testing instructions THEN the system SHALL include steps to report bugs or issues.
 
 ### Requirement 4
 
-**User Story:** As a user, I want to search through my journal history and filter by moods and dates, so that I can easily find specific entries.
+**User Story:** As an app developer, I want to communicate the app's privacy policy in the TestFlight description, so that testers understand how their data is protected.
 
 #### Acceptance Criteria
 
-1. WHEN a user accesses journal history THEN the system SHALL display all their entries organized by date
-2. WHEN a user searches for text THEN the system SHALL return entries containing that content
-3. WHEN a user filters by mood THEN the system SHALL show only entries with matching emotional states
-4. WHEN a user selects a date range THEN the system SHALL display entries from that specific period
-5. WHEN a user views the history THEN the system SHALL load entries efficiently without performance issues
+1. WHEN testers view the TestFlight description THEN the system SHALL include a summary of the privacy policy.
+2. WHEN explaining data handling THEN the system SHALL clearly state that journal entries remain on-device.
+3. WHEN describing AI analysis THEN the system SHALL explain the secure, temporary nature of API calls to Claude.
+4. WHEN discussing analytics THEN the system SHALL clarify what anonymous usage data might be collected during the beta.
 
 ### Requirement 5
 
-**User Story:** As a user, I want the app to work reliably with good performance, so that I can journal without technical barriers.
+**User Story:** As an app developer, I want to create a TestFlight onboarding flow, so that testers have a smooth introduction to the app.
 
 #### Acceptance Criteria
 
-1. WHEN the app launches THEN the system SHALL load within 3 seconds on standard devices
-2. WHEN a user writes an entry THEN the system SHALL provide smooth, responsive text input without lag
-3. WHEN a user navigates between screens THEN the system SHALL respond immediately
-4. WHEN the app encounters an error THEN the system SHALL show user-friendly error messages
-5. IF the app crashes THEN the system SHALL restart cleanly and preserve user data
-
-### Requirement 6
-
-**User Story:** As a user, I want my data to be secure and private on my device, with the ability to export my information, so that I have full control over my journal content.
-
-#### Acceptance Criteria
-
-1. WHEN a user's data is stored THEN the system SHALL encrypt it locally using device security
-2. WHEN a user requests data export THEN the system SHALL provide their complete journal in JSON format
-3. WHEN a user wants to reset the app THEN the system SHALL permanently delete all local data
-4. WHEN AI analysis occurs THEN the system SHALL process data securely without storing it in AI service logs
-5. IF someone tries to access the app without the PIN THEN the system SHALL prevent access to journal content
-
-### Requirement 7
-
-**User Story:** As a user, I want to switch between light and dark mode themes, so that I can use the app comfortably in different lighting conditions.
-
-#### Acceptance Criteria
-
-1. WHEN a user opens the app THEN the system SHALL respect their device's theme preference (light/dark)
-2. WHEN a user changes their device theme THEN the system SHALL automatically update the app theme
-3. WHEN the app is in dark mode THEN the system SHALL use appropriate dark colors while maintaining readability
-4. WHEN the app is in light mode THEN the system SHALL use the existing warm color palette
-5. IF a user manually toggles theme in settings THEN the system SHALL override device preference and remember the choice
-
-### Requirement 8
-
-**User Story:** As a user, I want to track my emotional core development through a complete core library, so that I can see my personal growth journey.
-
-#### Acceptance Criteria
-
-1. WHEN a user views the core library THEN the system SHALL display all six personality cores with current progress
-2. WHEN AI analysis identifies core-related insights THEN the system SHALL update the relevant core progress
-3. WHEN a user taps on a core THEN the system SHALL show detailed insights and recent developments
-4. WHEN a user has journal entries THEN the system SHALL calculate core evolution based on emotional patterns
-5. IF a user achieves core milestones THEN the system SHALL acknowledge their growth with encouraging messages
-
-### Requirement 9
-
-**User Story:** As a developer, I want to deploy the app to TestFlight, so that beta testers can provide feedback on the core journaling experience.
-
-#### Acceptance Criteria
-
-1. WHEN the app is built for iOS THEN the system SHALL compile without errors and warnings
-2. WHEN the app is uploaded to TestFlight THEN the system SHALL pass App Store review guidelines
-3. WHEN beta testers install the app THEN the system SHALL work reliably on various iOS devices
-4. WHEN users encounter issues THEN the system SHALL provide basic error logging for debugging
-5. IF the app needs updates THEN the system SHALL support seamless TestFlight build updates
+1. WHEN a tester first opens the app THEN the system SHALL display a welcome message specific to beta testers.
+2. WHEN showing the welcome screen THEN the system SHALL include a brief overview of testing objectives.
+3. WHEN onboarding new testers THEN the system SHALL guide them through key features with a streamlined tutorial.
+4. WHEN completing onboarding THEN the system SHALL provide easy access to feedback mechanisms.

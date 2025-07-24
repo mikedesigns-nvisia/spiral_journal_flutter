@@ -5,6 +5,8 @@ import '../repositories/journal_repository.dart';
 import '../repositories/journal_repository_impl.dart';
 import '../services/performance_optimization_service.dart';
 import '../services/background_ai_processor.dart';
+import '../services/emotional_analyzer.dart';
+import '../services/core_library_service.dart';
 
 class JournalProvider with ChangeNotifier {
   final JournalService _journalService = JournalService();
@@ -149,20 +151,24 @@ class JournalProvider with ChangeNotifier {
       _setLoading(true);
       _error = null;
       
+      debugPrint('JournalProvider: Creating new journal entry');
       final entryId = await _journalService.createJournalEntry(
         content: content,
         moods: moods,
       );
+      debugPrint('JournalProvider: Created entry with ID: $entryId');
       
       // Refresh entries for current year immediately
       await loadEntriesForYear(_selectedYear);
       
       // Queue the new entry for AI analysis in background
       final newEntry = _entries.firstWhere((e) => e.id == entryId, orElse: () => throw Exception('Entry not found'));
+      debugPrint('JournalProvider: Queueing entry for analysis: ${newEntry.id}');
       await queueEntryForAnalysis(newEntry);
       
       return true;
     } catch (e) {
+      debugPrint('JournalProvider: Error creating entry: $e');
       _error = e.toString();
       notifyListeners();
       return false;
@@ -452,17 +458,17 @@ class JournalProvider with ChangeNotifier {
 
   // Background AI processing methods
   Future<void> queueEntryForAnalysis(JournalEntry entry) async {
+    debugPrint('JournalProvider: Queueing entry ${entry.id} for analysis');
     await _aiProcessor.queueEntryAnalysis(
       entry,
       priority: ProcessingPriority.normal,
       onComplete: (result) {
+        debugPrint('JournalProvider: Analysis completed for entry ${entry.id}');
         // Update entry with analysis result
         _updateEntryWithAnalysis(entry.id, result);
       },
       onError: (error) {
-        if (kDebugMode) {
-          debugPrint('AI analysis failed for entry ${entry.id}: $error');
-        }
+        debugPrint('JournalProvider: AI analysis failed for entry ${entry.id}: $error');
       },
     );
   }
@@ -487,6 +493,8 @@ class JournalProvider with ChangeNotifier {
   }
 
   void _updateEntryWithAnalysis(String entryId, Map<String, dynamic> analysis) {
+    debugPrint('JournalProvider: Updating entry $entryId with analysis');
+    
     // Update entry in local lists
     final entryIndex = _entries.indexWhere((e) => e.id == entryId);
     if (entryIndex != -1) {
@@ -506,7 +514,33 @@ class JournalProvider with ChangeNotifier {
       // Invalidate cache for this entry
       _perfService.invalidateCache(entryId: entryId);
       
+      // Update emotional cores based on this analysis
+      _updateCoresWithAnalysis(updatedEntry, analysis);
+      
       notifyListeners();
+    } else {
+      debugPrint('JournalProvider: Entry $entryId not found for analysis update');
+    }
+  }
+  
+  // Update emotional cores based on journal analysis
+  Future<void> _updateCoresWithAnalysis(JournalEntry entry, Map<String, dynamic> analysis) async {
+    try {
+      debugPrint('JournalProvider: Updating cores with analysis for entry ${entry.id}');
+      
+      // Convert raw analysis to EmotionalAnalysisResult
+      final emotionalAnalyzer = EmotionalAnalyzer();
+      final analysisResult = emotionalAnalyzer.processAnalysis(analysis, entry);
+      
+      // Get core library service
+      final coreLibraryService = CoreLibraryService();
+      
+      // Update cores with this analysis
+      await coreLibraryService.updateCoresWithJournalAnalysis([entry], analysisResult);
+      
+      debugPrint('JournalProvider: Successfully updated cores with analysis');
+    } catch (e) {
+      debugPrint('JournalProvider: Error updating cores with analysis: $e');
     }
   }
 

@@ -318,7 +318,7 @@ class _PrivacyDashboardScreenState extends State<PrivacyDashboardScreen> {
         children: [
           CircleAvatar(
             backgroundColor: DesignTokens.primaryOrange.withOpacity(0.1),
-            child: Icon(icon, color: DesignTokens.primaryOrange),
+            child: Icon(icon, color: DesignTokens.getPrimaryColor(context)),
           ),
           SizedBox(width: DesignTokens.spaceM),
           Expanded(
@@ -483,7 +483,7 @@ class _PrivacyDashboardScreenState extends State<PrivacyDashboardScreen> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: DesignTokens.primaryOrange),
+          Icon(icon, color: DesignTokens.getPrimaryColor(context)),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -526,17 +526,17 @@ class _PrivacyDashboardScreenState extends State<PrivacyDashboardScreen> {
             const SizedBox(height: 16),
             
             ListTile(
-              leading: Icon(Icons.pin, color: DesignTokens.primaryOrange),
+              leading: Icon(Icons.pin, color: DesignTokens.getPrimaryColor(context)),
               title: const Text('PIN Protection'),
               subtitle: const Text('Your journal is protected by a secure PIN'),
-              trailing: const Icon(Icons.check_circle, color: Colors.green),
+              trailing: Icon(Icons.check_circle, color: DesignTokens.successColor),
             ),
             
             ListTile(
-              leading: Icon(Icons.fingerprint, color: DesignTokens.primaryOrange),
+              leading: Icon(Icons.fingerprint, color: DesignTokens.getPrimaryColor(context)),
               title: const Text('Biometric Authentication'),
               subtitle: const Text('Use Face ID or Touch ID for quick access'),
-              trailing: const Icon(Icons.check_circle, color: Colors.green),
+              trailing: Icon(Icons.check_circle, color: DesignTokens.successColor),
             ),
             
             ListTile(

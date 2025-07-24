@@ -261,6 +261,7 @@ class _CoreLibraryScreenState extends State<CoreLibraryScreen> with TickerProvid
 
   Widget _buildCoreCard(EmotionalCore core) {
     final color = _getCoreColor(core.color);
+    final trendColor = _getTrendColor(core.trend);
     
     return GestureDetector(
       onTap: () => _showCoreDetail(core),
@@ -273,6 +274,13 @@ class _CoreLibraryScreenState extends State<CoreLibraryScreen> with TickerProvid
             color: color.withOpacity(0.3),
             width: 1,
           ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -328,15 +336,37 @@ class _CoreLibraryScreenState extends State<CoreLibraryScreen> with TickerProvid
               ),
             ),
             const SizedBox(height: 12),
-            // Core name only
+            // Core name
             Text(
               core.name,
               style: Theme.of(context).textTheme.titleSmall?.copyWith(
                 fontWeight: FontWeight.w600,
               ),
               textAlign: TextAlign.center,
-              maxLines: 2,
+              maxLines: 1,
               overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 4),
+            // Trend indicator
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  core.trend == 'rising' ? Icons.trending_up : 
+                  core.trend == 'declining' ? Icons.trending_down : Icons.trending_flat,
+                  color: trendColor,
+                  size: 14,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  core.trend.toUpperCase(),
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: trendColor,
+                    fontWeight: FontWeight.w500,
+                    fontSize: 10,
+                  ),
+                ),
+              ],
             ),
           ],
         ),
@@ -488,8 +518,14 @@ class _CoreLibraryScreenState extends State<CoreLibraryScreen> with TickerProvid
 
   Color _getCoreColor(String colorHex) {
     try {
-      return Color(int.parse(colorHex.replaceFirst('#', '0xFF')));
+      // Handle both formats: with or without '#' prefix
+      if (colorHex.startsWith('#')) {
+        return Color(int.parse(colorHex.replaceFirst('#', '0xFF')));
+      } else {
+        return Color(int.parse('0xFF$colorHex'));
+      }
     } catch (e) {
+      debugPrint('CoreLibraryScreen: Error parsing color: $colorHex, error: $e');
       return AppTheme.getPrimaryColor(context);
     }
   }
@@ -542,8 +578,25 @@ class CircularProgressPainter extends CustomPainter {
     final center = Offset(size.width / 2, size.height / 2);
     final radius = (size.width - strokeWidth) / 2;
 
-    final paint = Paint()
-      ..color = color
+    // Draw background track
+    final trackPaint = Paint()
+      ..color = color.withOpacity(0.15)
+      ..strokeWidth = strokeWidth
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
+
+    canvas.drawCircle(center, radius, trackPaint);
+
+    // Draw progress arc with gradient
+    final progressPaint = Paint()
+      ..shader = LinearGradient(
+        colors: [
+          color.withOpacity(0.7),
+          color,
+        ],
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+      ).createShader(Rect.fromCircle(center: center, radius: radius))
       ..strokeWidth = strokeWidth
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round;
@@ -556,7 +609,7 @@ class CircularProgressPainter extends CustomPainter {
       startAngle,
       sweepAngle,
       false,
-      paint,
+      progressPaint,
     );
   }
 
@@ -883,8 +936,14 @@ class _CoreDetailSheetState extends State<CoreDetailSheet> {
 
   Color _getCoreColor(String colorHex) {
     try {
-      return Color(int.parse(colorHex.replaceFirst('#', '0xFF')));
+      // Handle both formats: with or without '#' prefix
+      if (colorHex.startsWith('#')) {
+        return Color(int.parse(colorHex.replaceFirst('#', '0xFF')));
+      } else {
+        return Color(int.parse('0xFF$colorHex'));
+      }
     } catch (e) {
+      debugPrint('CoreDetailSheet: Error parsing color: $colorHex, error: $e');
       return AppTheme.getPrimaryColor(context);
     }
   }

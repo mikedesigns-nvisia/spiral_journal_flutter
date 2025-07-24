@@ -93,10 +93,11 @@ class UsageTrackingService {
       return usage.processedJournals < EnvironmentConfig.monthlyAnalysisLimit;
     } catch (e) {
       // If we can't check usage, allow processing (fail open)
-      await AppErrorHandler().logError(
-        'Failed to check usage limits',
-        error: e,
+      await AppErrorHandler().handleError(
+        () async => throw e,
+        operationName: 'checkUsageLimits',
         component: 'UsageTrackingService',
+        showUserMessage: false,
       );
       return true;
     }

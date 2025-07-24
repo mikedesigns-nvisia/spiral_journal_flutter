@@ -426,6 +426,12 @@ class AppTheme {
   static Color get accentGreen => DesignTokens.accentGreen;
   static Color get accentRed => DesignTokens.accentRed;
   
+  /// Status colors
+  static Color get warningColor => DesignTokens.warningColor;
+  static Color get successColor => DesignTokens.successColor;
+  static Color get errorColor => DesignTokens.errorColor;
+  static Color get infoColor => DesignTokens.infoColor;
+  
   /// Mood colors
   static Color get moodHappy => DesignTokens.moodHappy;
   static Color get moodContent => DesignTokens.moodContent;

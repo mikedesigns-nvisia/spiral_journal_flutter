@@ -86,19 +86,55 @@ class CoreLibraryService {
   /// Get all six emotional cores
   Future<List<EmotionalCore>> getAllCores() async {
     try {
+      debugPrint('CoreLibraryService: Getting all cores');
       final prefs = await SharedPreferences.getInstance();
       final coresJson = prefs.getString(_coresKey);
       
-      if (coresJson != null) {
-        final coresList = jsonDecode(coresJson) as List;
-        return coresList.map((json) => EmotionalCore.fromJson(json)).toList();
+      if (coresJson != null && coresJson.isNotEmpty) {
+        debugPrint('CoreLibraryService: Found stored cores data, length: ${coresJson.length}');
+        
+        try {
+          final coresList = jsonDecode(coresJson) as List;
+          final cores = coresList.map((json) => EmotionalCore.fromJson(json)).toList();
+          
+          // Validate the loaded cores
+          if (cores.isEmpty) {
+            debugPrint('CoreLibraryService: Warning - Loaded empty cores list, using initial cores');
+            return _createInitialCores();
+          }
+          
+          // Check if we have all expected cores
+          final expectedCoreIds = _coreConfigs.keys.toSet();
+          final loadedCoreIds = cores.map((c) => c.id).toSet();
+          
+          if (!expectedCoreIds.every((id) => loadedCoreIds.contains(id))) {
+            debugPrint('CoreLibraryService: Warning - Missing some expected cores, using initial cores');
+            return _createInitialCores();
+          }
+          
+          debugPrint('CoreLibraryService: Successfully loaded ${cores.length} cores from storage');
+          return cores;
+        } catch (parseError) {
+          debugPrint('CoreLibraryService: Error parsing cores JSON: $parseError');
+          debugPrint('CoreLibraryService: Using initial cores due to parse error');
+          return _createInitialCores();
+        }
+      } else {
+        debugPrint('CoreLibraryService: No cores found in storage, creating initial cores');
+        final initialCores = _createInitialCores();
+        
+        // Save the initial cores to storage
+        await _saveCores(initialCores);
+        
+        return initialCores;
       }
-      
-      // Return initial cores if none exist
-      return _createInitialCores();
     } catch (e) {
       debugPrint('CoreLibraryService getAllCores error: $e');
-      return _createInitialCores();
+      debugPrint('CoreLibraryService getAllCores error details: ${e.toString()}');
+      
+      // Return initial cores as fallback
+      final initialCores = _createInitialCores();
+      return initialCores;
     }
   }
 
@@ -203,12 +239,18 @@ class CoreLibraryService {
     EmotionalAnalysisResult? analysis,
   ) async {
     try {
+      debugPrint('CoreLibraryService: Updating cores with journal analysis');
+      debugPrint('CoreLibraryService: Entries count: ${recentEntries.length}, Analysis available: ${analysis != null}');
+      
       final cores = await getAllCores();
+      debugPrint('CoreLibraryService: Retrieved ${cores.length} cores for updating');
+      
       final updatedCores = <EmotionalCore>[];
 
       for (final core in cores) {
         final config = _coreConfigs[core.id];
         if (config == null) {
+          debugPrint('CoreLibraryService: No config found for core ${core.id}, skipping update');
           updatedCores.add(core);
           continue;
         }
@@ -217,11 +259,15 @@ class CoreLibraryService {
         
         // Calculate impact from analysis if available
         if (analysis != null) {
-          impact += _calculateAnalysisImpact(core, analysis);
+          final analysisImpact = _calculateAnalysisImpact(core, analysis);
+          impact += analysisImpact;
+          debugPrint('CoreLibraryService: Analysis impact for ${core.name}: $analysisImpact');
         }
         
         // Calculate impact from journal patterns
-        impact += _calculateJournalPatternImpact(core, recentEntries);
+        final patternImpact = _calculateJournalPatternImpact(core, recentEntries);
+        impact += patternImpact;
+        debugPrint('CoreLibraryService: Journal pattern impact for ${core.name}: $patternImpact');
         
         // Apply daily change limits
         impact = impact.clamp(-config.maxDailyChange, config.maxDailyChange);
@@ -233,9 +279,11 @@ class CoreLibraryService {
         if (impact.abs() < 0.001) {
           final decayAmount = (config.baselineLevel - core.currentLevel) * config.decayRate;
           newLevel = core.currentLevel + decayAmount;
+          debugPrint('CoreLibraryService: Applied decay for ${core.name}: $decayAmount');
         }
         
         newLevel = newLevel.clamp(0.0, 1.0);
+        debugPrint('CoreLibraryService: ${core.name} level change: ${core.currentLevel} -> $newLevel');
         
         // Update core if there's a meaningful change
         if ((newLevel - core.currentLevel).abs() > 0.001) {
@@ -253,15 +301,19 @@ class CoreLibraryService {
           );
           
           updatedCores.add(updatedCore);
+          debugPrint('CoreLibraryService: Updated ${core.name} with new level $newLevel and trend $trend');
         } else {
           updatedCores.add(core);
+          debugPrint('CoreLibraryService: No significant change for ${core.name}, keeping current level');
         }
       }
       
+      debugPrint('CoreLibraryService: Saving ${updatedCores.length} updated cores');
       await _saveCores(updatedCores);
       return updatedCores;
     } catch (e) {
       debugPrint('CoreLibraryService updateCoresWithJournalAnalysis error: $e');
+      debugPrint('CoreLibraryService updateCoresWithJournalAnalysis error details: ${e.toString()}');
       return await getAllCores();
     }
   }
@@ -690,11 +742,52 @@ class CoreLibraryService {
 
   Future<void> _saveCores(List<EmotionalCore> cores) async {
     try {
+      debugPrint('CoreLibraryService: Saving ${cores.length} cores to storage');
+      
+      // Validate cores before saving
+      for (final core in cores) {
+        if (core.id.isEmpty) {
+          debugPrint('CoreLibraryService: Warning - Core has empty ID: ${core.name}');
+        }
+        if (core.currentLevel < 0 || core.currentLevel > 1.0) {
+          debugPrint('CoreLibraryService: Warning - Core ${core.name} has invalid level: ${core.currentLevel}');
+        }
+      }
+      
       final prefs = await SharedPreferences.getInstance();
-      final coresJson = jsonEncode(cores.map((core) => core.toJson()).toList());
-      await prefs.setString(_coresKey, coresJson);
+      
+      // Create a clean list of core JSON objects
+      final coreJsonList = cores.map((core) {
+        final json = core.toJson();
+        // Ensure all required fields are present
+        if (!json.containsKey('id') || !json.containsKey('name') || 
+            !json.containsKey('currentLevel') || !json.containsKey('trend')) {
+          debugPrint('CoreLibraryService: Warning - Core JSON missing required fields: ${json['name'] ?? 'unknown'}');
+        }
+        return json;
+      }).toList();
+      
+      final coresJson = jsonEncode(coreJsonList);
+      debugPrint('CoreLibraryService: Serialized cores JSON length: ${coresJson.length}');
+      
+      // Save to SharedPreferences
+      final success = await prefs.setString(_coresKey, coresJson);
+      if (success) {
+        debugPrint('CoreLibraryService: Successfully saved cores to storage');
+      } else {
+        debugPrint('CoreLibraryService: Failed to save cores to storage');
+      }
+      
+      // Verify the save was successful by reading back
+      final savedJson = prefs.getString(_coresKey);
+      if (savedJson != null) {
+        debugPrint('CoreLibraryService: Verified saved data exists in storage');
+      } else {
+        debugPrint('CoreLibraryService: WARNING - Failed to verify saved data');
+      }
     } catch (e) {
       debugPrint('CoreLibraryService _saveCores error: $e');
+      debugPrint('CoreLibraryService _saveCores error details: ${e.toString()}');
     }
   }
 

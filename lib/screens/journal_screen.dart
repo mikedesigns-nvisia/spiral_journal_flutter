@@ -604,6 +604,7 @@ class _JournalScreenState extends State<JournalScreen> {
                           width: 24,
                           height: 24,
                           fit: BoxFit.contain,
+                          color: DesignTokens.getPrimaryColor(context), // Apply theme-aware color
                           errorBuilder: (context, error, stackTrace) {
                             // Fallback to original icon if image fails to load
                             return Icon(

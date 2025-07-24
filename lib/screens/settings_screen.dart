@@ -102,7 +102,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: AppTheme.accentYellow,
+                      color: AppTheme.getColorWithOpacity(AppTheme.getPrimaryColor(context), 0.15),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Icon(

@@ -21,7 +21,6 @@ class EmotionalMirrorScreen extends StatefulWidget {
 }
 
 class _EmotionalMirrorScreenState extends State<EmotionalMirrorScreen> {
-  final TextEditingController _searchController = TextEditingController();
 
   @override
   void initState() {
@@ -36,7 +35,6 @@ class _EmotionalMirrorScreenState extends State<EmotionalMirrorScreen> {
 
   @override
   void dispose() {
-    _searchController.dispose();
     super.dispose();
   }
 
@@ -84,7 +82,7 @@ class _EmotionalMirrorScreenState extends State<EmotionalMirrorScreen> {
         Container(
           padding: EdgeInsets.all(iPhoneDetector.getAdaptiveSpacing(context, base: DesignTokens.spaceS)),
           decoration: BoxDecoration(
-            color: DesignTokens.accentYellow,
+            color: DesignTokens.getColorWithOpacity(DesignTokens.getPrimaryColor(context), 0.15),
             borderRadius: BorderRadius.circular(DesignTokens.radiusM),
           ),
           child: Icon(
@@ -116,7 +114,7 @@ class _EmotionalMirrorScreenState extends State<EmotionalMirrorScreen> {
         ),
         Icon(
           Icons.auto_awesome_rounded,
-          color: DesignTokens.accentYellow,
+          color: DesignTokens.getPrimaryColor(context),
           size: iPhoneDetector.getAdaptiveIconSize(context, base: DesignTokens.iconSizeM),
         ),
       ],
@@ -126,51 +124,6 @@ class _EmotionalMirrorScreenState extends State<EmotionalMirrorScreen> {
   Widget _buildControls(EmotionalMirrorProvider provider) {
     return Column(
       children: [
-        // Search Bar
-        TextField(
-          controller: _searchController,
-          decoration: InputDecoration(
-            hintText: 'Search insights, patterns, emotions...',
-            prefixIcon: Icon(
-              Icons.search,
-              color: DesignTokens.getTextTertiary(context),
-            ),
-            suffixIcon: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (_searchController.text.isNotEmpty)
-                  IconButton(
-                    onPressed: () {
-                      _searchController.clear();
-                      provider.setSearchQuery('');
-                    },
-                    icon: Icon(
-                      Icons.clear,
-                      color: DesignTokens.getTextTertiary(context),
-                    ),
-                  ),
-                IconButton(
-                  onPressed: provider.toggleFilters,
-                  icon: Icon(
-                    provider.showFilters ? Icons.filter_list_off : Icons.filter_list,
-                    color: DesignTokens.getPrimaryColor(context),
-                  ),
-                  tooltip: provider.showFilters ? 'Hide filters' : 'Show filters',
-                ),
-              ],
-            ),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(DesignTokens.radiusM),
-              borderSide: BorderSide.none,
-            ),
-            filled: true,
-            fillColor: DesignTokens.getBackgroundSecondary(context),
-          ),
-          onChanged: provider.setSearchQuery,
-        ),
-        
-        AdaptiveSpacing.vertical(baseSize: DesignTokens.spaceL),
-        
         // Time Range and View Mode Controls
         Row(
           children: [
@@ -204,6 +157,18 @@ class _EmotionalMirrorScreenState extends State<EmotionalMirrorScreen> {
             ),
             
             AdaptiveSpacing.horizontal(baseSize: DesignTokens.spaceM),
+            
+            // Filter Toggle Button
+            IconButton(
+              onPressed: provider.toggleFilters,
+              icon: Icon(
+                provider.showFilters ? Icons.filter_list_off : Icons.filter_list,
+                color: DesignTokens.getPrimaryColor(context),
+              ),
+              tooltip: provider.showFilters ? 'Hide filters' : 'Show filters',
+            ),
+            
+            AdaptiveSpacing.horizontal(baseSize: DesignTokens.spaceS),
             
             // View Mode Selector
             PopupMenuButton<ViewMode>(
@@ -266,7 +231,6 @@ class _EmotionalMirrorScreenState extends State<EmotionalMirrorScreen> {
               TextButton(
                 onPressed: () {
                   provider.clearAllFilters();
-                  _searchController.clear();
                 },
                 child: Text(
                   'Clear all',
@@ -820,11 +784,11 @@ class _EmotionalMirrorScreenState extends State<EmotionalMirrorScreen> {
   // Helper methods
   List<Color> _getMoodBalanceColors(double balance) {
     if (balance > 0.3) {
-      return [Colors.green.shade300, Colors.green.shade600];
+      return [DesignTokens.successColor.withOpacity(0.7), DesignTokens.successColor];
     } else if (balance < -0.3) {
-      return [Colors.red.shade300, Colors.red.shade600];
+      return [DesignTokens.errorColor.withOpacity(0.7), DesignTokens.errorColor];
     } else {
-      return [Colors.blue.shade300, Colors.orange.shade400, Colors.green.shade300];
+      return [DesignTokens.accentBlue.withOpacity(0.7), DesignTokens.accentYellow, DesignTokens.successColor.withOpacity(0.7)];
     }
   }
 
