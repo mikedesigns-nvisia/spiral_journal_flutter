@@ -3,9 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:spiral_journal/services/authentication_manager.dart';
 import 'package:spiral_journal/services/app_initializer.dart';
 import 'package:spiral_journal/controllers/splash_screen_controller.dart';
-import 'package:spiral_journal/services/pin_auth_service.dart';
-import 'package:spiral_journal/screens/pin_setup_screen.dart';
-import 'package:spiral_journal/screens/pin_entry_screen.dart';
+// PIN authentication imports removed - using biometrics-only authentication
 import 'package:spiral_journal/main.dart';
 import 'package:spiral_journal/constants/app_constants.dart';
 import '../utils/test_setup_helper.dart';
@@ -301,42 +299,7 @@ void main() {
     });
 
     group('Widget-based Authentication Flow Tests', () {
-      testWidgets('should complete PIN setup flow', (WidgetTester tester) async {
-        await tester.pumpWidget(
-          const MaterialApp(
-            home: PinSetupScreen(),
-          ),
-        );
-
-        await tester.pumpAndSettle();
-
-        // Should show PIN setup screen
-        expect(find.text('Secure Your Journal'), findsOneWidget);
-
-        // Enter PIN
-        await tester.enterText(find.byType(TextField), '1234');
-        await tester.pump();
-
-        // Continue to confirmation
-        final continueButton = find.text('Continue');
-        if (continueButton.evaluate().isNotEmpty) {
-          await tester.tap(continueButton);
-          await tester.pumpAndSettle();
-
-          // Confirm PIN
-          await tester.enterText(find.byType(TextField), '1234');
-          await tester.pump();
-
-          final confirmButton = find.text('Confirm');
-          if (confirmButton.evaluate().isNotEmpty) {
-            await tester.tap(confirmButton);
-            await tester.pumpAndSettle();
-
-            // Should complete setup
-            expect(find.byType(CircularProgressIndicator), findsNothing);
-          }
-        }
-      });
+      // PIN setup test removed - using biometrics-only authentication
 
       testWidgets('should handle PIN entry flow', (WidgetTester tester) async {
         await tester.pumpWidget(
@@ -377,8 +340,8 @@ void main() {
       });
 
       testWidgets('should handle biometric authentication when available', (WidgetTester tester) async {
-        final pinAuthService = PinAuthService();
-        final biometricAvailable = await pinAuthService.isBiometricAvailable();
+        // PIN auth service removed - using biometrics-only authentication
+        // Test biometric authentication directly with local_auth package
 
         if (biometricAvailable) {
           await tester.pumpWidget(

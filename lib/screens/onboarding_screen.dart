@@ -7,7 +7,7 @@ import '../widgets/quick_setup_widget.dart';
 import '../widgets/app_background.dart';
 import '../services/theme_service.dart';
 import '../services/settings_service.dart';
-import '../services/pin_auth_service.dart';
+// PIN auth service import removed - using biometrics-only authentication
 import '../services/navigation_service.dart';
 import '../services/navigation_flow_controller.dart';
 
@@ -36,12 +36,12 @@ class _OnboardingScreenState extends State<OnboardingScreen>
     // Create services directly instead of using Provider to avoid dependency issues
     final themeService = ThemeService();
     final settingsService = SettingsService();
-    final pinAuthService = PinAuthService();
+    // PIN auth service removed - using biometrics-only authentication
 
     _controller = OnboardingController(
       themeService: themeService,
       settingsService: settingsService,
-      pinAuthService: pinAuthService,
+      // PIN auth service parameter removed - using biometrics-only authentication
     );
 
     _pageController = PageController();

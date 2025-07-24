@@ -4,7 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/onboarding_slide.dart';
 import '../services/theme_service.dart';
 import '../services/settings_service.dart';
-import '../services/pin_auth_service.dart';
+// PIN auth service import removed - using biometrics-only authentication
 
 /// Controller for managing onboarding flow state and user interactions
 class OnboardingController extends ChangeNotifier {
@@ -13,7 +13,7 @@ class OnboardingController extends ChangeNotifier {
 
   final ThemeService _themeService;
   final SettingsService _settingsService;
-  final PinAuthService _pinAuthService;
+  // PIN auth service removed - using biometrics-only authentication
 
   int _currentSlideIndex = 0;
   bool _isLoading = false;
@@ -23,10 +23,10 @@ class OnboardingController extends ChangeNotifier {
   OnboardingController({
     required ThemeService themeService,
     required SettingsService settingsService,
-    required PinAuthService pinAuthService,
+    // PIN auth service parameter removed - using biometrics-only authentication
   })  : _themeService = themeService,
-        _settingsService = settingsService,
-        _pinAuthService = pinAuthService;
+        _settingsService = settingsService;
+        // PIN auth service assignment removed - using biometrics-only authentication
 
   // Getters
   int get currentSlideIndex => _currentSlideIndex;
@@ -147,11 +147,7 @@ class OnboardingController extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Update PIN setup preference
-  void updatePinSetupPreference(bool enabled) {
-    _quickSetupConfig = _quickSetupConfig.copyWith(pinSetup: enabled);
-    notifyListeners();
-  }
+  // PIN setup removed - using biometrics-only authentication
 
   /// Save quick setup configuration to preferences
   Future<void> _saveQuickSetupConfig() async {
@@ -200,12 +196,7 @@ class OnboardingController extends ChangeNotifier {
       // Apply notifications preference
       await _settingsService.setNotificationsEnabled(_quickSetupConfig.notifications);
 
-      // Handle PIN setup if requested
-      if (_quickSetupConfig.pinSetup) {
-        // Note: PIN setup will be handled by the UI after onboarding
-        // We just save the preference here
-        await _settingsService.setPinSetupRequested(true);
-      }
+      // PIN setup removed - using biometrics-only authentication
 
       // Disable splash screen after onboarding completion
       // User has seen the onboarding, no need to show splash again

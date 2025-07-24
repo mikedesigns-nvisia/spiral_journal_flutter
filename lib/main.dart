@@ -12,13 +12,13 @@ import 'package:spiral_journal/screens/profile_setup_screen.dart';
 import 'package:spiral_journal/screens/privacy_dashboard_screen.dart';
 import 'package:spiral_journal/screens/data_export_screen.dart';
 import 'package:spiral_journal/screens/onboarding_screen.dart';
-import 'package:spiral_journal/screens/pin_setup_screen.dart';
+
 import 'package:spiral_journal/services/journal_service.dart';
 import 'package:spiral_journal/services/ai_service_manager.dart';
 import 'package:spiral_journal/services/profile_service.dart';
 import 'package:spiral_journal/services/app_initializer.dart';
 import 'package:spiral_journal/services/settings_service.dart';
-import 'package:spiral_journal/services/pin_auth_service.dart';
+// PIN auth service removed - using biometrics-only authentication
 import 'package:spiral_journal/services/navigation_service.dart';
 import 'package:spiral_journal/controllers/splash_screen_controller.dart';
 import 'package:spiral_journal/controllers/onboarding_controller.dart';
@@ -129,9 +129,7 @@ class SpiralJournalApp extends StatelessWidget {
         ChangeNotifierProvider(
           create: (context) => SettingsService()..initialize(),
         ),
-        Provider<PinAuthService>(
-          create: (context) => PinAuthService(),
-        ),
+        // PIN auth service provider removed - using biometrics-only authentication
         Provider<NavigationService>(
           create: (context) => NavigationService(),
         ),
@@ -171,9 +169,7 @@ class SpiralJournalApp extends StatelessWidget {
                   '/profile-setup': (context) => iOSThemeEnforcer.needsEnforcement()
                     ? const ProfileSetupScreen().withiOSThemeEnforcement(context)
                     : const ProfileSetupScreen(),
-                  '/pin-setup': (context) => iOSThemeEnforcer.needsEnforcement()
-                    ? const PinSetupScreen().withiOSThemeEnforcement(context)
-                    : const PinSetupScreen(),
+
                   '/privacy-dashboard': (context) => iOSThemeEnforcer.needsEnforcement()
                     ? const PrivacyDashboardScreen().withiOSThemeEnforcement(context)
                     : const PrivacyDashboardScreen(),

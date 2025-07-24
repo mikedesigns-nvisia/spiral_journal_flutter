@@ -117,7 +117,7 @@ class OnboardingSlide {
         'theme': ['Light', 'Dark', 'Auto'],
         'textSize': ['Small', 'Medium', 'Large'],
         'notifications': true,
-        'pinSetup': false,
+
       },
     );
   }
@@ -161,26 +161,23 @@ class QuickSetupConfig {
   final String theme;
   final String textSize;
   final bool notifications;
-  final bool pinSetup;
+  // PIN setup removed - using biometrics-only authentication
 
   const QuickSetupConfig({
     this.theme = 'Auto',
     this.textSize = 'Medium',
     this.notifications = true,
-    this.pinSetup = false,
   });
 
   QuickSetupConfig copyWith({
     String? theme,
     String? textSize,
     bool? notifications,
-    bool? pinSetup,
   }) {
     return QuickSetupConfig(
       theme: theme ?? this.theme,
       textSize: textSize ?? this.textSize,
       notifications: notifications ?? this.notifications,
-      pinSetup: pinSetup ?? this.pinSetup,
     );
   }
 
@@ -189,7 +186,6 @@ class QuickSetupConfig {
       'theme': theme,
       'textSize': textSize,
       'notifications': notifications,
-      'pinSetup': pinSetup,
     };
   }
 
@@ -198,7 +194,6 @@ class QuickSetupConfig {
       theme: json['theme'] ?? 'Auto',
       textSize: json['textSize'] ?? 'Medium',
       notifications: json['notifications'] ?? true,
-      pinSetup: json['pinSetup'] ?? false,
     );
   }
 }

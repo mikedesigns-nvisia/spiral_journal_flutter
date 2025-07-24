@@ -8,12 +8,22 @@ import 'package:spiral_journal/services/settings_service.dart';
 import 'package:spiral_journal/repositories/journal_repository_impl.dart';
 import 'package:spiral_journal/utils/sample_data_generator.dart';
 import '../utils/test_setup_helper.dart';
+import '../utils/test_service_manager.dart';
+import '../utils/test_widget_helper.dart';
 
 void main() {
   group('TestFlight Fresh Install State Tests', () {
     setUpAll(() {
       TestSetupHelper.ensureFlutterBinding();
       TestSetupHelper.setupTestConfiguration(enablePlatformChannels: true);
+    });
+
+    setUp(() {
+      TestServiceManager.clearServiceTracking();
+    });
+
+    tearDown(() {
+      TestServiceManager.disposeTestServices();
     });
 
     tearDownAll(() {
@@ -26,15 +36,17 @@ void main() {
       await repository.clearAllEntries();
 
       await tester.pumpWidget(
-        MultiProvider(
-          providers: [
-            Provider<JournalRepositoryImpl>.value(value: repository),
-          ],
-          child: const SpiralJournalApp(),
+        TestServiceManager.createTestApp(
+          child: MultiProvider(
+            providers: [
+              Provider<JournalRepositoryImpl>.value(value: repository),
+            ],
+            child: const SpiralJournalApp(),
+          ),
         ),
       );
 
-      await tester.pumpAndSettle();
+      await TestWidgetHelper.pumpAndSettle(tester);
 
       // Navigate to history screen to verify no entries
       final historyTab = find.text('History');
@@ -200,17 +212,25 @@ void main() {
     });
 
     testWidgets('should show proper onboarding flow for first-time users', (WidgetTester tester) async {
-      await tester.pumpWidget(const SpiralJournalApp());
-      await tester.pumpAndSettle();
+      await tester.pumpWidget(
+        TestServiceManager.createTestApp(
+          child: const SpiralJournalApp(),
+        ),
+      );
+      await TestWidgetHelper.pumpAndSettle(tester);
 
-      // Should show PIN setup for first-time users
-      expect(find.text('Set up your PIN'), findsOneWidget);
-      expect(find.text('Create a secure PIN'), findsOneWidget);
+      // PIN setup removed - using biometrics-only authentication
+      // Should show onboarding flow for first-time users
+      expect(find.text('Welcome to Spiral Journal'), findsOneWidget);
     });
 
     testWidgets('should have clean navigation without pre-filled content', (WidgetTester tester) async {
-      await tester.pumpWidget(const SpiralJournalApp());
-      await tester.pumpAndSettle();
+      await tester.pumpWidget(
+        TestServiceManager.createTestApp(
+          child: const SpiralJournalApp(),
+        ),
+      );
+      await TestWidgetHelper.pumpAndSettle(tester);
 
       // Test navigation through all tabs
       final tabs = ['Journal', 'History', 'Mirror', 'Insights', 'Settings'];

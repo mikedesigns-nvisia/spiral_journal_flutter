@@ -6,7 +6,7 @@ import 'package:spiral_journal/theme/app_theme.dart';
 import 'package:spiral_journal/providers/journal_provider.dart';
 import 'package:spiral_journal/providers/core_provider.dart';
 import 'package:spiral_journal/services/settings_service.dart';
-import 'package:spiral_journal/services/pin_auth_service.dart';
+// PIN auth service import removed - using biometrics-only authentication
 import 'package:spiral_journal/models/user_preferences.dart';
 import 'package:spiral_journal/screens/ai_settings_screen.dart';
 import 'package:spiral_journal/utils/sample_data_generator.dart';
@@ -25,7 +25,7 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   final SettingsService _settingsService = SettingsService();
   final LocalAuthentication _localAuth = LocalAuthentication();
-  final PinAuthService _pinAuthService = PinAuthService();
+  // PIN auth service removed - using biometrics-only authentication
   final AccessibilityService _accessibilityService = AccessibilityService();
   
   UserPreferences _currentPreferences = UserPreferences.defaults;
@@ -149,12 +149,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       _currentPreferences.biometricAuthEnabled,
                       _toggleBiometricAuth,
                     ),
-                  _buildActionItem(
-                    Icons.lock_reset,
-                    'Change PIN',
-                    'Update your app PIN for security',
-                    _changePIN,
-                  ),
+                  // PIN change option removed - using biometrics-only authentication
                 ],
               ),
               
@@ -1023,29 +1018,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Future<void> _changePIN() async {
-    try {
-      // Navigate to PIN setup screen to change PIN
-      // This would typically navigate to a PIN change screen
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('PIN change feature will be implemented with PIN setup screen'),
-            backgroundColor: AppTheme.accentGreen,
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to change PIN: $e'),
-            backgroundColor: AppTheme.accentRed,
-          ),
-        );
-      }
-    }
-  }
+  // PIN change functionality removed - using biometrics-only authentication
 
   // Data Management Methods
   Future<void> _exportData() async {
@@ -1261,7 +1234,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       await _settingsService.clearAllSettings();
       
       // Reset PIN
-      await _pinAuthService.resetPin();
+      // PIN auth service reset removed - using biometrics-only authentication
 
       // Refresh providers
       await journalProvider.initialize();

@@ -382,24 +382,7 @@ class SettingsService extends ChangeNotifier {
     return await getDailyRemindersEnabled();
   }
 
-  /// Set PIN setup requested flag
-  Future<void> setPinSetupRequested(bool requested) async {
-    await _ensureInitialized();
-    
-    try {
-      await _prefs?.setBool('pin_setup_requested', requested);
-      notifyListeners();
-    } catch (e) {
-      debugPrint('SettingsService setPinSetupRequested error: $e');
-      rethrow;
-    }
-  }
-
-  /// Get PIN setup requested status
-  Future<bool> getPinSetupRequested() async {
-    await _ensureInitialized();
-    return _prefs?.getBool('pin_setup_requested') ?? false;
-  }
+  // PIN setup methods removed - using biometrics-only authentication
 
   /// Set onboarding completed status
   /// 
