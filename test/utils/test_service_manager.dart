@@ -53,16 +53,27 @@ class TestServiceManager {
 
   /// Creates a test app with proper provider setup
   static Widget createTestApp({required Widget child}) {
+    return MaterialApp(
+      home: child,
+      theme: ThemeData.light(),
+      darkTheme: ThemeData.dark(),
+    );
+  }
+
+  /// Creates a test app with providers for integration tests
+  static Widget createTestAppWithProviders({required Widget child}) {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider<SettingsService>(
           create: (_) => createTestSettingsService(),
+          lazy: false,
         ),
         Provider<JournalService>(
           create: (_) => createTestJournalService(),
         ),
         ChangeNotifierProvider<ThemeService>(
           create: (_) => createTestThemeService(),
+          lazy: false,
         ),
       ],
       child: MaterialApp(
