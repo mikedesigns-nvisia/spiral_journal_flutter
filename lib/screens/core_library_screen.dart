@@ -1376,7 +1376,7 @@ class _CoreDetailSheetState extends State<CoreDetailSheet> {
                             fontWeight: FontWeight.w600,
                           ),
                         ),
-                        if (entry.mood.isNotEmpty) ...[
+                        if (entry.moods.isNotEmpty) ...[
                           const SizedBox(width: 8),
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
@@ -1385,7 +1385,7 @@ class _CoreDetailSheetState extends State<CoreDetailSheet> {
                               borderRadius: BorderRadius.circular(4),
                             ),
                             child: Text(
-                              entry.mood,
+                              entry.moods.join(', '),
                               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                                 color: AppTheme.getTextSecondary(context),
                                 fontSize: 10,

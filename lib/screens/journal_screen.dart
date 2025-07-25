@@ -13,6 +13,7 @@ import 'package:spiral_journal/widgets/compact_analysis_counter.dart';
 import 'package:spiral_journal/providers/journal_provider.dart';
 import 'package:spiral_journal/providers/core_provider_refactored.dart';
 import 'package:spiral_journal/models/journal_entry.dart';
+import 'package:spiral_journal/models/core.dart';
 import 'package:spiral_journal/services/ai_service_manager.dart';
 import 'package:spiral_journal/services/profile_service.dart';
 import 'package:spiral_journal/services/journal_service.dart';
