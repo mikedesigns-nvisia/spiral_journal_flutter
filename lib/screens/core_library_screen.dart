@@ -1512,7 +1512,7 @@ class _CoreDetailSheetState extends State<CoreDetailSheet> {
     // If entry is analyzed, check if AI analysis mentions core-related themes
     final hasAISupport = entry.isAnalyzed && 
                        entry.aiAnalysis != null && 
-                       _aiAnalysisSupportsCore(entry.aiAnalysis!, core);
+                       _aiAnalysisSupportsCore(entry.aiAnalysis!.toJson(), core);
     
     return hasKeywords || isFromGrowthPeriod || hasAISupport;
   }
