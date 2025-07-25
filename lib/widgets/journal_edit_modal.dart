@@ -6,7 +6,7 @@ import 'package:spiral_journal/design_system/responsive_layout.dart';
 import 'package:spiral_journal/widgets/mood_selector.dart';
 import 'package:spiral_journal/widgets/journal_input.dart';
 import 'package:spiral_journal/providers/journal_provider.dart';
-import 'package:spiral_journal/providers/core_provider.dart';
+import 'package:spiral_journal/providers/core_provider_refactored.dart';
 import 'package:spiral_journal/models/journal_entry.dart';
 import 'package:spiral_journal/services/ai_service_manager.dart';
 import 'package:spiral_journal/services/journal_service.dart';

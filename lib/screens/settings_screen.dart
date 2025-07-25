@@ -4,7 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:spiral_journal/theme/app_theme.dart';
 import 'package:spiral_journal/providers/journal_provider.dart';
-import 'package:spiral_journal/providers/core_provider.dart';
+import 'package:spiral_journal/providers/core_provider_refactored.dart';
 import 'package:spiral_journal/services/settings_service.dart';
 // PIN auth service import removed - using biometrics-only authentication
 import 'package:spiral_journal/models/user_preferences.dart';
