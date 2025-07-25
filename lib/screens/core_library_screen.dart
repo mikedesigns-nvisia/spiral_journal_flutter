@@ -4,7 +4,9 @@ import 'dart:math' as math;
 import '../theme/app_theme.dart';
 import '../models/core.dart';
 import '../models/core_error.dart';
+import '../models/journal_entry.dart';
 import '../providers/core_provider_refactored.dart';
+import '../providers/journal_provider.dart';
 import '../services/core_navigation_context_service.dart';
 import '../services/accessibility_service.dart';
 import '../services/core_visual_consistency_service.dart';
@@ -1105,6 +1107,10 @@ class _CoreDetailSheetState extends State<CoreDetailSheet> {
                       
                       // Milestones
                       _buildMilestonesSection(color, widget.core.milestones),
+                      const SizedBox(height: 24),
+                      
+                      // Supporting Journal Entries
+                      _buildSupportingEntriesSection(context, widget.core),
                       const SizedBox(height: 100),
                     ],
                   ),
@@ -1289,6 +1295,247 @@ class _CoreDetailSheetState extends State<CoreDetailSheet> {
         ))),
       ],
     );
+  }
+
+  Widget _buildSupportingEntriesSection(BuildContext context, EmotionalCore core) {
+    return Consumer<JournalProvider>(
+      builder: (context, journalProvider, child) {
+        // Get related journal entries for this core
+        final supportingEntries = _getSupportingEntries(journalProvider, core);
+        
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Supporting Journal Entries',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 16),
+            
+            if (supportingEntries.isEmpty)
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppTheme.getBackgroundSecondary(context),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(
+                      Icons.edit_note_rounded,
+                      color: AppTheme.getTextSecondary(context),
+                      size: 24,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'No supporting entries yet',
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Journal entries that mention themes related to ${core.name} will appear here.',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: AppTheme.getTextSecondary(context),
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            else
+              ...supportingEntries.take(5).map((entry) => Container(
+                margin: const EdgeInsets.only(bottom: 12),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppTheme.getBackgroundSecondary(context),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: _getCoreColor(core.color).withOpacity(0.2),
+                    width: 1,
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.edit_rounded,
+                          color: _getCoreColor(core.color),
+                          size: 16,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          _formatDate(entry.createdAt),
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: _getCoreColor(core.color),
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        if (entry.mood.isNotEmpty) ...[
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: AppTheme.getTextSecondary(context).withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              entry.mood,
+                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                color: AppTheme.getTextSecondary(context),
+                                fontSize: 10,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      _getEntryPreview(entry.content),
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: AppTheme.getTextSecondary(context),
+                        height: 1.4,
+                      ),
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    if (entry.isAnalyzed && entry.aiAnalysis != null) ...[
+                      const SizedBox(height: 8),
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: _getCoreColor(core.color).withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.psychology_rounded,
+                              color: _getCoreColor(core.color),
+                              size: 14,
+                            ),
+                            const SizedBox(width: 6),
+                            Expanded(
+                              child: Text(
+                                'AI detected themes related to ${core.name}',
+                                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                  color: _getCoreColor(core.color),
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              )),
+              
+            if (supportingEntries.length > 5) ...[
+              const SizedBox(height: 8),
+              Center(
+                child: Text(
+                  '+${supportingEntries.length - 5} more supporting entries',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: AppTheme.getTextSecondary(context),
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+              ),
+            ],
+          ],
+        );
+      },
+    );
+  }
+
+  List<JournalEntry> _getSupportingEntries(JournalProvider journalProvider, EmotionalCore core) {
+    // Get all journal entries and filter for those that support this core
+    final allEntries = journalProvider.entries;
+    
+    // For now, we'll use a simple heuristic to find supporting entries:
+    // 1. Entries that are analyzed and mention related themes
+    // 2. Entries with similar emotional patterns
+    // 3. Entries from when the core was actively growing
+    
+    final supportingEntries = <JournalEntry>[];
+    final coreKeywords = _getCoreKeywords(core.name);
+    
+    for (final entry in allEntries) {
+      if (_entrySupportsCore(entry, core, coreKeywords)) {
+        supportingEntries.add(entry);
+      }
+    }
+    
+    // Sort by date (most recent first)
+    supportingEntries.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    
+    return supportingEntries;
+  }
+
+  List<String> _getCoreKeywords(String coreName) {
+    switch (coreName.toLowerCase()) {
+      case 'optimism':
+        return ['hope', 'positive', 'bright', 'future', 'grateful', 'thankful', 'excited', 'happy', 'joy'];
+      case 'resilience':
+        return ['overcome', 'challenge', 'difficult', 'strong', 'persever', 'bounce back', 'tough', 'endure'];
+      case 'self-awareness':
+        return ['realize', 'understand', 'reflect', 'insight', 'aware', 'conscious', 'mindful', 'introspect'];
+      case 'creativity':
+        return ['create', 'imagine', 'artistic', 'innovative', 'original', 'inspire', 'design', 'craft'];
+      case 'social connection':
+        return ['friend', 'family', 'connect', 'relationship', 'social', 'together', 'community', 'bond'];
+      case 'growth mindset':
+        return ['learn', 'grow', 'improve', 'develop', 'progress', 'better', 'skill', 'knowledge'];
+      default:
+        return [coreName.toLowerCase()];
+    }
+  }
+
+  bool _entrySupportsCore(JournalEntry entry, EmotionalCore core, List<String> keywords) {
+    final contentLower = entry.content.toLowerCase();
+    
+    // Check if any keywords appear in the content
+    final hasKeywords = keywords.any((keyword) => contentLower.contains(keyword));
+    
+    // Check if the entry was created during a period when this core was growing
+    final isFromGrowthPeriod = _isFromCoreGrowthPeriod(entry, core);
+    
+    // If entry is analyzed, check if AI analysis mentions core-related themes
+    final hasAISupport = entry.isAnalyzed && 
+                       entry.aiAnalysis != null && 
+                       _aiAnalysisSupportsCore(entry.aiAnalysis!, core);
+    
+    return hasKeywords || isFromGrowthPeriod || hasAISupport;
+  }
+
+  bool _isFromCoreGrowthPeriod(JournalEntry entry, EmotionalCore core) {
+    // Simple heuristic: if the entry was created within 7 days of the core's last update
+    // and the core is trending upward, it likely contributed to that growth
+    final daysDifference = core.lastUpdated.difference(entry.createdAt).inDays.abs();
+    return daysDifference <= 7 && core.trend == 'rising';
+  }
+
+  bool _aiAnalysisSupportsCore(Map<String, dynamic> analysis, EmotionalCore core) {
+    // Check if the AI analysis mentions themes related to this core
+    final analysisText = analysis.toString().toLowerCase();
+    final coreKeywords = _getCoreKeywords(core.name);
+    
+    return coreKeywords.any((keyword) => analysisText.contains(keyword));
+  }
+
+  String _getEntryPreview(String content) {
+    // Return first 120 characters of the entry as a preview
+    if (content.length <= 120) return content;
+    return '${content.substring(0, 120)}...';
   }
 
   Color _getCoreColor(String colorHex) {

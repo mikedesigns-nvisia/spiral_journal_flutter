@@ -475,38 +475,90 @@ class _JournalScreenState extends State<JournalScreen> {
                   const SizedBox(height: 16),
                 ],
                 
-                // Key themes
-                if (analysisResult.keyThemes.isNotEmpty) ...[
-                  Text(
-                    'Key Themes:',
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  ...analysisResult.keyThemes.map<Widget>((theme) {
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 4),
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.circle,
-                            size: 6,
-                            color: DesignTokens.getTextSecondary(context),
+                // Cores Represented
+                Consumer<CoreProvider>(
+                  builder: (context, coreProvider, child) {
+                    final affectedCores = _getAffectedCores(coreProvider, analysisResult.keyThemes);
+                    
+                    if (affectedCores.isEmpty) return const SizedBox.shrink();
+                    
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Cores Represented:',
+                          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.w600,
                           ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              theme,
-                              style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                        const SizedBox(height: 8),
+                        ...affectedCores.map<Widget>((coreData) {
+                          final core = coreData['core'] as EmotionalCore;
+                          final contribution = coreData['contribution'] as String;
+                          final coreColor = _getCoreColorFromHex(core.color);
+                          
+                          return Container(
+                            margin: const EdgeInsets.only(bottom: 8),
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: coreColor.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: coreColor.withOpacity(0.3),
+                                width: 1,
+                              ),
                             ),
-                          ),
-                        ],
-                      ),
+                            child: Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(6),
+                                  decoration: BoxDecoration(
+                                    color: coreColor.withOpacity(0.8),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: Icon(
+                                    _getCoreIcon(core.name),
+                                    size: 16,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        core.name,
+                                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                          fontWeight: FontWeight.w600,
+                                          color: coreColor,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        contribution,
+                                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                          fontSize: 11,
+                                          color: DesignTokens.getTextSecondary(context),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Icon(
+                                  Icons.trending_up_rounded,
+                                  size: 14,
+                                  color: coreColor,
+                                ),
+                              ],
+                            ),
+                          );
+                        }).toList(),
+                        const SizedBox(height: 16),
+                      ],
                     );
-                  }).toList(),
-                  const SizedBox(height: 16),
-                ],
+                  },
+                ),
                 
                 // Emotional metrics
                 Row(
@@ -701,5 +753,113 @@ class _JournalScreenState extends State<JournalScreen> {
       ),
       ),
     );
+  }
+
+  List<Map<String, dynamic>> _getAffectedCores(CoreProvider coreProvider, List<String> keyThemes) {
+    final allCores = coreProvider.cores;
+    final affectedCores = <Map<String, dynamic>>[];
+    
+    for (final core in allCores) {
+      final contribution = _getCoreContribution(core, keyThemes);
+      if (contribution.isNotEmpty) {
+        affectedCores.add({
+          'core': core,
+          'contribution': contribution,
+        });
+      }
+    }
+    
+    return affectedCores;
+  }
+
+  String _getCoreContribution(EmotionalCore core, List<String> keyThemes) {
+    final coreKeywords = _getCoreKeywords(core.name);
+    final matchingThemes = <String>[];
+    
+    for (final theme in keyThemes) {
+      final themeLower = theme.toLowerCase();
+      for (final keyword in coreKeywords) {
+        if (themeLower.contains(keyword) || keyword.contains(themeLower)) {
+          matchingThemes.add(theme);
+          break;
+        }
+      }
+    }
+    
+    if (matchingThemes.isEmpty) return '';
+    
+    // Generate contribution message based on core type and themes
+    final contributions = _generateContributionMessage(core.name, matchingThemes);
+    return contributions;
+  }
+
+  List<String> _getCoreKeywords(String coreName) {
+    switch (coreName.toLowerCase()) {
+      case 'optimism':
+        return ['hope', 'positive', 'bright', 'future', 'grateful', 'thankful', 'excited', 'happy', 'joy', 'optimism'];
+      case 'resilience':
+        return ['overcome', 'challenge', 'difficult', 'strong', 'persever', 'bounce back', 'tough', 'endure', 'resilience'];
+      case 'self-awareness':
+        return ['realize', 'understand', 'reflect', 'insight', 'aware', 'conscious', 'mindful', 'introspect', 'awareness'];
+      case 'creativity':
+        return ['create', 'imagine', 'artistic', 'innovative', 'original', 'inspire', 'design', 'craft', 'creative'];
+      case 'social connection':
+        return ['friend', 'family', 'connect', 'relationship', 'social', 'together', 'community', 'bond', 'connection'];
+      case 'growth mindset':
+        return ['learn', 'grow', 'improve', 'develop', 'progress', 'better', 'skill', 'knowledge', 'growth'];
+      default:
+        return [coreName.toLowerCase()];
+    }
+  }
+
+  String _generateContributionMessage(String coreName, List<String> matchingThemes) {
+    final themeText = matchingThemes.length == 1 
+        ? matchingThemes.first 
+        : '${matchingThemes.take(2).join(', ')}${matchingThemes.length > 2 ? ' and others' : ''}';
+    
+    switch (coreName.toLowerCase()) {
+      case 'optimism':
+        return 'Reinforced through $themeText, strengthening positive outlook';
+      case 'resilience':
+        return 'Developed through $themeText, building emotional strength';
+      case 'self-awareness':
+        return 'Enhanced through $themeText, deepening self-understanding';
+      case 'creativity':
+        return 'Expressed through $themeText, fostering innovative thinking';
+      case 'social connection':
+        return 'Nurtured through $themeText, strengthening relationships';
+      case 'growth mindset':
+        return 'Cultivated through $themeText, promoting continuous learning';
+      default:
+        return 'Influenced by $themeText in this journal entry';
+    }
+  }
+
+  Color _getCoreColorFromHex(String colorHex) {
+    try {
+      final cleanHex = colorHex.replaceAll('#', '');
+      return Color(int.parse('FF$cleanHex', radix: 16));
+    } catch (e) {
+      return AppTheme.getPrimaryColor(context);
+    }
+  }
+
+  IconData _getCoreIcon(String coreName) {
+    switch (coreName.toLowerCase()) {
+      case 'optimism':
+        return Icons.sentiment_very_satisfied_rounded;
+      case 'resilience':
+        return Icons.shield_rounded;
+      case 'self-awareness':
+        return Icons.self_improvement_rounded;
+      case 'creativity':
+        return Icons.palette_rounded;
+      case 'social connection':
+        return Icons.people_rounded;
+      case 'growth mindset':
+        return Icons.trending_up_rounded;
+      default:
+        return Icons.auto_awesome_rounded;
+    }
   }
 }
