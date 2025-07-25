@@ -27,6 +27,7 @@ class CoreProvider with ChangeNotifier {
 
   /// Public getters
   List<EmotionalCore> get cores => List.unmodifiable(_cores);
+  List<EmotionalCore> get allCores => List.unmodifiable(_cores); // Alias for compatibility
   List<EmotionalCore> get topCores => List.unmodifiable(_topCores);
   bool get isLoading => _isLoading;
   CoreError? get error => _error;
@@ -110,12 +111,28 @@ class CoreProvider with ChangeNotifier {
   }
 
   /// Refresh cores from database
-  Future<void> refresh() async {
+  Future<void> refresh({bool forceRefresh = false}) async {
     await _executeWithLoadingState(() async {
       await _coreService.refresh();
       await _syncCoresFromService();
     });
   }
+
+  /// Load all cores (alias for initialize for compatibility)
+  Future<void> loadAllCores() async {
+    await initialize();
+  }
+
+  /// Clear current error
+  void clearError() {
+    _clearError();
+  }
+
+  /// Get core contexts (empty map for compatibility - not used in refactored version)
+  Map<String, dynamic> get coreContexts => const <String, dynamic>{};
+
+  /// Get navigation state (empty for compatibility - not used in refactored version)
+  dynamic get navigationState => null;
 
   /// Clear all cores (for testing/reset)
   Future<void> clearAllCores() async {
