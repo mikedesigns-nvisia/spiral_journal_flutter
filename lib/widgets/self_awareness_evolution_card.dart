@@ -259,16 +259,6 @@ class _SelfAwarenessEvolutionCardState extends State<SelfAwarenessEvolutionCard>
             DesignTokens.accentYellow,
           ),
         ),
-        AdaptiveSpacing.horizontal(baseSize: DesignTokens.spaceM),
-        Expanded(
-          child: _buildMetricCard(
-            'Growth Level',
-            _getGrowthLevel(widget.selfAwarenessScore),
-            'current stage',
-            Icons.emoji_events_rounded,
-            DesignTokens.primaryOrange,
-          ),
-        ),
       ],
     );
   }
@@ -520,17 +510,6 @@ class _SelfAwarenessEvolutionCardState extends State<SelfAwarenessEvolutionCard>
     }
   }
 
-  String _getGrowthLevel(double score) {
-    if (score >= 0.8) {
-      return 'Master';
-    } else if (score >= 0.6) {
-      return 'Advanced';
-    } else if (score >= 0.4) {
-      return 'Intermediate';
-    } else {
-      return 'Beginner';
-    }
-  }
 
   List<SkillData> _getSkillBreakdown() {
     final baseScore = widget.selfAwarenessScore;
