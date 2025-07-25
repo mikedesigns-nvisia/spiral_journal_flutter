@@ -354,6 +354,25 @@ class CoreLibraryService {
     }
   }
 
+  /// Check if there are updates available (for background sync)
+  Future<bool> hasUpdates() async {
+    try {
+      // For now, this is a simple implementation
+      // In a real app, this might check against a server or timestamp
+      final prefs = await SharedPreferences.getInstance();
+      final lastSyncKey = 'last_core_sync';
+      final lastSync = prefs.getInt(lastSyncKey) ?? 0;
+      final now = DateTime.now().millisecondsSinceEpoch;
+      
+      // Check if it's been more than 5 minutes since last sync
+      const syncInterval = 5 * 60 * 1000; // 5 minutes in milliseconds
+      return (now - lastSync) > syncInterval;
+    } catch (e) {
+      debugPrint('CoreLibraryService hasUpdates error: $e');
+      return false;
+    }
+  }
+
   /// Reset all cores to initial state
   Future<void> resetCores() async {
     try {

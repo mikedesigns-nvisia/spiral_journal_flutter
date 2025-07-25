@@ -50,7 +50,7 @@
   - Simplify onboarding flow to focus on biometric setup
   - _Requirements: 2.1, 2.2, 4.2_
 
-- [-] 9. Validate test fixes and run complete test suite
+- [ ] 9. Validate test fixes and run complete test suite
   - Run all previously failing tests to verify fixes
   - Ensure no regressions in passing tests
   - Validate that TestFlight build process completes successfully
