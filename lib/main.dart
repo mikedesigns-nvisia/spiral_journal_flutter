@@ -12,6 +12,7 @@ import 'package:spiral_journal/screens/profile_setup_screen.dart';
 import 'package:spiral_journal/screens/privacy_dashboard_screen.dart';
 import 'package:spiral_journal/screens/data_export_screen.dart';
 import 'package:spiral_journal/screens/onboarding_screen.dart';
+import 'package:spiral_journal/screens/core_library_screen.dart';
 
 import 'package:spiral_journal/services/journal_service.dart';
 import 'package:spiral_journal/services/ai_service_manager.dart';
@@ -20,10 +21,11 @@ import 'package:spiral_journal/services/app_initializer.dart';
 import 'package:spiral_journal/services/settings_service.dart';
 // PIN auth service removed - using biometrics-only authentication
 import 'package:spiral_journal/services/navigation_service.dart';
+import 'package:spiral_journal/services/core_navigation_context_service.dart';
 import 'package:spiral_journal/controllers/splash_screen_controller.dart';
 import 'package:spiral_journal/controllers/onboarding_controller.dart';
 import 'package:spiral_journal/providers/journal_provider.dart';
-import 'package:spiral_journal/providers/core_provider.dart';
+import 'package:spiral_journal/providers/core_provider_refactored.dart';
 import 'package:spiral_journal/providers/emotional_mirror_provider.dart';
 import 'package:spiral_journal/utils/app_error_handler.dart';
 import 'package:spiral_journal/config/api_key_setup.dart';
@@ -113,6 +115,29 @@ Future<void> _initializeBackgroundServices() async {
 class SpiralJournalApp extends StatelessWidget {
   const SpiralJournalApp({super.key});
 
+  /// Builds core detail route with navigation context
+  static Widget _buildCoreDetailRoute(BuildContext context) {
+    final args = CoreNavigationContextService.extractNavigationArguments(
+      ModalRoute.of(context)?.settings ?? const RouteSettings(),
+    );
+    
+    final coreId = args?['coreId'] as String?;
+    // Note: navigationContext will be used when we implement dedicated core detail screen
+    
+    if (coreId == null) {
+      // Fallback to core library if no core ID provided
+      return iOSThemeEnforcer.needsEnforcement()
+          ? const CoreLibraryScreen().withiOSThemeEnforcement(context)
+          : const CoreLibraryScreen();
+    }
+    
+    // For now, navigate to core library with the specific core highlighted
+    // This will be enhanced when we implement the dedicated core detail screen
+    return iOSThemeEnforcer.needsEnforcement()
+        ? const CoreLibraryScreen().withiOSThemeEnforcement(context)
+        : const CoreLibraryScreen();
+  }
+
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
@@ -132,6 +157,9 @@ class SpiralJournalApp extends StatelessWidget {
         // PIN auth service provider removed - using biometrics-only authentication
         Provider<NavigationService>(
           create: (context) => NavigationService(),
+        ),
+        Provider<CoreNavigationContextService>(
+          create: (context) => CoreNavigationContextService(),
         ),
       ],
       child: Consumer<SettingsService>(
@@ -176,6 +204,10 @@ class SpiralJournalApp extends StatelessWidget {
                   '/data-export': (context) => iOSThemeEnforcer.needsEnforcement()
                     ? const DataExportScreen().withiOSThemeEnforcement(context)
                     : const DataExportScreen(),
+                  '/core-library': (context) => iOSThemeEnforcer.needsEnforcement()
+                    ? const CoreLibraryScreen().withiOSThemeEnforcement(context)
+                    : const CoreLibraryScreen(),
+                  '/core-detail': (context) => _buildCoreDetailRoute(context),
                 },
                 debugShowCheckedModeBanner: false,
               );

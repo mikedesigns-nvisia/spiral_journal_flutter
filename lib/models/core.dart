@@ -312,3 +312,181 @@ class EmotionalPattern {
     };
   }
 }
+
+// Enhanced models for CoreProvider integration
+
+/// Represents different types of core update events
+enum CoreUpdateEventType {
+  levelChanged,
+  trendChanged,
+  milestoneAchieved,
+  insightGenerated,
+  analysisCompleted,
+  batchUpdate,
+}
+
+/// Event model for real-time core updates
+class CoreUpdateEvent {
+  final String coreId;
+  final CoreUpdateEventType type;
+  final Map<String, dynamic> data;
+  final DateTime timestamp;
+  final String? relatedJournalEntryId;
+  final String? updateSource; // 'ai_analysis', 'manual', 'background_sync'
+
+  CoreUpdateEvent({
+    required this.coreId,
+    required this.type,
+    required this.data,
+    required this.timestamp,
+    this.relatedJournalEntryId,
+    this.updateSource,
+  });
+
+  factory CoreUpdateEvent.fromJson(Map<String, dynamic> json) {
+    return CoreUpdateEvent(
+      coreId: json['coreId'],
+      type: CoreUpdateEventType.values.firstWhere(
+        (e) => e.toString() == 'CoreUpdateEventType.${json['type']}',
+        orElse: () => CoreUpdateEventType.levelChanged,
+      ),
+      data: Map<String, dynamic>.from(json['data'] ?? {}),
+      timestamp: DateTime.parse(json['timestamp']),
+      relatedJournalEntryId: json['relatedJournalEntryId'],
+      updateSource: json['updateSource'],
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'coreId': coreId,
+      'type': type.toString().split('.').last,
+      'data': data,
+      'timestamp': timestamp.toIso8601String(),
+      'relatedJournalEntryId': relatedJournalEntryId,
+      'updateSource': updateSource,
+    };
+  }
+}
+
+/// Navigation context for preserving state between core screens
+class CoreNavigationContext {
+  final String sourceScreen;
+  final String? triggeredBy;
+  final String? targetCoreId;
+  final String? relatedJournalEntryId;
+  final Map<String, dynamic> additionalData;
+  final DateTime timestamp;
+
+  CoreNavigationContext({
+    required this.sourceScreen,
+    this.triggeredBy,
+    this.targetCoreId,
+    this.relatedJournalEntryId,
+    this.additionalData = const {},
+    DateTime? timestamp,
+  }) : timestamp = timestamp ?? DateTime.now();
+
+  factory CoreNavigationContext.fromJson(Map<String, dynamic> json) {
+    return CoreNavigationContext(
+      sourceScreen: json['sourceScreen'],
+      triggeredBy: json['triggeredBy'],
+      targetCoreId: json['targetCoreId'],
+      relatedJournalEntryId: json['relatedJournalEntryId'],
+      additionalData: Map<String, dynamic>.from(json['additionalData'] ?? {}),
+      timestamp: DateTime.parse(json['timestamp']),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'sourceScreen': sourceScreen,
+      'triggeredBy': triggeredBy,
+      'targetCoreId': targetCoreId,
+      'relatedJournalEntryId': relatedJournalEntryId,
+      'additionalData': additionalData,
+      'timestamp': timestamp.toIso8601String(),
+    };
+  }
+}
+
+/// Detailed context for core display with related data
+class CoreDetailContext {
+  final EmotionalCore core;
+  final List<String> relatedJournalEntryIds;
+  final List<CoreUpdateEvent> recentUpdates;
+  final CoreInsight? latestInsight;
+  final List<CoreMilestone> upcomingMilestones;
+  final DateTime lastAccessed;
+
+  CoreDetailContext({
+    required this.core,
+    this.relatedJournalEntryIds = const [],
+    this.recentUpdates = const [],
+    this.latestInsight,
+    this.upcomingMilestones = const [],
+    DateTime? lastAccessed,
+  }) : lastAccessed = lastAccessed ?? DateTime.now();
+
+  factory CoreDetailContext.fromJson(Map<String, dynamic> json) {
+    return CoreDetailContext(
+      core: EmotionalCore.fromJson(json['core']),
+      relatedJournalEntryIds: List<String>.from(json['relatedJournalEntryIds'] ?? []),
+      recentUpdates: (json['recentUpdates'] as List<dynamic>?)
+          ?.map((e) => CoreUpdateEvent.fromJson(e))
+          .toList() ?? [],
+      latestInsight: json['latestInsight'] != null 
+          ? CoreInsight.fromJson(json['latestInsight'])
+          : null,
+      upcomingMilestones: (json['upcomingMilestones'] as List<dynamic>?)
+          ?.map((e) => CoreMilestone.fromJson(e))
+          .toList() ?? [],
+      lastAccessed: DateTime.parse(json['lastAccessed']),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'core': core.toJson(),
+      'relatedJournalEntryIds': relatedJournalEntryIds,
+      'recentUpdates': recentUpdates.map((e) => e.toJson()).toList(),
+      'latestInsight': latestInsight?.toJson(),
+      'upcomingMilestones': upcomingMilestones.map((e) => e.toJson()).toList(),
+      'lastAccessed': lastAccessed.toIso8601String(),
+    };
+  }
+}
+
+/// Navigation state for core provider
+class CoreNavigationState {
+  final String? currentCoreId;
+  final CoreNavigationContext? currentContext;
+  final List<String> navigationHistory;
+  final DateTime lastNavigation;
+
+  CoreNavigationState({
+    this.currentCoreId,
+    this.currentContext,
+    this.navigationHistory = const [],
+    DateTime? lastNavigation,
+  }) : lastNavigation = lastNavigation ?? DateTime.now();
+
+  factory CoreNavigationState.initial() {
+    return CoreNavigationState();
+  }
+
+  CoreNavigationState copyWith({
+    String? currentCoreId,
+    CoreNavigationContext? currentContext,
+    List<String>? navigationHistory,
+    DateTime? lastNavigation,
+  }) {
+    return CoreNavigationState(
+      currentCoreId: currentCoreId ?? this.currentCoreId,
+      currentContext: currentContext ?? this.currentContext,
+      navigationHistory: navigationHistory ?? this.navigationHistory,
+      lastNavigation: lastNavigation ?? this.lastNavigation,
+    );
+  }
+}
+
