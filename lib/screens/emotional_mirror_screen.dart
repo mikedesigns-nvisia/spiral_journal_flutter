@@ -3,15 +3,11 @@ import 'package:provider/provider.dart';
 import '../design_system/design_tokens.dart';
 import '../design_system/component_library.dart';
 import '../design_system/responsive_layout.dart';
+import '../design_system/heading_system.dart';
 import '../providers/emotional_mirror_provider.dart';
-import '../widgets/emotional_trend_chart.dart';
-import '../widgets/mood_distribution_chart.dart';
-import '../widgets/emotional_journey_timeline_card.dart';
-import '../widgets/pattern_recognition_dashboard_card.dart';
-import '../widgets/self_awareness_evolution_card.dart';
 import '../widgets/loading_state_widget.dart' as loading_widget;
-import '../widgets/emotional_mirror_slide_view.dart';
 import '../utils/iphone_detector.dart';
+import '../models/emotional_mirror_data.dart';
 
 class EmotionalMirrorScreen extends StatefulWidget {
   const EmotionalMirrorScreen({super.key});
@@ -34,11 +30,6 @@ class _EmotionalMirrorScreenState extends State<EmotionalMirrorScreen> {
   }
 
   @override
-  void dispose() {
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: DesignTokens.getBackgroundPrimary(context),
@@ -47,26 +38,12 @@ class _EmotionalMirrorScreenState extends State<EmotionalMirrorScreen> {
           builder: (context, provider, child) {
             return Column(
               children: [
-                // Header and Controls Section - Preserved exactly as before
-                Padding(
-                  padding: const EdgeInsets.all(24.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildHeader(provider),
-                      AdaptiveSpacing.vertical(baseSize: DesignTokens.spaceL),
-                      _buildControls(provider),
-                      if (provider.showFilters) ...[
-                        AdaptiveSpacing.vertical(baseSize: DesignTokens.spaceL),
-                        _buildFilterSection(provider),
-                      ],
-                    ],
-                  ),
-                ),
+                // Compact Header
+                _buildCompactHeader(provider),
                 
-                // Content Section - Now using slide-based layout
+                // Overview Content (no tabs needed)
                 Expanded(
-                  child: _buildSlideContent(provider),
+                  child: _buildOverviewContent(provider),
                 ),
               ],
             );
@@ -76,449 +53,277 @@ class _EmotionalMirrorScreenState extends State<EmotionalMirrorScreen> {
     );
   }
 
-  Widget _buildHeader(EmotionalMirrorProvider provider) {
-    return Row(
-      children: [
-        Container(
-          padding: EdgeInsets.all(iPhoneDetector.getAdaptiveSpacing(context, base: DesignTokens.spaceS)),
-          decoration: BoxDecoration(
-            color: DesignTokens.getColorWithOpacity(DesignTokens.getPrimaryColor(context), 0.15),
-            borderRadius: BorderRadius.circular(DesignTokens.radiusM),
-          ),
-          child: Icon(
-            Icons.psychology_rounded,
-            color: DesignTokens.getPrimaryColor(context),
-            size: iPhoneDetector.getAdaptiveIconSize(context, base: DesignTokens.iconSizeL),
-          ),
-        ),
-        AdaptiveSpacing.horizontal(baseSize: DesignTokens.spaceL),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              ResponsiveText(
-                'Emotional Mirror',
-                baseFontSize: DesignTokens.fontSizeXXXL,
-                fontWeight: DesignTokens.fontWeightBold,
-                color: DesignTokens.getTextPrimary(context),
-              ),
-              AdaptiveSpacing.vertical(baseSize: DesignTokens.spaceXS),
-              ResponsiveText(
-                '${provider.selectedTimeRange.displayName} • Premium insights',
-                baseFontSize: DesignTokens.fontSizeS,
-                fontWeight: DesignTokens.fontWeightRegular,
-                color: DesignTokens.getTextSecondary(context),
-              ),
-            ],
-          ),
-        ),
-        Icon(
-          Icons.auto_awesome_rounded,
-          color: DesignTokens.getPrimaryColor(context),
-          size: iPhoneDetector.getAdaptiveIconSize(context, base: DesignTokens.iconSizeM),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildControls(EmotionalMirrorProvider provider) {
-    return Column(
-      children: [
-        // Time Range and View Mode Controls
-        Row(
-          children: [
-            // Time Range Selector
-            Expanded(
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                children: TimeRange.values.map((timeRange) {
-                  final isSelected = provider.selectedTimeRange == timeRange;
-                  return Padding(
-                    padding: EdgeInsets.only(right: DesignTokens.spaceS),
-                    child: FilterChip(
-                      label: Text(timeRange.displayName),
-                      selected: isSelected,
-                      onSelected: (selected) {
-                        if (selected) provider.setTimeRange(timeRange);
-                      },
-                      backgroundColor: DesignTokens.getBackgroundSecondary(context),
-                      selectedColor: DesignTokens.getPrimaryColor(context),
-                      labelStyle: TextStyle(
-                        color: isSelected ? Colors.white : DesignTokens.getTextSecondary(context),
-                        fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                      ),
-                      showCheckmark: false,
-                    ),
-                  );
-                }).toList(),
-                ),
-              ),
-            ),
-            
-            AdaptiveSpacing.horizontal(baseSize: DesignTokens.spaceM),
-            
-            // Filter Toggle Button
-            IconButton(
-              onPressed: provider.toggleFilters,
-              icon: Icon(
-                provider.showFilters ? Icons.filter_list_off : Icons.filter_list,
-                color: DesignTokens.getPrimaryColor(context),
-              ),
-              tooltip: provider.showFilters ? 'Hide filters' : 'Show filters',
-            ),
-            
-            AdaptiveSpacing.horizontal(baseSize: DesignTokens.spaceS),
-            
-            // View Mode Selector
-            PopupMenuButton<ViewMode>(
-              icon: Icon(
-                provider.selectedViewMode.icon,
-                color: DesignTokens.getPrimaryColor(context),
-              ),
-              onSelected: provider.setViewMode,
-              itemBuilder: (context) => ViewMode.values.map((mode) {
-                return PopupMenuItem<ViewMode>(
-                  value: mode,
-                  child: Row(
-                    children: [
-                      Icon(
-                        mode.icon,
-                        color: provider.selectedViewMode == mode 
-                            ? DesignTokens.getPrimaryColor(context)
-                            : DesignTokens.getTextSecondary(context),
-                      ),
-                      AdaptiveSpacing.horizontal(baseSize: DesignTokens.spaceM),
-                      Text(
-                        mode.displayName,
-                        style: TextStyle(
-                          color: provider.selectedViewMode == mode 
-                              ? DesignTokens.getPrimaryColor(context)
-                              : DesignTokens.getTextPrimary(context),
-                          fontWeight: provider.selectedViewMode == mode 
-                              ? FontWeight.w600 
-                              : FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              }).toList(),
-            ),
-          ],
-        ),
-        
-        // Active filters indicator
-        if (provider.hasActiveFilters) ...[
-          AdaptiveSpacing.vertical(baseSize: DesignTokens.spaceM),
-          Row(
-            children: [
-              Icon(
-                Icons.filter_alt,
-                size: 16,
-                color: DesignTokens.getPrimaryColor(context),
-              ),
-              AdaptiveSpacing.horizontal(baseSize: DesignTokens.spaceS),
-              Text(
-                'Filters active',
-                style: TextStyle(
-                  color: DesignTokens.getPrimaryColor(context),
-                  fontWeight: FontWeight.w500,
-                  fontSize: 12,
-                ),
-              ),
-              const Spacer(),
-              TextButton(
-                onPressed: () {
-                  provider.clearAllFilters();
-                },
-                child: Text(
-                  'Clear all',
-                  style: TextStyle(
-                    color: DesignTokens.getPrimaryColor(context),
-                    fontSize: 12,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ],
-    );
-  }
-
-  Widget _buildFilterSection(EmotionalMirrorProvider provider) {
+  Widget _buildCompactHeader(EmotionalMirrorProvider provider) {
     return Container(
       padding: EdgeInsets.all(DesignTokens.spaceL),
       decoration: BoxDecoration(
-        color: DesignTokens.getBackgroundSecondary(context),
-        borderRadius: BorderRadius.circular(DesignTokens.radiusM),
+        color: DesignTokens.getBackgroundPrimary(context),
+        border: Border(
+          bottom: BorderSide(
+            color: DesignTokens.getBackgroundTertiary(context),
+            width: 1,
+          ),
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: EdgeInsets.all(DesignTokens.spaceS),
+            decoration: BoxDecoration(
+              color: DesignTokens.getColorWithOpacity(DesignTokens.getPrimaryColor(context), 0.15),
+              borderRadius: BorderRadius.circular(DesignTokens.radiusM),
+            ),
+            child: Icon(
+              Icons.psychology_rounded,
+              color: DesignTokens.getPrimaryColor(context),
+              size: DesignTokens.iconSizeM,
+            ),
+          ),
+          SizedBox(width: DesignTokens.spaceM),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Emotional Mirror',
+                  style: HeadingSystem.getHeadlineMedium(context),
+                ),
+                Text(
+                  '${provider.selectedTimeRange.displayName}',
+                  style: HeadingSystem.getBodySmall(context),
+                ),
+              ],
+            ),
+          ),
+          // Time Range Selector
+          PopupMenuButton<TimeRange>(
+            icon: Icon(
+              Icons.calendar_today_rounded,
+              color: DesignTokens.getPrimaryColor(context),
+              size: DesignTokens.iconSizeM,
+            ),
+            onSelected: provider.setTimeRange,
+            itemBuilder: (context) => TimeRange.values.map((range) {
+              return PopupMenuItem<TimeRange>(
+                value: range,
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.schedule,
+                      size: DesignTokens.iconSizeS,
+                      color: provider.selectedTimeRange == range
+                          ? DesignTokens.getPrimaryColor(context)
+                          : DesignTokens.getTextSecondary(context),
+                    ),
+                    SizedBox(width: DesignTokens.spaceM),
+                    Text(
+                      range.displayName,
+                      style: TextStyle(
+                        color: provider.selectedTimeRange == range
+                            ? DesignTokens.getPrimaryColor(context)
+                            : DesignTokens.getTextPrimary(context),
+                        fontWeight: provider.selectedTimeRange == range
+                            ? FontWeight.w600
+                            : FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }).toList(),
+          ),
+          SizedBox(width: DesignTokens.spaceS),
+          // Refresh Button
+          IconButton(
+            onPressed: provider.refresh,
+            icon: Icon(
+              Icons.refresh_rounded,
+              color: DesignTokens.getPrimaryColor(context),
+            ),
+            tooltip: 'Refresh data',
+          ),
+        ],
+      ),
+    );
+  }
+  
+
+  Widget _buildProgressHeader(EmotionalMirrorProvider provider) {
+    final mirrorData = provider.mirrorData!;
+    final score = mirrorData.selfAwarenessScore;
+    
+    return Container(
+      padding: EdgeInsets.all(DesignTokens.spaceL),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            DesignTokens.getPrimaryColor(context).withOpacity(0.1),
+            DesignTokens.accentBlue.withOpacity(0.05),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(DesignTokens.radiusL),
         border: Border.all(
-          color: DesignTokens.getBackgroundTertiary(context),
+          color: DesignTokens.getPrimaryColor(context).withOpacity(0.2),
         ),
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Emotional Categories Filter
-          ResponsiveText(
-            'Emotional Categories',
-            baseFontSize: DesignTokens.fontSizeM,
-            fontWeight: DesignTokens.fontWeightSemiBold,
-            color: DesignTokens.getTextPrimary(context),
-          ),
-          AdaptiveSpacing.vertical(baseSize: DesignTokens.spaceM),
-          Wrap(
-            spacing: DesignTokens.spaceS,
-            runSpacing: DesignTokens.spaceS,
-            children: ['Positive', 'Negative', 'Neutral', 'Mixed'].map((category) {
-              final isSelected = provider.selectedEmotionalCategories.contains(category);
-              return FilterChip(
-                label: Text(category),
-                selected: isSelected,
-                onSelected: (selected) => provider.toggleEmotionalCategory(category),
-                backgroundColor: DesignTokens.getBackgroundTertiary(context),
-                selectedColor: DesignTokens.accentGreen,
-                labelStyle: TextStyle(
-                  color: isSelected ? Colors.white : DesignTokens.getTextSecondary(context),
-                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+          Row(
+            children: [
+              Icon(
+                Icons.auto_awesome_rounded,
+                color: DesignTokens.getPrimaryColor(context),
+                size: DesignTokens.iconSizeM,
+              ),
+              SizedBox(width: DesignTokens.spaceM),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Your Journey Progress',
+                      style: HeadingSystem.getHeadlineSmall(context),
+                    ),
+                    Text(
+                      '${mirrorData.analyzedEntries} of ${mirrorData.totalEntries} entries analyzed',
+                      style: HeadingSystem.getBodySmall(context),
+                    ),
+                  ],
                 ),
-                showCheckmark: false,
-              );
-            }).toList(),
-          ),
-          
-          AdaptiveSpacing.vertical(baseSize: DesignTokens.spaceL),
-          
-          // Intensity Levels Filter
-          ResponsiveText(
-            'Intensity Levels',
-            baseFontSize: DesignTokens.fontSizeM,
-            fontWeight: DesignTokens.fontWeightSemiBold,
-            color: DesignTokens.getTextPrimary(context),
-          ),
-          AdaptiveSpacing.vertical(baseSize: DesignTokens.spaceM),
-          Wrap(
-            spacing: DesignTokens.spaceS,
-            runSpacing: DesignTokens.spaceS,
-            children: IntensityLevel.values.map((level) {
-              final isSelected = provider.selectedIntensityLevels.contains(level);
-              return FilterChip(
-                label: Text(level.shortName),
-                selected: isSelected,
-                onSelected: (selected) => provider.toggleIntensityLevel(level),
-                backgroundColor: DesignTokens.getBackgroundTertiary(context),
-                selectedColor: DesignTokens.accentBlue,
-                labelStyle: TextStyle(
-                  color: isSelected ? Colors.white : DesignTokens.getTextSecondary(context),
-                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+              ),
+              Container(
+                padding: EdgeInsets.symmetric(
+                  horizontal: DesignTokens.spaceM,
+                  vertical: DesignTokens.spaceS,
                 ),
-                showCheckmark: false,
-              );
-            }).toList(),
-          ),
-          
-          AdaptiveSpacing.vertical(baseSize: DesignTokens.spaceL),
-          
-          // Pattern Types Filter
-          ResponsiveText(
-            'Pattern Types',
-            baseFontSize: DesignTokens.fontSizeM,
-            fontWeight: DesignTokens.fontWeightSemiBold,
-            color: DesignTokens.getTextPrimary(context),
-          ),
-          AdaptiveSpacing.vertical(baseSize: DesignTokens.spaceM),
-          Wrap(
-            spacing: DesignTokens.spaceS,
-            runSpacing: DesignTokens.spaceS,
-            children: ['growth', 'recurring', 'awareness'].map((patternType) {
-              final isSelected = provider.selectedPatternTypes.contains(patternType);
-              return FilterChip(
-                label: Text(patternType.toUpperCase()),
-                selected: isSelected,
-                onSelected: (selected) => provider.togglePatternType(patternType),
-                backgroundColor: DesignTokens.getBackgroundTertiary(context),
-                selectedColor: DesignTokens.accentYellow,
-                labelStyle: TextStyle(
-                  color: isSelected ? Colors.white : DesignTokens.getTextSecondary(context),
-                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                decoration: BoxDecoration(
+                  color: _getScoreColor(score).withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(DesignTokens.radiusL),
                 ),
-                showCheckmark: false,
-              );
-            }).toList(),
+                child: Text(
+                  '${(score * 100).round()}%',
+                  style: TextStyle(
+                    fontSize: DesignTokens.fontSizeL,
+                    fontWeight: DesignTokens.fontWeightBold,
+                    color: _getScoreColor(score),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: DesignTokens.spaceL),
+          Container(
+            height: 8,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(DesignTokens.radiusS),
+              color: DesignTokens.getBackgroundTertiary(context),
+            ),
+            child: FractionallySizedBox(
+              alignment: Alignment.centerLeft,
+              widthFactor: score,
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(DesignTokens.radiusS),
+                  gradient: LinearGradient(
+                    colors: [
+                      _getScoreColor(score),
+                      _getScoreColor(score).withOpacity(0.7),
+                    ],
+                  ),
+                ),
+              ),
+            ),
           ),
         ],
       ),
     );
   }
-
-  /// Build slide-based content that replaces the traditional scrolling layout
-  Widget _buildSlideContent(EmotionalMirrorProvider provider) {
-    // For overview mode, use the new slide-based interface
-    if (provider.selectedViewMode == ViewMode.overview) {
-      return EmotionalMirrorSlideView(
-        provider: provider,
-        onSlideChanged: (index) {
-          // Optional: Handle slide changes if needed for analytics or state
-        },
-      );
-    }
+  
+  Widget _buildMetricsGrid(EmotionalMirrorProvider provider) {
+    final overview = provider.mirrorData!.moodOverview;
     
-    // For other view modes, maintain the existing behavior
-    return RefreshIndicator(
-      onRefresh: provider.refresh,
-      child: SingleChildScrollView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        child: Column(
-          children: [
-            if (provider.isLoading)
-              _buildLoadingState()
-            else if (provider.error != null)
-              _buildErrorState(provider)
-            else
-              _buildContent(provider),
-            
-            AdaptiveSpacing.vertical(baseSize: 100), // Extra space for bottom navigation
+    return Container(
+      child: GridView.count(
+        shrinkWrap: true,
+        physics: NeverScrollableScrollPhysics(),
+        crossAxisCount: 3,
+        mainAxisSpacing: DesignTokens.spaceM,
+        crossAxisSpacing: DesignTokens.spaceM,
+        childAspectRatio: 1.0,
+        children: [
+          _buildMetricTile(
+            'Balance',
+            _formatBalance(overview.moodBalance),
+            _getBalanceColor(overview.moodBalance),
+            Icons.balance_rounded,
+            '${(overview.moodBalance * 100).round()}%',
+          ),
+          _buildMetricTile(
+            'Variety',
+            '${(overview.emotionalVariety * 100).round()}%',
+            DesignTokens.accentBlue,
+            Icons.palette_rounded,
+            'Emotional range',
+          ),
+          _buildMetricTile(
+            'Entries',
+            '${provider.mirrorData!.totalEntries}',
+            DesignTokens.accentGreen,
+            Icons.edit_note_rounded,
+            'Total logged',
+          ),
+        ],
+      ),
+    );
+  }
+  
+  Widget _buildMetricTile(String title, String value, Color color, IconData icon, String subtitle) {
+    return Container(
+      padding: EdgeInsets.all(DesignTokens.spaceM),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            color.withOpacity(0.1),
+            color.withOpacity(0.05),
           ],
         ),
+        borderRadius: BorderRadius.circular(DesignTokens.radiusL),
+        border: Border.all(
+          color: color.withOpacity(0.3),
+        ),
       ),
-    );
-  }
-
-  Widget _buildContent(EmotionalMirrorProvider provider) {
-    if (provider.mirrorData == null) {
-      return _buildEmptyState();
-    }
-
-    switch (provider.selectedViewMode) {
-      case ViewMode.overview:
-        return _buildOverviewContent(provider);
-      case ViewMode.charts:
-        return _buildChartsContent(provider);
-      case ViewMode.timeline:
-        return _buildTimelineContent(provider);
-      case ViewMode.insights:
-        return _buildInsightsContent(provider);
-    }
-  }
-
-  Widget _buildOverviewContent(EmotionalMirrorProvider provider) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24.0),
       child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          // Emotional Journey Timeline Card
-          if (provider.journeyData != null)
-            EmotionalJourneyTimelineCard(
-              journeyData: provider.journeyData!,
-              onTap: () => provider.setViewMode(ViewMode.timeline),
-            ),
-          
-          AdaptiveSpacing.vertical(baseSize: DesignTokens.spaceXXL),
-          
-          // Self-Awareness Evolution Card
-          SelfAwarenessEvolutionCard(
-            selfAwarenessScore: provider.mirrorData!.selfAwarenessScore,
-            analyzedEntries: provider.mirrorData!.analyzedEntries,
-            totalEntries: provider.mirrorData!.totalEntries,
-            coreEvolution: provider.journeyData?.coreEvolution,
-            onTap: () => provider.setViewMode(ViewMode.insights),
+          Icon(
+            icon,
+            color: color,
+            size: DesignTokens.iconSizeL,
           ),
-          
-          AdaptiveSpacing.vertical(baseSize: DesignTokens.spaceXXL),
-          
-          // Pattern Recognition Dashboard Card
-          PatternRecognitionDashboardCard(
-            patterns: provider.getFilteredPatterns(),
+          SizedBox(height: DesignTokens.spaceS),
+          Text(
+            value,
+            style: HeadingSystem.getTitleLarge(context).copyWith(
+              color: color,
+              fontWeight: DesignTokens.fontWeightBold,
+            ),
+            textAlign: TextAlign.center,
           ),
-          
-          AdaptiveSpacing.vertical(baseSize: DesignTokens.spaceXXL),
-          
-          // Enhanced Mood Overview
-          _buildEnhancedMoodOverview(provider),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildChartsContent(EmotionalMirrorProvider provider) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24.0),
-      child: Column(
-        children: [
-          // Emotional Trends Charts
-          if (provider.intensityTrend != null && provider.intensityTrend!.isNotEmpty) ...[
-            EmotionalTrendChart(
-              trendPoints: provider.intensityTrend!,
-              title: 'Emotional Intensity Trend',
-              height: 280,
-            ),
-            AdaptiveSpacing.vertical(baseSize: DesignTokens.spaceXXL),
-          ],
-          
-          if (provider.sentimentTrend != null && provider.sentimentTrend!.isNotEmpty) ...[
-            SentimentTrendChart(
-              trendPoints: provider.sentimentTrend!,
-              title: 'Sentiment Over Time',
-              height: 280,
-            ),
-            AdaptiveSpacing.vertical(baseSize: DesignTokens.spaceXXL),
-          ],
-          
-          // Mood Distribution
-          if (provider.moodDistribution != null) ...[
-            MoodDistributionChart(
-              distribution: provider.moodDistribution!,
-              title: 'Mood Distribution',
-              height: 320,
-              showAIMoods: true,
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTimelineContent(EmotionalMirrorProvider provider) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24.0),
-      child: Column(
-        children: [
-          if (provider.journeyData != null)
-            EmotionalJourneyTimelineCard(
-              journeyData: provider.journeyData!,
-            ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildInsightsContent(EmotionalMirrorProvider provider) {
-    final insights = provider.getFilteredInsights();
-    
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24.0),
-      child: Column(
-        children: [
-          // Self-Awareness Evolution Card
-          SelfAwarenessEvolutionCard(
-            selfAwarenessScore: provider.mirrorData!.selfAwarenessScore,
-            analyzedEntries: provider.mirrorData!.analyzedEntries,
-            totalEntries: provider.mirrorData!.totalEntries,
-            coreEvolution: provider.journeyData?.coreEvolution,
+          Text(
+            title,
+            style: HeadingSystem.getLabelMedium(context),
+            textAlign: TextAlign.center,
           ),
-          
-          if (insights.isNotEmpty) ...[
-            AdaptiveSpacing.vertical(baseSize: DesignTokens.spaceXXL),
-            _buildInsightsCard(insights),
-          ],
         ],
       ),
     );
   }
-
-
-  Widget _buildEnhancedMoodOverview(EmotionalMirrorProvider provider) {
+  
+  Widget _buildMoodBalanceCard(EmotionalMirrorProvider provider) {
     final overview = provider.mirrorData!.moodOverview;
     
     return ComponentLibrary.gradientCard(
@@ -529,22 +334,18 @@ class _EmotionalMirrorScreenState extends State<EmotionalMirrorScreen> {
           Row(
             children: [
               Icon(
-                Icons.dashboard_rounded,
+                Icons.mood_rounded,
                 color: DesignTokens.getPrimaryColor(context),
                 size: DesignTokens.iconSizeL,
               ),
-              AdaptiveSpacing.horizontal(baseSize: DesignTokens.spaceM),
-              ResponsiveText(
-                'Emotional Overview',
-                baseFontSize: DesignTokens.fontSizeXL,
-                fontWeight: DesignTokens.fontWeightSemiBold,
-                color: DesignTokens.getTextPrimary(context),
+              SizedBox(width: DesignTokens.spaceM),
+              Text(
+                'Emotional Balance',
+                style: HeadingSystem.getHeadlineSmall(context),
               ),
             ],
           ),
-          AdaptiveSpacing.vertical(baseSize: DesignTokens.spaceXL),
-          
-          // Mood balance visualization
+          SizedBox(height: DesignTokens.spaceXL),
           Container(
             height: DesignTokens.spaceL,
             decoration: BoxDecoration(
@@ -554,91 +355,245 @@ class _EmotionalMirrorScreenState extends State<EmotionalMirrorScreen> {
               ),
             ),
           ),
-          AdaptiveSpacing.vertical(baseSize: DesignTokens.spaceXL),
-          
-          // Enhanced metrics
+          SizedBox(height: DesignTokens.spaceL),
+          Text(
+            overview.description,
+            style: HeadingSystem.getBodyMedium(context),
+          ),
+        ],
+      ),
+    );
+  }
+  
+  Widget _buildInsightsSection(EmotionalMirrorProvider provider) {
+    final insights = provider.getFilteredInsights();
+    
+    if (insights.isEmpty) {
+      return Container();
+    }
+    
+    return ComponentLibrary.gradientCard(
+      gradient: DesignTokens.getCardGradient(context),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
           Row(
             children: [
-              Expanded(
-                child: _buildMetricCard(
-                  'Balance',
-                  _formatBalance(overview.moodBalance),
-                  _getBalanceColor(overview.moodBalance),
-                  Icons.balance_rounded,
-                ),
+              Icon(
+                Icons.lightbulb_outline,
+                color: DesignTokens.accentYellow,
+                size: DesignTokens.iconSizeL,
               ),
-              AdaptiveSpacing.horizontal(baseSize: DesignTokens.spaceM),
-              Expanded(
-                child: _buildMetricCard(
-                  'Variety',
-                  '${(overview.emotionalVariety * 100).round()}%',
-                  DesignTokens.accentBlue,
-                  Icons.palette_rounded,
-                ),
-              ),
-              AdaptiveSpacing.horizontal(baseSize: DesignTokens.spaceM),
-              Expanded(
-                child: _buildMetricCard(
-                  'Entries',
-                  '${provider.mirrorData!.totalEntries}',
-                  DesignTokens.accentGreen,
-                  Icons.edit_note_rounded,
-                ),
+              SizedBox(width: DesignTokens.spaceM),
+              Text(
+                'Personal Insights',
+                style: HeadingSystem.getHeadlineSmall(context),
               ),
             ],
           ),
-          
-          AdaptiveSpacing.vertical(baseSize: DesignTokens.spaceXL),
-          
-          ResponsiveText(
-            overview.description,
-            baseFontSize: DesignTokens.fontSizeM,
-            fontWeight: DesignTokens.fontWeightRegular,
-            color: DesignTokens.getTextSecondary(context),
-          ),
+          SizedBox(height: DesignTokens.spaceXL),
+          ...insights.take(3).map((insight) {
+            return Padding(
+              padding: EdgeInsets.only(bottom: DesignTokens.spaceL),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 6,
+                    height: 6,
+                    margin: EdgeInsets.only(
+                      top: DesignTokens.spaceS,
+                      right: DesignTokens.spaceL,
+                    ),
+                    decoration: BoxDecoration(
+                      color: DesignTokens.getPrimaryColor(context),
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  Expanded(
+                    child: Text(
+                      insight,
+                      style: HeadingSystem.getBodyMedium(context),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }),
         ],
       ),
     );
   }
-
-  Widget _buildMetricCard(String title, String value, Color color, IconData icon) {
+  
+  Widget _buildRecommendationsCard(EmotionalMirrorProvider provider) {
+    final recommendations = _generateRecommendations(provider);
+    
     return Container(
-      padding: EdgeInsets.all(DesignTokens.spaceM),
+      padding: EdgeInsets.all(DesignTokens.spaceL),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(DesignTokens.radiusM),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            DesignTokens.accentGreen.withOpacity(0.1),
+            DesignTokens.accentBlue.withOpacity(0.05),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(DesignTokens.radiusL),
         border: Border.all(
-          color: color.withValues(alpha: 0.3),
+          color: DesignTokens.accentGreen.withOpacity(0.2),
         ),
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.recommend_rounded,
+                color: DesignTokens.accentGreen,
+                size: DesignTokens.iconSizeL,
+              ),
+              SizedBox(width: DesignTokens.spaceM),
+              Text(
+                'Recommended for You',
+                style: HeadingSystem.getHeadlineSmall(context),
+              ),
+            ],
+          ),
+          SizedBox(height: DesignTokens.spaceL),
+          ...recommendations.map((rec) => _buildRecommendationItem(rec)),
+        ],
+      ),
+    );
+  }
+  
+  Widget _buildRecommendationItem(Map<String, dynamic> recommendation) {
+    return Container(
+      margin: EdgeInsets.only(bottom: DesignTokens.spaceM),
+      padding: EdgeInsets.all(DesignTokens.spaceM),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.5),
+        borderRadius: BorderRadius.circular(DesignTokens.radiusM),
+        border: Border.all(
+          color: DesignTokens.accentGreen.withOpacity(0.3),
+        ),
+      ),
+      child: Row(
         children: [
           Icon(
-            icon,
-            color: color,
+            recommendation['icon'] as IconData,
+            color: DesignTokens.accentGreen,
             size: DesignTokens.iconSizeM,
           ),
-          AdaptiveSpacing.vertical(baseSize: DesignTokens.spaceS),
-          ResponsiveText(
-            value,
-            baseFontSize: DesignTokens.fontSizeL,
-            fontWeight: DesignTokens.fontWeightBold,
-            color: color,
-            textAlign: TextAlign.center,
-          ),
-          AdaptiveSpacing.vertical(baseSize: DesignTokens.spaceXS),
-          ResponsiveText(
-            title,
-            baseFontSize: DesignTokens.fontSizeS,
-            fontWeight: DesignTokens.fontWeightMedium,
-            color: DesignTokens.getTextSecondary(context),
-            textAlign: TextAlign.center,
+          SizedBox(width: DesignTokens.spaceM),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  recommendation['title'] as String,
+                  style: HeadingSystem.getTitleMedium(context),
+                ),
+                SizedBox(height: DesignTokens.spaceXS),
+                Text(
+                  recommendation['description'] as String,
+                  style: HeadingSystem.getBodySmall(context),
+                ),
+              ],
+            ),
           ),
         ],
       ),
     );
   }
+  
+  List<Map<String, dynamic>> _generateRecommendations(EmotionalMirrorProvider provider) {
+    final recommendations = <Map<String, dynamic>>[];
+    final mirrorData = provider.mirrorData!;
+    
+    if (mirrorData.moodOverview.moodBalance < 0.4) {
+      recommendations.add({
+        'icon': Icons.self_improvement_rounded,
+        'title': 'Try Mindfulness Practice',
+        'description': 'Your mood balance suggests mindfulness could help restore emotional equilibrium.',
+      });
+    }
+    
+    if (mirrorData.analyzedEntries < mirrorData.totalEntries * 0.5) {
+      recommendations.add({
+        'icon': Icons.edit_calendar_rounded,
+        'title': 'Increase Journaling Frequency',
+        'description': 'More frequent journaling can provide deeper insights into your emotional patterns.',
+      });
+    }
+    
+    recommendations.add({
+      'icon': Icons.nature_people_rounded,
+      'title': 'Connect with Nature',
+      'description': 'Spending time outdoors can boost mood and reduce stress levels.',
+    });
+    
+    return recommendations.take(3).toList();
+  }
+  
+  Color _getScoreColor(double score) {
+    if (score >= 0.8) return DesignTokens.accentGreen;
+    if (score >= 0.6) return DesignTokens.accentYellow;
+    if (score >= 0.4) return DesignTokens.accentBlue;
+    return DesignTokens.warningColor;
+  }
+  
 
+  Widget _buildOverviewContent(EmotionalMirrorProvider provider) {
+    if (provider.isLoading) {
+      return _buildLoadingState();
+    }
+    
+    if (provider.error != null) {
+      return _buildErrorState(provider);
+    }
+    
+    if (provider.mirrorData == null) {
+      return _buildEmptyState();
+    }
+    
+    return _buildOverviewTab(provider);
+  }
+  
+  Widget _buildOverviewTab(EmotionalMirrorProvider provider) {
+    return RefreshIndicator(
+      onRefresh: provider.refresh,
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: EdgeInsets.all(DesignTokens.spaceL),
+        child: Column(
+          children: [
+            // Progress Header
+            _buildProgressHeader(provider),
+            SizedBox(height: DesignTokens.spaceXL),
+            
+            // Key Metrics Grid
+            _buildMetricsGrid(provider),
+            SizedBox(height: DesignTokens.spaceXL),
+            
+            // Mood Balance Visualization
+            _buildMoodBalanceCard(provider),
+            SizedBox(height: DesignTokens.spaceXL),
+            
+            // Personal Insights
+            _buildInsightsSection(provider),
+            SizedBox(height: DesignTokens.spaceXL),
+            
+            // Recommendations
+            _buildRecommendationsCard(provider),
+            SizedBox(height: DesignTokens.spaceXXL),
+          ],
+        ),
+      ),
+    );
+  }
+  
 
   Widget _buildLoadingState() {
     return Center(
@@ -646,7 +601,7 @@ class _EmotionalMirrorScreenState extends State<EmotionalMirrorScreen> {
         padding: iPhoneDetector.getAdaptivePadding(context, compact: 24, regular: 32, large: 40),
         child: loading_widget.LoadingStateWidget(
           type: loading_widget.LoadingType.wave,
-          message: 'Analyzing your emotional patterns...',
+          message: 'Reflecting on your journey...',
           color: DesignTokens.getPrimaryColor(context),
           size: iPhoneDetector.getAdaptiveIconSize(context, base: 48),
         ),
@@ -665,19 +620,15 @@ class _EmotionalMirrorScreenState extends State<EmotionalMirrorScreen> {
             color: DesignTokens.getTextTertiary(context),
           ),
           AdaptiveSpacing.vertical(baseSize: DesignTokens.spaceL),
-          ResponsiveText(
+          Text(
             'Unable to load emotional mirror',
-            baseFontSize: DesignTokens.fontSizeL,
-            fontWeight: DesignTokens.fontWeightSemiBold,
-            color: DesignTokens.getTextPrimary(context),
+            style: HeadingSystem.getHeadlineSmall(context),
             textAlign: TextAlign.center,
           ),
           AdaptiveSpacing.vertical(baseSize: DesignTokens.spaceS),
-          ResponsiveText(
+          Text(
             provider.error ?? 'An unexpected error occurred',
-            baseFontSize: DesignTokens.fontSizeM,
-            fontWeight: DesignTokens.fontWeightRegular,
-            color: DesignTokens.getTextSecondary(context),
+            style: HeadingSystem.getBodyMedium(context),
             textAlign: TextAlign.center,
           ),
           AdaptiveSpacing.vertical(baseSize: DesignTokens.spaceL),
@@ -690,65 +641,6 @@ class _EmotionalMirrorScreenState extends State<EmotionalMirrorScreen> {
     );
   }
 
-  Widget _buildInsightsCard(List<String> insights) {
-    return ComponentLibrary.gradientCard(
-      gradient: DesignTokens.getCardGradient(context),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(
-                Icons.lightbulb_outline,
-                color: DesignTokens.getPrimaryColor(context),
-                size: DesignTokens.iconSizeL,
-              ),
-              AdaptiveSpacing.horizontal(baseSize: DesignTokens.spaceM),
-              ResponsiveText(
-                'Personal Insights',
-                baseFontSize: DesignTokens.fontSizeXL,
-                fontWeight: DesignTokens.fontWeightSemiBold,
-                color: DesignTokens.getTextPrimary(context),
-              ),
-            ],
-          ),
-          AdaptiveSpacing.vertical(baseSize: DesignTokens.spaceXL),
-          
-          ...insights.map((insight) {
-            return Padding(
-              padding: EdgeInsets.only(bottom: DesignTokens.spaceL),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    width: 6,
-                    height: 6,
-                    margin: EdgeInsets.only(
-                      top: DesignTokens.spaceS, 
-                      right: DesignTokens.spaceL
-                    ),
-                    decoration: BoxDecoration(
-                      color: DesignTokens.getPrimaryColor(context),
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                  Expanded(
-                    child: ResponsiveText(
-                      insight,
-                      baseFontSize: DesignTokens.fontSizeM,
-                      fontWeight: DesignTokens.fontWeightRegular,
-                      color: DesignTokens.getTextSecondary(context),
-                    ),
-                  ),
-                ],
-              ),
-            );
-          }),
-          AdaptiveSpacing.vertical(baseSize: DesignTokens.spaceL),
-        ],
-      ),
-    );
-  }
 
   Widget _buildEmptyState() {
     return Center(
@@ -761,19 +653,15 @@ class _EmotionalMirrorScreenState extends State<EmotionalMirrorScreen> {
             color: DesignTokens.getTextTertiary(context),
           ),
           AdaptiveSpacing.vertical(baseSize: DesignTokens.spaceL),
-          ResponsiveText(
+          Text(
             'Your Emotional Mirror',
-            baseFontSize: DesignTokens.fontSizeXL,
-            fontWeight: DesignTokens.fontWeightSemiBold,
-            color: DesignTokens.getTextPrimary(context),
+            style: HeadingSystem.getHeadlineSmall(context),
             textAlign: TextAlign.center,
           ),
           AdaptiveSpacing.vertical(baseSize: DesignTokens.spaceS),
-          ResponsiveText(
-            'Start journaling to see your emotional patterns and insights unfold here.',
-            baseFontSize: DesignTokens.fontSizeM,
-            fontWeight: DesignTokens.fontWeightRegular,
-            color: DesignTokens.getTextSecondary(context),
+          Text(
+            'Begin your journaling journey to unlock personal growth insights.',
+            style: HeadingSystem.getBodyMedium(context),
             textAlign: TextAlign.center,
           ),
         ],

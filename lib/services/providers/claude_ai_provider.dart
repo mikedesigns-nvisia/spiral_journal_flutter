@@ -21,8 +21,8 @@ class ClaudeAIProvider implements AIServiceInterface {
   bool _isConfigured = false;
   
   // Modern Claude models (ordered by preference)
-  static const String _premiumModel = 'claude-sonnet-4-20250514'; // Claude 4 for premium analysis
-  static const String _defaultModel = 'claude-3-5-sonnet-20241022'; // Latest stable 3.5
+  static const String _premiumModel = 'claude-3-haiku-20240307'; // Using Haiku for all requests
+  static const String _defaultModel = 'claude-3-haiku-20240307'; // Using Haiku for all requests
   static const String _fallbackModel = 'claude-3-haiku-20240307'; // Cost-effective fallback
   
   // API configuration
@@ -364,6 +364,8 @@ class ClaudeAIProvider implements AIServiceInterface {
       return 20000; // Match workspace implementation for comprehensive analysis
     } else if (model.contains('claude-3-5-sonnet')) {
       return 8000; // High token limit for detailed analysis
+    } else if (model.contains('claude-3-haiku')) {
+      return 4096; // Haiku model maximum output tokens
     } else {
       return 4000; // Fallback models get reasonable limit
     }
@@ -466,6 +468,8 @@ class ClaudeAIProvider implements AIServiceInterface {
   String _getSystemPrompt() {
     return '''You are an AI emotional intelligence analyst for Spiral Journal, a personal growth app. Your role is to analyze journal entries and provide insights that help users understand their emotional patterns and personality development.
 
+IMPORTANT: You must ALWAYS respond with ONLY a valid JSON object. Do not include any explanatory text before or after the JSON. Do not wrap the JSON in markdown code blocks.
+
 ## Core Personality Framework
 
 The app tracks six personality cores:
@@ -546,6 +550,9 @@ Identify recurring themes or behaviors. Types can be: "growth", "challenge", "aw
 4. **Specific References**: Insights should reference actual content from the entry
 5. **Balanced Analysis**: Not every core needs adjustment; some may remain at 0.0
 6. **Correct Intensity Scale**: Use 0.0-1.0 scale for emotional_intensity
+7. **JSON Only**: Return ONLY the JSON object, no additional text
+8. **All Fields Required**: Include ALL fields shown in the format, even if values are 0 or empty arrays
+9. **Valid JSON**: Ensure proper JSON syntax with quoted keys and comma separators
 
 ## Example Analysis:
 
@@ -597,6 +604,12 @@ The app stores analysis data in the following structure:
 - `mind_reflection` → Processed by UI but not stored directly in database
 - `emotional_patterns` → Processed by EmotionalAnalyzer for pattern recognition
 
+## Additional Notes for Haiku Model:
+- Keep insights concise but meaningful (1-2 sentences each)
+- Focus on the most significant emotional patterns
+- Ensure all text fields are brief and impactful
+- Prioritize quality over quantity in pattern detection
+
 Now analyze the following journal entry and provide insights in the exact format specified above.''';
   }
 
@@ -643,7 +656,18 @@ Keep it personal, supportive, and focused on their emotional journey.
 
   Map<String, dynamic> _parseAnalysisResponse(String response) {
     try {
-      final parsed = jsonDecode(response);
+      // Handle Haiku's tendency to wrap JSON in markdown code blocks
+      String cleanedResponse = response;
+      
+      // Remove markdown code blocks if present
+      if (response.contains('```json')) {
+        cleanedResponse = response
+            .replaceAll('```json', '')
+            .replaceAll('```', '')
+            .trim();
+      }
+      
+      final parsed = jsonDecode(cleanedResponse);
       
       // If it's the new format with emotional_analysis and core_updates
       if (parsed.containsKey('emotional_analysis') && parsed.containsKey('core_updates')) {
@@ -653,6 +677,7 @@ Keep it personal, supportive, and focused on their emotional journey.
       // Otherwise return as-is (legacy format)
       return parsed;
     } catch (e) {
+      debugPrint('Failed to parse AI response: $e');
       return _getDefaultAnalysis();
     }
   }

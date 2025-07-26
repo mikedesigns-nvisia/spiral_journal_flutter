@@ -60,6 +60,11 @@ class DesignTokens {
   static const Color accentBlue = Color(0xFF2196F3);
   static const Color accentGreen = Color(0xFF4C662B);
   static const Color accentRed = Color(0xFFBA1A1A);
+  static const Color primaryBlue = Color(0xFF1976D2);
+  static const Color accentCyan = Color(0xFF00BCD4);
+  static const Color accentPink = Color(0xFFE91E63);
+  static const Color accentPurple = Color(0xFF9C27B0);
+  static const Color accentBrown = Color(0xFF795548);
   
   /// Status colors
   static const Color successColor = Color(0xFF4CAF50);
@@ -88,12 +93,15 @@ class DesignTokens {
   // TYPOGRAPHY SYSTEM
   // ============================================================================
   
-  /// Font family with fallback support
+  /// Font family with Google Fonts primary, local cached as fallback
   static String get fontFamily {
     try {
-      return GoogleFonts.notoSansJp().fontFamily ?? _getFallbackFontFamily();
+      // Try Google Fonts first (will use cached local fonts if available)
+      return GoogleFonts.notoSansJp().fontFamily ?? 'NotoSansJP';
     } catch (e) {
-      return _getFallbackFontFamily();
+      debugPrint('Google Fonts failed, using cached local font: $e');
+      // Fallback to bundled local font (cached on install)
+      return 'NotoSansJP';
     }
   }
   
@@ -512,14 +520,14 @@ class DesignTokens {
         decoration: decoration,
       );
     } catch (e) {
-      debugPrint('Google Fonts failed, using system font: $e');
+      debugPrint('Google Fonts failed in getTextStyle, using cached local font: $e');
       return TextStyle(
         fontSize: fontSize,
         fontWeight: fontWeight,
         color: color,
         height: height,
         decoration: decoration,
-        fontFamily: _getFallbackFontFamily(),
+        fontFamily: 'NotoSansJP', // Use cached local font as fallback
       );
     }
   }

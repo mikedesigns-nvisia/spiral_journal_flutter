@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:spiral_journal/theme/app_theme.dart';
 import 'package:spiral_journal/widgets/app_background.dart';
 import 'package:spiral_journal/services/navigation_flow_controller.dart';
+import 'package:spiral_journal/design_system/heading_system.dart';
 
 class SplashScreen extends StatefulWidget {
   final Duration displayDuration;
@@ -163,24 +164,15 @@ class _SplashScreenState extends State<SplashScreen> {
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   // Main app title
-                  Text(
-                    'Spiral Journal',
-                    style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-                      fontSize: 32,
-                      fontWeight: FontWeight.w700,
-                      color: AppTheme.getPrimaryColor(context),
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
+                  HeadingSystem.pageHeading(context, 'Spiral Journal'),
                   
                   const SizedBox(height: 16),
                   
                   // Optional tagline
                   Text(
                     'AI-powered personal growth through journaling',
-                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                    style: HeadingSystem.getBodyLarge(context).copyWith(
                       color: AppTheme.getTextSecondary(context),
-                      fontSize: 16,
                     ),
                     textAlign: TextAlign.center,
                   ),
@@ -197,17 +189,15 @@ class _SplashScreenState extends State<SplashScreen> {
                         children: [
                           Text(
                             'Powered by ',
-                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            style: HeadingSystem.getBodySmall(context).copyWith(
                               color: AppTheme.getTextTertiary(context),
-                              fontSize: 12,
                             ),
                           ),
                           Text(
                             'Anthropic',
-                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            style: HeadingSystem.getBodySmall(context).copyWith(
                               color: AppTheme.getPrimaryColor(context),
                               fontWeight: FontWeight.bold,
-                              fontSize: 12,
                             ),
                           ),
                         ],
@@ -216,14 +206,7 @@ class _SplashScreenState extends State<SplashScreen> {
                       const SizedBox(height: 8),
                       
                       // Made by Mike
-                      Text(
-                        'Made by Mike',
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: AppTheme.getTextTertiary(context),
-                          fontSize: 12,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
+                      HeadingSystem.caption(context, 'Made by Mike'),
                     ],
                   ),
                   

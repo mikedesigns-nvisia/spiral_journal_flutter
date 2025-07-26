@@ -138,7 +138,10 @@ class EmotionalAnalyzer {
         patterns.add(intensityPattern);
       }
 
-      return patterns.take(5).toList(); // Limit to 5 patterns
+      // Remove duplicates based on title and type similarity
+      final deduplicatedPatterns = _removeDuplicatePatterns(patterns);
+
+      return deduplicatedPatterns.take(5).toList(); // Limit to 5 patterns
     } catch (e) {
       debugPrint('EmotionalAnalyzer identifyPatterns error: $e');
       return [];
@@ -605,6 +608,63 @@ class EmotionalAnalyzer {
     }
     
     return null;
+  }
+
+  /// Remove duplicate patterns based on title and type similarity
+  List<EmotionalPattern> _removeDuplicatePatterns(List<EmotionalPattern> patterns) {
+    if (patterns.length <= 1) return patterns;
+
+    final deduplicatedPatterns = <EmotionalPattern>[];
+    final seenTitles = <String>{};
+    final seenTypes = <String, int>{};
+
+    for (final pattern in patterns) {
+      // Check for exact title duplicates
+      if (seenTitles.contains(pattern.title)) {
+        continue;
+      }
+
+      // Limit patterns of the same type to avoid redundancy
+      final typeCount = seenTypes[pattern.type] ?? 0;
+      if (typeCount >= 2) { // Max 2 patterns per type
+        continue;
+      }
+
+      // Check for similar titles using basic similarity
+      bool isSimilar = false;
+      for (final existingTitle in seenTitles) {
+        if (_areTitlesSimilar(pattern.title, existingTitle)) {
+          isSimilar = true;
+          break;
+        }
+      }
+
+      if (!isSimilar) {
+        deduplicatedPatterns.add(pattern);
+        seenTitles.add(pattern.title);
+        seenTypes[pattern.type] = typeCount + 1;
+      }
+    }
+
+    return deduplicatedPatterns;
+  }
+
+  /// Check if two pattern titles are similar enough to be considered duplicates
+  bool _areTitlesSimilar(String title1, String title2) {
+    final cleanTitle1 = title1.toLowerCase().replaceAll(RegExp(r'[^\w\s]'), '');
+    final cleanTitle2 = title2.toLowerCase().replaceAll(RegExp(r'[^\w\s]'), '');
+    
+    final words1 = cleanTitle1.split(' ').toSet();
+    final words2 = cleanTitle2.split(' ').toSet();
+    
+    // Calculate Jaccard similarity (intersection / union)
+    final intersection = words1.intersection(words2).length;
+    final union = words1.union(words2).length;
+    
+    if (union == 0) return false;
+    
+    final similarity = intersection / union;
+    return similarity > 0.6; // Consider similar if >60% word overlap
   }
 
   // Trend analysis methods

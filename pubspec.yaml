@@ -4,7 +4,7 @@ description: AI-powered personal growth platform that transforms stream-of-consc
 # TestFlight ready version
 publish_to: 'none'
 
-version: 1.0.1+5
+version: 1.1.2+8
 
 homepage: https://spiraljournal.com
 repository: https://github.com/yourusername/spiral-journal
@@ -32,6 +32,9 @@ dependencies:
   flutter_secure_storage: ^9.2.4
   crypto: ^3.0.6
   
+  # Environment variables support
+  flutter_dotenv: ^5.1.0
+  
   # Data export and validation
   convert: ^3.1.1
   path_provider: ^2.1.4
@@ -55,6 +58,23 @@ flutter:
   assets:
     - assets/images/
     - assets/icons/
+    - assets/fonts/
+    - .env
+  
+  # Local fonts (cached on install)
+  fonts:
+    - family: NotoSansJP
+      fonts:
+        - asset: assets/fonts/NotoSansJP-Light.ttf
+          weight: 300
+        - asset: assets/fonts/NotoSansJP-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/NotoSansJP-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/NotoSansJP-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/NotoSansJP-Bold.ttf
+          weight: 700
   
   # Generate app icons for all platforms
   # Run: flutter packages pub run flutter_launcher_icons:main

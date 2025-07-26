@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:spiral_journal/design_system/design_tokens.dart';
 import 'package:spiral_journal/design_system/component_library.dart';
 import 'package:spiral_journal/design_system/responsive_layout.dart';
+import 'package:spiral_journal/design_system/heading_system.dart';
 
 class JournalInput extends StatefulWidget {
   final TextEditingController controller;
@@ -117,11 +118,11 @@ class _JournalInputState extends State<JournalInput> {
       child: Row(
         children: [
           Expanded(
-            child: ResponsiveText(
+            child: Text(
               'What\'s on your mind?',
-              baseFontSize: DesignTokens.fontSizeXL,
-              fontWeight: DesignTokens.fontWeightMedium,
-              color: DesignTokens.getPrimaryColor(context),
+              style: HeadingSystem.getHeadlineSmall(context).copyWith(
+                color: DesignTokens.getPrimaryColor(context),
+              ),
             ),
           ),
           SizedBox(width: DesignTokens.spaceM),
@@ -142,11 +143,11 @@ class _JournalInputState extends State<JournalInput> {
             color: DesignTokens.getTextTertiary(context),
           ),
           SizedBox(width: DesignTokens.spaceXS),
-          ResponsiveText(
+          Text(
             'Auto-saving...',
-            baseFontSize: DesignTokens.fontSizeS,
-            fontWeight: DesignTokens.fontWeightRegular,
-            color: DesignTokens.getTextTertiary(context),
+            style: HeadingSystem.getBodySmall(context).copyWith(
+              color: DesignTokens.getTextTertiary(context),
+            ),
           ),
         ],
       );
@@ -160,11 +161,11 @@ class _JournalInputState extends State<JournalInput> {
             color: DesignTokens.successColor,
           ),
           SizedBox(width: DesignTokens.spaceXS),
-          ResponsiveText(
+          Text(
             'Saved',
-            baseFontSize: DesignTokens.fontSizeS,
-            fontWeight: DesignTokens.fontWeightRegular,
-            color: DesignTokens.successColor,
+            style: HeadingSystem.getBodySmall(context).copyWith(
+              color: DesignTokens.successColor,
+            ),
           ),
         ],
       );
@@ -257,11 +258,11 @@ class _JournalInputState extends State<JournalInput> {
           color: DesignTokens.getTextTertiary(context),
         ),
         SizedBox(width: DesignTokens.spaceXS),
-        ResponsiveText(
+        Text(
           '$wordCount ${wordCount == 1 ? 'word' : 'words'}',
-          baseFontSize: DesignTokens.fontSizeS,
-          fontWeight: DesignTokens.fontWeightRegular,
-          color: DesignTokens.getTextTertiary(context),
+          style: HeadingSystem.getBodySmall(context).copyWith(
+            color: DesignTokens.getTextTertiary(context),
+          ),
         ),
       ],
     );

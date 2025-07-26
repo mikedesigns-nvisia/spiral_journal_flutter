@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/journal_entry.dart';
 import '../models/core.dart';
+import '../config/environment.dart';
 import 'ai_service_interface.dart';
 import 'providers/claude_ai_provider.dart';
 import 'providers/fallback_provider.dart';
@@ -63,11 +64,8 @@ class AIServiceManager {
   final EmotionalAnalyzer _emotionalAnalyzer = EmotionalAnalyzer();
   final CoreEvolutionEngine _coreEvolutionEngine = CoreEvolutionEngine();
 
-  // Built-in Claude API key - securely embedded for production
-  static const String _builtInClaudeApiKey = String.fromEnvironment(
-    'CLAUDE_API_KEY',
-    defaultValue: '', // Empty in dev mode - will use fallback analysis
-  );
+  // Built-in Claude API key - loaded from .env file at runtime
+  static String get _builtInClaudeApiKey => EnvironmentConfig.claudeApiKey;
   
   // Available providers - Simplified to enabled/disabled only
   // Note: _providers field removed as we now directly instantiate providers

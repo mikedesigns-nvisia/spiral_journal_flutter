@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:spiral_journal/design_system/design_tokens.dart';
 import 'package:spiral_journal/design_system/component_library.dart';
 import 'package:spiral_journal/design_system/responsive_layout.dart';
+import 'package:spiral_journal/design_system/heading_system.dart';
 import 'package:spiral_journal/widgets/mood_selector.dart';
 import 'package:spiral_journal/widgets/journal_input.dart';
 import 'package:spiral_journal/widgets/mind_reflection_card.dart';
@@ -17,7 +18,9 @@ import 'package:spiral_journal/models/core.dart';
 import 'package:spiral_journal/services/ai_service_manager.dart';
 import 'package:spiral_journal/services/profile_service.dart';
 import 'package:spiral_journal/services/journal_service.dart';
+import 'package:spiral_journal/services/emotional_analyzer.dart';
 import 'package:spiral_journal/theme/app_theme.dart';
+import 'package:spiral_journal/widgets/post_analysis_display.dart';
 import 'package:intl/intl.dart';
 
 class JournalScreen extends StatefulWidget {
@@ -36,12 +39,20 @@ class _JournalScreenState extends State<JournalScreen> {
   String _userName = 'there'; // Default fallback name
   JournalEntry? _todaysEntry; // Track today's entry for editing
   String? _currentDraftId; // Track current draft ID for autosave
+  
+  // Post-analysis state tracking
+  bool _hasAnalyzedEntryToday = false;
+  JournalEntry? _todaysAnalyzedEntry;
+  EmotionalAnalysisResult? _todaysAnalysisResult;
+  bool _isAiEnabled = true; // Will be loaded from settings
 
   @override
   void initState() {
     super.initState();
     _loadDraftContent();
     _loadUserName();
+    _checkTodaysAnalysisStatus();
+    _loadAiSettings();
   }
 
   @override
@@ -122,6 +133,129 @@ class _JournalScreenState extends State<JournalScreen> {
       debugPrint('Error loading user name: $e');
       // Keep default fallback name 'there'
     }
+  }
+
+  Future<void> _loadAiSettings() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final aiEnabled = prefs.getBool('ai_analysis_enabled') ?? true;
+      
+      if (mounted) {
+        setState(() {
+          _isAiEnabled = aiEnabled;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading AI settings: $e');
+    }
+  }
+
+  Future<void> _checkTodaysAnalysisStatus() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final today = DateTime.now();
+      final todayKey = '${today.year}-${today.month}-${today.day}';
+      
+      // Check if we have an analyzed entry from today
+      final lastAnalysisDate = prefs.getString('last_analysis_date');
+      final hasAnalyzedToday = lastAnalysisDate == todayKey;
+      
+      if (hasAnalyzedToday && _isAiEnabled) {
+        // Try to load today's analysis result from cache using JournalProvider
+        final journalProvider = Provider.of<JournalProvider>(context, listen: false);
+        await journalProvider.initialize();
+        
+        // Get today's entry from journal provider
+        final todaysEntry = await _getTodaysAnalyzedEntry(journalProvider);
+        
+        if (todaysEntry != null && todaysEntry.isAnalyzed && todaysEntry.aiAnalysis != null) {
+          // Convert EmotionalAnalysis to EmotionalAnalysisResult for display
+          final analysisResult = _convertToAnalysisResult(todaysEntry.aiAnalysis!);
+          
+          setState(() {
+            _hasAnalyzedEntryToday = true;
+            _todaysAnalyzedEntry = todaysEntry;
+            _todaysAnalysisResult = analysisResult;
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('Error checking today\'s analysis status: $e');
+    }
+  }
+
+  Future<JournalEntry?> _getTodaysAnalyzedEntry(JournalProvider journalProvider) async {
+    try {
+      final today = DateTime.now();
+      final todayStart = DateTime(today.year, today.month, today.day);
+      final todayEnd = todayStart.add(const Duration(days: 1));
+      
+      // Get all entries and find today's analyzed entry
+      final entries = journalProvider.entries;
+      for (final entry in entries) {
+        if (entry.createdAt.isAfter(todayStart) && 
+            entry.createdAt.isBefore(todayEnd) &&
+            entry.isAnalyzed) {
+          return entry;
+        }
+      }
+      return null;
+    } catch (e) {
+      debugPrint('Error getting today\'s analyzed entry: $e');
+      return null;
+    }
+  }
+
+  EmotionalAnalysisResult _convertToAnalysisResult(EmotionalAnalysis analysis) {
+    return EmotionalAnalysisResult(
+      primaryEmotions: analysis.primaryEmotions,
+      emotionalIntensity: analysis.emotionalIntensity,
+      keyThemes: analysis.keyThemes,
+      overallSentiment: 0.0, // Not stored in EmotionalAnalysis, use default
+      personalizedInsight: analysis.personalizedInsight ?? 'Personal insights from your journal entry.',
+      coreImpacts: analysis.coreImpacts,
+      emotionalPatterns: [], // Not stored in EmotionalAnalysis, use empty list
+      growthIndicators: [], // Not stored in EmotionalAnalysis, use empty list
+      validationScore: 0.8, // Default validation score
+    );
+  }
+
+  Future<void> _saveAnalysisState(JournalEntry entry, EmotionalAnalysisResult analysisResult) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final today = DateTime.now();
+      final todayKey = '${today.year}-${today.month}-${today.day}';
+      
+      // Save that we analyzed an entry today
+      await prefs.setString('last_analysis_date', todayKey);
+      
+      // Save the analysis result and entry for display
+      // Note: You may want to implement proper JSON serialization
+      setState(() {
+        _hasAnalyzedEntryToday = true;
+        _todaysAnalyzedEntry = entry;
+        _todaysAnalysisResult = analysisResult;
+      });
+    } catch (e) {
+      debugPrint('Error saving analysis state: $e');
+    }
+  }
+
+  void _resetToNewEntry() {
+    setState(() {
+      _hasAnalyzedEntryToday = false;
+      _todaysAnalyzedEntry = null;
+      _todaysAnalysisResult = null;
+      _journalController.clear();
+      _selectedMoods.clear();
+    });
+    
+    // Clear the stored analysis state
+    SharedPreferences.getInstance().then((prefs) {
+      prefs.remove('last_analysis_date');
+      prefs.remove('todays_analysis_result');
+      prefs.remove('todays_analyzed_entry');
+    });
   }
 
   void _showDraftRecoveryDialog(String draftContent) {
@@ -337,6 +471,11 @@ class _JournalScreenState extends State<JournalScreen> {
       await journalProvider.updateEntry(updatedEntry);
       debugPrint('💾 AI analysis results saved to entry');
 
+      // Save analysis state for post-analysis display (only if AI is enabled)
+      if (_isAiEnabled) {
+        await _saveAnalysisState(updatedEntry, analysisResult);
+      }
+
       if (mounted) {
         // Show comprehensive success message with AI insights
         ScaffoldMessenger.of(context).showSnackBar(
@@ -349,7 +488,7 @@ class _JournalScreenState extends State<JournalScreen> {
                 const SizedBox(height: 4),
                 Text(
                   'Found ${analysisResult.primaryEmotions.length} emotions, ${analysisResult.keyThemes.length} themes',
-                  style: TextStyle(fontSize: 12, color: Colors.white.withOpacity(0.9)),
+                  style: HeadingSystem.getBodySmall(context).copyWith(color: Colors.white.withOpacity(0.9)),
                 ),
               ],
             ),
@@ -377,7 +516,7 @@ class _JournalScreenState extends State<JournalScreen> {
                 const SizedBox(height: 4),
                 Text(
                   'AI analysis unavailable: ${e.toString().split(':').first}',
-                  style: TextStyle(fontSize: 12, color: Colors.white.withOpacity(0.9)),
+                  style: HeadingSystem.getBodySmall(context).copyWith(color: Colors.white.withOpacity(0.9)),
                 ),
               ],
             ),
@@ -538,8 +677,7 @@ class _JournalScreenState extends State<JournalScreen> {
                                       const SizedBox(height: 2),
                                       Text(
                                         contribution,
-                                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                          fontSize: 11,
+                                        style: HeadingSystem.getLabelSmall(context).copyWith(
                                           color: DesignTokens.getTextSecondary(context),
                                         ),
                                       ),
@@ -708,34 +846,46 @@ class _JournalScreenState extends State<JournalScreen> {
               
               const SizedBox(height: 24),
               
-              // Mood Selector
-              MoodSelector(
-                selectedMoods: _selectedMoods,
-                onMoodChanged: (moods) {
-                  setState(() {
-                    _selectedMoods.clear();
-                    _selectedMoods.addAll(moods);
-                  });
-                },
-              ),
-              
-              const SizedBox(height: 24),
-              
-              // Journal Input
-              Consumer<JournalProvider>(
-                builder: (context, journalProvider, child) {
-                  return JournalInput(
-                    controller: _journalController,
-                    onChanged: (text) {
-                      // Handle text changes if needed
-                    },
-                    onSave: _saveEntry,
-                    isSaving: journalProvider.isLoading,
-                    onAutoSave: _saveDraftContent,
-                    draftContent: _draftContent,
-                  );
-                },
-              ),
+              // Conditional UI: Show post-analysis display or normal journal input
+              _hasAnalyzedEntryToday && _isAiEnabled && _todaysAnalyzedEntry != null && _todaysAnalysisResult != null
+                ? PostAnalysisDisplay(
+                    journalEntry: _todaysAnalyzedEntry!,
+                    analysisResult: _todaysAnalysisResult!,
+                    onCreateNewEntry: _resetToNewEntry,
+                  )
+                : Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Mood Selector
+                      MoodSelector(
+                        selectedMoods: _selectedMoods,
+                        onMoodChanged: (moods) {
+                          setState(() {
+                            _selectedMoods.clear();
+                            _selectedMoods.addAll(moods);
+                          });
+                        },
+                      ),
+                      
+                      const SizedBox(height: 24),
+                      
+                      // Journal Input
+                      Consumer<JournalProvider>(
+                        builder: (context, journalProvider, child) {
+                          return JournalInput(
+                            controller: _journalController,
+                            onChanged: (text) {
+                              // Handle text changes if needed
+                            },
+                            onSave: _saveEntry,
+                            isSaving: journalProvider.isLoading,
+                            onAutoSave: _saveDraftContent,
+                            draftContent: _draftContent,
+                          );
+                        },
+                      ),
+                    ],
+                  ),
               
               const SizedBox(height: 24),
               

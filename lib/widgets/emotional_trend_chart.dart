@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import '../models/emotional_mirror_data.dart';
 import '../theme/app_theme.dart';
+import '../design_system/design_tokens.dart';
+import '../design_system/component_library.dart';
+import '../design_system/heading_system.dart';
 import '../services/chart_optimization_service.dart';
 
 /// Widget for displaying emotional intensity trends over time
@@ -24,32 +27,40 @@ class EmotionalTrendChart extends StatelessWidget {
 
     return OptimizedChartWidget(
       chartId: 'emotional_trend_${trendPoints.length}',
-      chartBuilder: () => Container(
-        height: height,
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          gradient: AppTheme.getCardGradient(context),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: Theme.of(context).brightness == Brightness.dark 
-                ? AppTheme.darkBackgroundTertiary 
-                : AppTheme.backgroundTertiary
-          ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              title,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w600,
+      chartBuilder: () => ComponentLibrary.gradientCard(
+        gradient: DesignTokens.getCardGradient(context),
+        child: Container(
+          height: height,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: EdgeInsets.all(DesignTokens.spaceS),
+                    decoration: BoxDecoration(
+                      color: DesignTokens.accentBlue.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(DesignTokens.radiusM),
+                    ),
+                    child: Icon(
+                      Icons.trending_up_rounded,
+                      color: DesignTokens.accentBlue,
+                      size: DesignTokens.iconSizeM,
+                    ),
+                  ),
+                  SizedBox(width: DesignTokens.spaceM),
+                  Text(
+                    title,
+                    style: HeadingSystem.getHeadlineSmall(context),
+                  ),
+                ],
               ),
-            ),
-            const SizedBox(height: 16),
-            Expanded(
-              child: _buildChart(context),
-            ),
-          ],
+              SizedBox(height: DesignTokens.spaceXL),
+              Expanded(
+                child: _buildChart(context),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -100,50 +111,49 @@ class EmotionalTrendChart extends StatelessWidget {
         trendPoints: validPoints,
         minIntensity: minIntensity,
         maxIntensity: maxIntensity,
-        primaryColor: AppTheme.getPrimaryColor(context),
-        backgroundColor: Theme.of(context).colorScheme.surface,
-        textColor: Theme.of(context).colorScheme.onSurface,
+        primaryColor: DesignTokens.primaryOrange,
+        secondaryColor: DesignTokens.accentBlue,
+        backgroundColor: DesignTokens.getBackgroundPrimary(context),
+        textColor: DesignTokens.getTextPrimary(context),
       ),
     );
   }
 
   Widget _buildEmptyState(BuildContext context) {
-    return Container(
-      height: height,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        gradient: AppTheme.getCardGradient(context),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: Theme.of(context).brightness == Brightness.dark 
-              ? AppTheme.darkBackgroundTertiary 
-              : AppTheme.backgroundTertiary
-        ),
-      ),
-      child: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.trending_up,
-              size: 48,
-              color: AppTheme.getTextSecondary(context),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'No trend data available',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: AppTheme.getTextSecondary(context),
+    return ComponentLibrary.gradientCard(
+      gradient: DesignTokens.getCardGradient(context),
+      child: Container(
+        height: height,
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: EdgeInsets.all(DesignTokens.spaceL),
+                decoration: BoxDecoration(
+                  color: DesignTokens.accentBlue.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.trending_up_rounded,
+                  size: DesignTokens.iconSizeXL,
+                  color: DesignTokens.accentBlue,
+                ),
               ),
-            ),
-            Text(
-              'Continue journaling to see your emotional patterns',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: AppTheme.getTextSecondary(context),
+              SizedBox(height: DesignTokens.spaceL),
+              Text(
+                'Your Growth Awaits',
+                style: HeadingSystem.getHeadlineSmall(context),
+                textAlign: TextAlign.center,
               ),
-              textAlign: TextAlign.center,
-            ),
-          ],
+              SizedBox(height: DesignTokens.spaceS),
+              Text(
+                'Continue journaling to discover your emotional trends',
+                style: HeadingSystem.getBodyMedium(context),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -155,6 +165,7 @@ class _TrendChartPainter extends CustomPainter {
   final double minIntensity;
   final double maxIntensity;
   final Color primaryColor;
+  final Color secondaryColor;
   final Color backgroundColor;
   final Color textColor;
 
@@ -163,6 +174,7 @@ class _TrendChartPainter extends CustomPainter {
     required this.minIntensity,
     required this.maxIntensity,
     required this.primaryColor,
+    required this.secondaryColor,
     required this.backgroundColor,
     required this.textColor,
   });
@@ -418,32 +430,40 @@ class SentimentTrendChart extends StatelessWidget {
       return _buildEmptyState(context);
     }
 
-    return Container(
-      height: height,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        gradient: AppTheme.getCardGradient(context),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: Theme.of(context).brightness == Brightness.dark 
-              ? AppTheme.darkBackgroundTertiary 
-              : AppTheme.backgroundTertiary
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w600,
+    return ComponentLibrary.gradientCard(
+      gradient: DesignTokens.getCardGradient(context),
+      child: Container(
+        height: height,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: EdgeInsets.all(DesignTokens.spaceS),
+                  decoration: BoxDecoration(
+                    color: DesignTokens.accentGreen.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(DesignTokens.radiusM),
+                  ),
+                  child: Icon(
+                    Icons.mood_rounded,
+                    color: DesignTokens.accentGreen,
+                    size: DesignTokens.iconSizeM,
+                  ),
+                ),
+                SizedBox(width: DesignTokens.spaceM),
+                Text(
+                  title,
+                  style: HeadingSystem.getHeadlineSmall(context),
+                ),
+              ],
             ),
-          ),
-          const SizedBox(height: 16),
-          Expanded(
-            child: _buildChart(context),
-          ),
-        ],
+            SizedBox(height: DesignTokens.spaceXL),
+            Expanded(
+              child: _buildChart(context),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -475,52 +495,50 @@ class SentimentTrendChart extends StatelessWidget {
       size: Size.infinite,
       painter: _SentimentChartPainter(
         trendPoints: validPoints,
-        primaryColor: AppTheme.getPrimaryColor(context),
-        positiveColor: Colors.green,
-        negativeColor: Colors.red,
-        backgroundColor: Theme.of(context).colorScheme.surface,
-        textColor: Theme.of(context).colorScheme.onSurface,
+        primaryColor: DesignTokens.primaryOrange,
+        positiveColor: DesignTokens.accentGreen,
+        negativeColor: DesignTokens.accentRed,
+        backgroundColor: DesignTokens.getBackgroundPrimary(context),
+        textColor: DesignTokens.getTextPrimary(context),
       ),
     );
   }
 
   Widget _buildEmptyState(BuildContext context) {
-    return Container(
-      height: height,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        gradient: AppTheme.getCardGradient(context),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: Theme.of(context).brightness == Brightness.dark 
-              ? AppTheme.darkBackgroundTertiary 
-              : AppTheme.backgroundTertiary
-        ),
-      ),
-      child: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.sentiment_satisfied,
-              size: 48,
-              color: AppTheme.getTextSecondary(context),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'No sentiment data available',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: AppTheme.getTextSecondary(context),
+    return ComponentLibrary.gradientCard(
+      gradient: DesignTokens.getCardGradient(context),
+      child: Container(
+        height: height,
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: EdgeInsets.all(DesignTokens.spaceL),
+                decoration: BoxDecoration(
+                  color: DesignTokens.accentGreen.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.mood_rounded,
+                  size: DesignTokens.iconSizeXL,
+                  color: DesignTokens.accentGreen,
+                ),
               ),
-            ),
-            Text(
-              'Continue journaling to see your emotional sentiment patterns',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: AppTheme.getTextSecondary(context),
+              SizedBox(height: DesignTokens.spaceL),
+              Text(
+                'Your Sentiment Journey Awaits',
+                style: HeadingSystem.getHeadlineSmall(context),
+                textAlign: TextAlign.center,
               ),
-              textAlign: TextAlign.center,
-            ),
-          ],
+              SizedBox(height: DesignTokens.spaceS),
+              Text(
+                'Continue journaling to see your emotional sentiment patterns',
+                style: HeadingSystem.getBodyMedium(context),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -610,8 +628,8 @@ class _SentimentChartPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     if (trendPoints.isEmpty) return;
 
-    // Calculate chart area
-    final chartRect = Rect.fromLTWH(40, 20, size.width - 60, size.height - 40);
+    // Calculate chart area (leave more space on left for labels)
+    final chartRect = Rect.fromLTWH(80, 20, size.width - 100, size.height - 40);
     final centerY = chartRect.top + chartRect.height / 2;
 
     // Draw center line (neutral sentiment)
@@ -721,7 +739,7 @@ class _SentimentChartPainter extends CustomPainter {
       textPainter.layout();
       textPainter.paint(
         canvas,
-        Offset(chartRect.left - 35, y - textPainter.height / 2),
+        Offset(chartRect.left - 75, y - textPainter.height / 2),
       );
     }
 

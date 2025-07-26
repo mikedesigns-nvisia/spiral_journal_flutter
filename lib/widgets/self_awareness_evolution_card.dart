@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import '../design_system/design_tokens.dart';
 import '../design_system/component_library.dart';
 import '../design_system/responsive_layout.dart';
+import '../design_system/heading_system.dart';
 import '../models/emotional_mirror_data.dart';
 import '../utils/iphone_detector.dart';
 
@@ -123,26 +124,17 @@ class _SelfAwarenessEvolutionCardState extends State<SelfAwarenessEvolutionCard>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              ResponsiveText(
+              Text(
                 'Self-Awareness Evolution',
-                baseFontSize: DesignTokens.fontSizeXXL,
-                fontWeight: DesignTokens.fontWeightBold,
-                color: DesignTokens.getTextPrimary(context),
+                style: HeadingSystem.getHeadlineLarge(context),
               ),
               AdaptiveSpacing.vertical(baseSize: DesignTokens.spaceXS),
-              ResponsiveText(
+              Text(
                 'Track your emotional intelligence growth',
-                baseFontSize: DesignTokens.fontSizeS,
-                fontWeight: DesignTokens.fontWeightRegular,
-                color: DesignTokens.getTextSecondary(context),
+                style: HeadingSystem.getBodySmall(context),
               ),
             ],
           ),
-        ),
-        Icon(
-          Icons.arrow_forward_ios_rounded,
-          color: DesignTokens.getTextTertiary(context),
-          size: iPhoneDetector.getAdaptiveIconSize(context, base: DesignTokens.iconSizeS),
         ),
       ],
     );
@@ -200,19 +192,17 @@ class _SelfAwarenessEvolutionCardState extends State<SelfAwarenessEvolutionCard>
                           AnimatedBuilder(
                             animation: _progressAnimation,
                             builder: (context, child) {
-                              return ResponsiveText(
+                              return Text(
                                 '${(_progressAnimation.value * 100).round()}%',
-                                baseFontSize: iPhoneDetector.getAdaptiveValue(context, compact: 28, regular: 32, large: 36),
-                                fontWeight: DesignTokens.fontWeightBold,
-                                color: DesignTokens.accentGreen,
+                                style: HeadingSystem.getDisplaySmall(context).copyWith(
+                                  color: DesignTokens.accentGreen,
+                                ),
                               );
                             },
                           ),
-                          ResponsiveText(
+                          Text(
                             'Awareness',
-                            baseFontSize: DesignTokens.fontSizeS,
-                            fontWeight: DesignTokens.fontWeightMedium,
-                            color: DesignTokens.getTextSecondary(context),
+                            style: HeadingSystem.getLabelMedium(context),
                           ),
                         ],
                       ),
@@ -225,11 +215,9 @@ class _SelfAwarenessEvolutionCardState extends State<SelfAwarenessEvolutionCard>
           
           AdaptiveSpacing.vertical(baseSize: DesignTokens.spaceL),
           
-          ResponsiveText(
+          Text(
             _getScoreDescription(widget.selfAwarenessScore),
-            baseFontSize: DesignTokens.fontSizeM,
-            fontWeight: DesignTokens.fontWeightMedium,
-            color: DesignTokens.getTextPrimary(context),
+            style: HeadingSystem.getTitleMedium(context),
             textAlign: TextAlign.center,
           ),
         ],
@@ -281,26 +269,25 @@ class _SelfAwarenessEvolutionCardState extends State<SelfAwarenessEvolutionCard>
             size: DesignTokens.iconSizeM,
           ),
           AdaptiveSpacing.vertical(baseSize: DesignTokens.spaceS),
-          ResponsiveText(
+          Text(
             value,
-            baseFontSize: DesignTokens.fontSizeL,
-            fontWeight: DesignTokens.fontWeightBold,
-            color: color,
+            style: HeadingSystem.getTitleLarge(context).copyWith(
+              color: color,
+              fontWeight: DesignTokens.fontWeightBold,
+            ),
             textAlign: TextAlign.center,
           ),
           AdaptiveSpacing.vertical(baseSize: DesignTokens.spaceXS),
-          ResponsiveText(
+          Text(
             title,
-            baseFontSize: DesignTokens.fontSizeXS,
-            fontWeight: DesignTokens.fontWeightMedium,
-            color: DesignTokens.getTextSecondary(context),
+            style: HeadingSystem.getLabelSmall(context),
             textAlign: TextAlign.center,
           ),
-          ResponsiveText(
+          Text(
             subtitle,
-            baseFontSize: DesignTokens.fontSizeXS,
-            fontWeight: DesignTokens.fontWeightRegular,
-            color: DesignTokens.getTextTertiary(context),
+            style: HeadingSystem.getLabelSmall(context).copyWith(
+              color: DesignTokens.getTextTertiary(context),
+            ),
             textAlign: TextAlign.center,
           ),
         ],
@@ -314,11 +301,9 @@ class _SelfAwarenessEvolutionCardState extends State<SelfAwarenessEvolutionCard>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        ResponsiveText(
+        Text(
           'Skill Breakdown',
-          baseFontSize: DesignTokens.fontSizeL,
-          fontWeight: DesignTokens.fontWeightSemiBold,
-          color: DesignTokens.getTextPrimary(context),
+          style: HeadingSystem.getHeadlineSmall(context),
         ),
         AdaptiveSpacing.vertical(baseSize: DesignTokens.spaceL),
         ...skills.map((skill) => Padding(
@@ -336,17 +321,16 @@ class _SelfAwarenessEvolutionCardState extends State<SelfAwarenessEvolutionCard>
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            ResponsiveText(
+            Text(
               skill.name,
-              baseFontSize: DesignTokens.fontSizeM,
-              fontWeight: DesignTokens.fontWeightMedium,
-              color: DesignTokens.getTextPrimary(context),
+              style: HeadingSystem.getTitleMedium(context),
             ),
-            ResponsiveText(
+            Text(
               '${(skill.level * 100).round()}%',
-              baseFontSize: DesignTokens.fontSizeS,
-              fontWeight: DesignTokens.fontWeightSemiBold,
-              color: skill.color,
+              style: HeadingSystem.getLabelMedium(context).copyWith(
+                color: skill.color,
+                fontWeight: DesignTokens.fontWeightSemiBold,
+              ),
             ),
           ],
         ),
@@ -376,11 +360,9 @@ class _SelfAwarenessEvolutionCardState extends State<SelfAwarenessEvolutionCard>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        ResponsiveText(
+        Text(
           'Core Evolution',
-          baseFontSize: DesignTokens.fontSizeL,
-          fontWeight: DesignTokens.fontWeightSemiBold,
-          color: DesignTokens.getTextPrimary(context),
+          style: HeadingSystem.getHeadlineSmall(context),
         ),
         AdaptiveSpacing.vertical(baseSize: DesignTokens.spaceL),
         Container(
@@ -456,11 +438,9 @@ class _SelfAwarenessEvolutionCardState extends State<SelfAwarenessEvolutionCard>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        ResponsiveText(
+        Text(
           'Growth Recommendations',
-          baseFontSize: DesignTokens.fontSizeL,
-          fontWeight: DesignTokens.fontWeightSemiBold,
-          color: DesignTokens.getTextPrimary(context),
+          style: HeadingSystem.getHeadlineSmall(context),
         ),
         AdaptiveSpacing.vertical(baseSize: DesignTokens.spaceL),
         ...recommendations.map((recommendation) => Padding(

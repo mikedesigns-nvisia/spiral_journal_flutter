@@ -24,7 +24,7 @@ class MindReflectionCard extends StatelessWidget {
                 icon: Icons.psychology_rounded,
                 title: 'Mind Reflection',
                 iconBackgroundColor: DesignTokens.accentYellow,
-                iconColor: DesignTokens.getPrimaryColor(context),
+                iconColor: Colors.white,
               ),
               SizedBox(height: DesignTokens.spaceXL),
               

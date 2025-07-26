@@ -278,7 +278,6 @@ enum ViewMode {
   overview,
   charts,
   timeline,
-  insights,
 }
 
 /// Sort options
@@ -325,8 +324,6 @@ extension ViewModeExtension on ViewMode {
         return 'Charts';
       case ViewMode.timeline:
         return 'Timeline';
-      case ViewMode.insights:
-        return 'Insights';
     }
   }
 
@@ -338,8 +335,6 @@ extension ViewModeExtension on ViewMode {
         return Icons.analytics_rounded;
       case ViewMode.timeline:
         return Icons.timeline_rounded;
-      case ViewMode.insights:
-        return Icons.lightbulb_rounded;
     }
   }
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../design_system/design_tokens.dart';
 import '../design_system/component_library.dart';
 import '../design_system/responsive_layout.dart';
+import '../design_system/heading_system.dart';
 import '../services/emotional_mirror_service.dart';
 import '../models/core.dart';
 import '../utils/iphone_detector.dart';
@@ -68,18 +69,14 @@ class _PatternRecognitionDashboardCardState extends State<PatternRecognitionDash
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              ResponsiveText(
+              Text(
                 'Pattern Recognition',
-                baseFontSize: DesignTokens.fontSizeXXL,
-                fontWeight: DesignTokens.fontWeightBold,
-                color: DesignTokens.getTextPrimary(context),
+                style: HeadingSystem.getHeadlineLarge(context),
               ),
               AdaptiveSpacing.vertical(baseSize: DesignTokens.spaceXS),
-              ResponsiveText(
+              Text(
                 '${widget.patterns.length} patterns detected',
-                baseFontSize: DesignTokens.fontSizeS,
-                fontWeight: DesignTokens.fontWeightRegular,
-                color: DesignTokens.getTextSecondary(context),
+                style: HeadingSystem.getBodySmall(context),
               ),
             ],
           ),

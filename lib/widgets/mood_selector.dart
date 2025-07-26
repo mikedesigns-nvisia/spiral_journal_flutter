@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:spiral_journal/design_system/design_tokens.dart';
 import 'package:spiral_journal/design_system/component_library.dart';
+import 'package:spiral_journal/design_system/heading_system.dart';
 import 'package:spiral_journal/services/journal_service.dart';
 
 class MoodSelector extends StatelessWidget {
@@ -72,9 +73,7 @@ class MoodSelector extends StatelessWidget {
                       Expanded(
                         child: Text(
                           'AI detected these emotions:',
-                          style: DesignTokens.getTextStyle(
-                            fontSize: DesignTokens.fontSizeM,
-                            fontWeight: DesignTokens.fontWeightSemiBold,
+                          style: HeadingSystem.getTitleMedium(context).copyWith(
                             color: DesignTokens.getPrimaryColor(context),
                           ),
                         ),
@@ -149,9 +148,7 @@ class MoodSelector extends StatelessWidget {
                   Expanded(
                     child: Text(
                       'AI is analyzing your emotions...',
-                      style: DesignTokens.getTextStyle(
-                        fontSize: DesignTokens.fontSizeM,
-                        fontWeight: DesignTokens.fontWeightMedium,
+                      style: HeadingSystem.getTitleMedium(context).copyWith(
                         color: DesignTokens.getPrimaryColor(context),
                       ),
                     ),
@@ -200,9 +197,7 @@ class MoodSelector extends StatelessWidget {
                   Flexible(
                     child: Text(
                       'More moods:',
-                      style: DesignTokens.getTextStyle(
-                        fontSize: DesignTokens.fontSizeM,
-                        fontWeight: DesignTokens.fontWeightMedium,
+                      style: HeadingSystem.getTitleMedium(context).copyWith(
                         color: DesignTokens.getTextSecondary(context),
                       ),
                     ),
@@ -211,9 +206,7 @@ class MoodSelector extends StatelessWidget {
                   Flexible(
                     child: Text(
                       'Swipe to see more →',
-                      style: DesignTokens.getTextStyle(
-                        fontSize: DesignTokens.fontSizeS,
-                        fontWeight: DesignTokens.fontWeightRegular,
+                      style: HeadingSystem.getBodySmall(context).copyWith(
                         color: DesignTokens.getTextTertiary(context),
                       ),
                       overflow: TextOverflow.ellipsis,
@@ -297,8 +290,7 @@ class MoodSelector extends StatelessWidget {
                       Expanded(
                         child: Text(
                           'Selected moods:',
-                          style: DesignTokens.getTextStyle(
-                            fontSize: DesignTokens.fontSizeS,
+                          style: HeadingSystem.getBodySmall(context).copyWith(
                             fontWeight: DesignTokens.fontWeightMedium,
                             color: DesignTokens.getTextSecondary(context),
                           ),
@@ -331,9 +323,7 @@ class MoodSelector extends StatelessWidget {
                         ),
                         child: Text(
                           mood,
-                          style: DesignTokens.getTextStyle(
-                            fontSize: DesignTokens.fontSizeXS,
-                            fontWeight: DesignTokens.fontWeightRegular,
+                          style: HeadingSystem.getLabelSmall(context).copyWith(
                             color: DesignTokens.getTextSecondary(context),
                           ),
                         ),

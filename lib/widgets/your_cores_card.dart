@@ -9,6 +9,7 @@ import 'package:spiral_journal/services/core_visual_consistency_service.dart';
 import 'package:spiral_journal/services/core_animation_service.dart';
 
 import 'package:spiral_journal/services/core_navigation_context_service.dart';
+import 'package:spiral_journal/services/navigation_service.dart';
 import 'package:spiral_journal/models/core.dart';
 import 'package:spiral_journal/widgets/base_card.dart';
 
@@ -244,11 +245,8 @@ class _YourCoresCardState extends State<YourCoresCard>
       highlightCoreIds: highlightCoreIds,
     );
     
-    // Navigate to Core Library with smooth transition
-    await _navigationService.navigateToAllCoresWithTransition(
-      context,
-      navigationContext: navigationContext,
-    );
+    // Navigate to the existing Core Library tab instead of pushing a new screen
+    NavigationService.instance.switchToTab(NavigationService.insightsTab);
   }
   
   // Real-time update handling
@@ -1083,17 +1081,19 @@ class _YourCoresCardState extends State<YourCoresCard>
   IconData _getCoreIcon(String coreName) {
     switch (coreName.toLowerCase()) {
       case 'optimism':
-        return Icons.sentiment_very_satisfied_rounded;
+        return Icons.wb_sunny_rounded; // Bright sun for optimism
       case 'resilience':
-        return Icons.shield_rounded;
+        return Icons.security_rounded; // Strong security shield for resilience
       case 'self-awareness':
-        return Icons.self_improvement_rounded;
+        return Icons.psychology_rounded; // Brain/mind icon for self-awareness
       case 'creativity':
-        return Icons.palette_rounded;
+        return Icons.lightbulb_rounded; // Light bulb for creative ideas
       case 'social connection':
-        return Icons.people_rounded;
+        return Icons.groups_rounded; // Multiple people for social connection
       case 'growth mindset':
-        return Icons.trending_up_rounded;
+        return Icons.escalator_warning_rounded; // Upward movement for growth
+      case 'confidence':
+        return Icons.emoji_events_rounded; // Trophy for confidence/achievement
       default:
         return Icons.auto_awesome_rounded;
     }

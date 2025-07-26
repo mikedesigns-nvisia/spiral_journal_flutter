@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'dart:math' as math;
 import '../theme/app_theme.dart';
+import '../design_system/heading_system.dart';
 import '../models/core.dart';
 import '../models/core_error.dart';
 import '../models/journal_entry.dart';
@@ -251,7 +252,7 @@ class _CoreLibraryScreenState extends State<CoreLibraryScreen> with TickerProvid
             Expanded(
               child: Text(
                 _getContextualTitle(),
-                style: Theme.of(context).textTheme.headlineLarge,
+                style: HeadingSystem.getHeadlineLarge(context),
               ),
             ),
           ],
@@ -259,7 +260,7 @@ class _CoreLibraryScreenState extends State<CoreLibraryScreen> with TickerProvid
         const SizedBox(height: 8),
         Text(
           _getContextualSubtitle(),
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+          style: HeadingSystem.getBodyMedium(context).copyWith(
             color: AppTheme.getTextSecondary(context),
           ),
         ),
@@ -321,7 +322,7 @@ class _CoreLibraryScreenState extends State<CoreLibraryScreen> with TickerProvid
           Expanded(
             child: Text(
               'Viewing cores influenced by your recent journal entry',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              style: HeadingSystem.getBodyMedium(context).copyWith(
                 color: AppTheme.getPrimaryColor(context),
                 fontWeight: FontWeight.w500,
               ),
@@ -374,7 +375,7 @@ class _CoreLibraryScreenState extends State<CoreLibraryScreen> with TickerProvid
               const SizedBox(width: 8),
               Text(
                 'Overall Progress',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                style: HeadingSystem.getTitleMedium(context).copyWith(
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -389,14 +390,14 @@ class _CoreLibraryScreenState extends State<CoreLibraryScreen> with TickerProvid
                   children: [
                     Text(
                       '${(averageLevel * 100).round()}%',
-                      style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                      style: HeadingSystem.getHeadlineMedium(context).copyWith(
                         fontWeight: FontWeight.w700,
                         color: AppTheme.getPrimaryColor(context),
                       ),
                     ),
                     Text(
                       'Average Core Level',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      style: HeadingSystem.getBodySmall(context).copyWith(
                         color: AppTheme.getTextSecondary(context),
                       ),
                     ),
@@ -409,14 +410,14 @@ class _CoreLibraryScreenState extends State<CoreLibraryScreen> with TickerProvid
                   children: [
                     Text(
                       '$risingCores',
-                      style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                      style: HeadingSystem.getHeadlineMedium(context).copyWith(
                         fontWeight: FontWeight.w700,
                         color: AppTheme.accentGreen,
                       ),
                     ),
                     Text(
                       'Cores Rising',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      style: HeadingSystem.getBodySmall(context).copyWith(
                         color: AppTheme.getTextSecondary(context),
                       ),
                     ),
@@ -436,7 +437,7 @@ class _CoreLibraryScreenState extends State<CoreLibraryScreen> with TickerProvid
       children: [
         Text(
           'Your Six Personality Cores',
-          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+          style: HeadingSystem.getHeadlineSmall(context).copyWith(
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -500,10 +501,9 @@ class _CoreLibraryScreenState extends State<CoreLibraryScreen> with TickerProvid
                 ),
                 child: Text(
                   'UPDATED',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  style: HeadingSystem.getLabelSmall(context).copyWith(
                     color: AppTheme.accentGreen,
                     fontWeight: FontWeight.w600,
-                    fontSize: 8,
                   ),
                 ),
               ),
@@ -572,10 +572,9 @@ class _CoreLibraryScreenState extends State<CoreLibraryScreen> with TickerProvid
                                 builder: (context, animatedValue, child) {
                                   return Text(
                                     '${animatedValue.round()}%',
-                                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    style: HeadingSystem.getLabelSmall(context).copyWith(
                                       fontWeight: FontWeight.w600,
                                       color: color,
-                                      fontSize: 10,
                                     ),
                                   );
                                 },
@@ -593,7 +592,7 @@ class _CoreLibraryScreenState extends State<CoreLibraryScreen> with TickerProvid
             // Core name
             Text(
               core.name,
-              style: Theme.of(context).textTheme.titleSmall?.copyWith(
+              style: HeadingSystem.getTitleSmall(context).copyWith(
                 fontWeight: FontWeight.w600,
               ),
               textAlign: TextAlign.center,
@@ -614,10 +613,9 @@ class _CoreLibraryScreenState extends State<CoreLibraryScreen> with TickerProvid
                 const SizedBox(width: 4),
                 Text(
                   core.trend.toUpperCase(),
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  style: HeadingSystem.getLabelSmall(context).copyWith(
                     color: trendColor,
                     fontWeight: FontWeight.w500,
-                    fontSize: 10,
                   ),
                 ),
               ],
@@ -1061,13 +1059,13 @@ class _CoreDetailSheetState extends State<CoreDetailSheet> {
                     children: [
                       Text(
                         widget.core.name,
-                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                        style: HeadingSystem.getHeadlineSmall(context).copyWith(
                           fontWeight: FontWeight.w600,
                         ),
                       ),
                       Text(
                         '${(widget.core.currentLevel * 100).round()}% • ${widget.core.trend.toUpperCase()}',
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        style: HeadingSystem.getBodyMedium(context).copyWith(
                           color: color,
                           fontWeight: FontWeight.w500,
                         ),
@@ -1091,7 +1089,7 @@ class _CoreDetailSheetState extends State<CoreDetailSheet> {
                       // Description
                       Text(
                         widget.core.description,
-                        style: Theme.of(context).textTheme.bodyLarge,
+                        style: HeadingSystem.getBodyLarge(context),
                       ),
                       const SizedBox(height: 24),
                       
@@ -1129,7 +1127,7 @@ class _CoreDetailSheetState extends State<CoreDetailSheet> {
       children: [
         Text(
           'Progress Timeline',
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+          style: HeadingSystem.getTitleMedium(context).copyWith(
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -1152,13 +1150,13 @@ class _CoreDetailSheetState extends State<CoreDetailSheet> {
                       children: [
                         Text(
                           'Current Level',
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          style: HeadingSystem.getBodySmall(context).copyWith(
                             color: AppTheme.getTextSecondary(context),
                           ),
                         ),
                         Text(
                           '${(widget.core.currentLevel * 100).round()}%',
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          style: HeadingSystem.getBodySmall(context).copyWith(
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -1173,7 +1171,7 @@ class _CoreDetailSheetState extends State<CoreDetailSheet> {
                     const SizedBox(height: 8),
                     Text(
                       'Previous: ${(widget.core.previousLevel * 100).round()}%',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      style: HeadingSystem.getBodySmall(context).copyWith(
                         color: AppTheme.getTextSecondary(context),
                       ),
                     ),
@@ -1193,7 +1191,7 @@ class _CoreDetailSheetState extends State<CoreDetailSheet> {
       children: [
         Text(
           'Recent Insights',
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+          style: HeadingSystem.getTitleMedium(context).copyWith(
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -1210,14 +1208,14 @@ class _CoreDetailSheetState extends State<CoreDetailSheet> {
             children: [
               Text(
                 insight.title,
-                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                style: HeadingSystem.getTitleSmall(context).copyWith(
                   fontWeight: FontWeight.w600,
                 ),
               ),
               const SizedBox(height: 8),
               Text(
                 insight.description,
-                style: Theme.of(context).textTheme.bodyMedium,
+                style: HeadingSystem.getBodyMedium(context),
               ),
             ],
           ),
@@ -1232,7 +1230,7 @@ class _CoreDetailSheetState extends State<CoreDetailSheet> {
       children: [
         Text(
           'Milestones',
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+          style: HeadingSystem.getTitleMedium(context).copyWith(
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -1261,21 +1259,21 @@ class _CoreDetailSheetState extends State<CoreDetailSheet> {
                   children: [
                     Text(
                       milestone.title,
-                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      style: HeadingSystem.getTitleSmall(context).copyWith(
                         fontWeight: FontWeight.w600,
                         color: milestone.isAchieved ? color : null,
                       ),
                     ),
                     Text(
                       milestone.description,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      style: HeadingSystem.getBodySmall(context).copyWith(
                         color: AppTheme.getTextSecondary(context),
                       ),
                     ),
                     if (milestone.isAchieved && milestone.achievedAt != null)
                       Text(
                         'Achieved ${_formatDate(milestone.achievedAt!)}',
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        style: HeadingSystem.getBodySmall(context).copyWith(
                           color: color,
                           fontWeight: FontWeight.w500,
                         ),
@@ -1285,7 +1283,7 @@ class _CoreDetailSheetState extends State<CoreDetailSheet> {
               ),
               Text(
                 '${(milestone.threshold * 100).round()}%',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                style: HeadingSystem.getBodySmall(context).copyWith(
                   fontWeight: FontWeight.w600,
                   color: milestone.isAchieved ? color : AppTheme.getTextSecondary(context),
                 ),
@@ -1308,7 +1306,7 @@ class _CoreDetailSheetState extends State<CoreDetailSheet> {
           children: [
             Text(
               'Supporting Journal Entries',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              style: HeadingSystem.getTitleMedium(context).copyWith(
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -1332,14 +1330,14 @@ class _CoreDetailSheetState extends State<CoreDetailSheet> {
                     const SizedBox(height: 8),
                     Text(
                       'No supporting entries yet',
-                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      style: HeadingSystem.getTitleSmall(context).copyWith(
                         fontWeight: FontWeight.w600,
                       ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       'Journal entries that mention themes related to ${core.name} will appear here.',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      style: HeadingSystem.getBodySmall(context).copyWith(
                         color: AppTheme.getTextSecondary(context),
                       ),
                     ),
@@ -1371,7 +1369,7 @@ class _CoreDetailSheetState extends State<CoreDetailSheet> {
                         const SizedBox(width: 8),
                         Text(
                           _formatDate(entry.createdAt),
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          style: HeadingSystem.getBodySmall(context).copyWith(
                             color: _getCoreColor(core.color),
                             fontWeight: FontWeight.w600,
                           ),
@@ -1386,9 +1384,8 @@ class _CoreDetailSheetState extends State<CoreDetailSheet> {
                             ),
                             child: Text(
                               entry.moods.join(', '),
-                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              style: HeadingSystem.getLabelSmall(context).copyWith(
                                 color: AppTheme.getTextSecondary(context),
-                                fontSize: 10,
                               ),
                             ),
                           ),
@@ -1398,7 +1395,7 @@ class _CoreDetailSheetState extends State<CoreDetailSheet> {
                     const SizedBox(height: 8),
                     Text(
                       _getEntryPreview(entry.content),
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      style: HeadingSystem.getBodySmall(context).copyWith(
                         color: AppTheme.getTextSecondary(context),
                         height: 1.4,
                       ),
@@ -1424,9 +1421,8 @@ class _CoreDetailSheetState extends State<CoreDetailSheet> {
                             Expanded(
                               child: Text(
                                 'AI detected themes related to ${core.name}',
-                                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                style: HeadingSystem.getLabelSmall(context).copyWith(
                                   color: _getCoreColor(core.color),
-                                  fontSize: 11,
                                   fontWeight: FontWeight.w500,
                                 ),
                               ),
@@ -1444,7 +1440,7 @@ class _CoreDetailSheetState extends State<CoreDetailSheet> {
               Center(
                 child: Text(
                   '+${supportingEntries.length - 5} more supporting entries',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  style: HeadingSystem.getBodySmall(context).copyWith(
                     color: AppTheme.getTextSecondary(context),
                     fontStyle: FontStyle.italic,
                   ),

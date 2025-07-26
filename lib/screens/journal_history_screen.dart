@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:spiral_journal/theme/app_theme.dart';
+import 'package:spiral_journal/design_system/heading_system.dart';
 import 'package:spiral_journal/providers/journal_provider.dart';
 import 'package:spiral_journal/models/journal_entry.dart';
 import 'package:spiral_journal/constants/validation_constants.dart';
@@ -161,8 +162,7 @@ class _JournalHistoryScreenState extends State<JournalHistoryScreen> {
             const SizedBox(height: 4),
             Text(
               'Delete',
-              style: AppTheme.getTextStyle(
-                fontSize: 12,
+              style: HeadingSystem.getLabelMedium(context).copyWith(
                 fontWeight: FontWeight.w600,
                 color: Colors.white,
               ),
@@ -216,8 +216,7 @@ class _JournalHistoryScreenState extends State<JournalHistoryScreen> {
                                 ),
                                 child: Text(
                                   'Editable',
-                                  style: AppTheme.getTextStyle(
-                                    fontSize: 8,
+                                  style: HeadingSystem.getLabelSmall(context).copyWith(
                                     fontWeight: FontWeight.w600,
                                     color: Colors.white,
                                   ),
@@ -243,8 +242,7 @@ class _JournalHistoryScreenState extends State<JournalHistoryScreen> {
                                     const SizedBox(width: 2),
                                     Text(
                                       'AI',
-                                      style: AppTheme.getTextStyle(
-                                        fontSize: 8,
+                                      style: HeadingSystem.getLabelSmall(context).copyWith(
                                         fontWeight: FontWeight.w600,
                                         color: Colors.white,
                                       ),
@@ -281,8 +279,7 @@ class _JournalHistoryScreenState extends State<JournalHistoryScreen> {
                                 ),
                                 child: Text(
                                   mood,
-                                  style: AppTheme.getTextStyle(
-                                    fontSize: 9,
+                                  style: HeadingSystem.getLabelSmall(context).copyWith(
                                     fontWeight: FontWeight.w500,
                                     color: Colors.white,
                                   ),
@@ -313,8 +310,7 @@ class _JournalHistoryScreenState extends State<JournalHistoryScreen> {
                       const SizedBox(width: 4),
                       Text(
                         'Tap to edit',
-                        style: AppTheme.getTextStyle(
-                          fontSize: 12,
+                        style: HeadingSystem.getLabelMedium(context).copyWith(
                           fontWeight: FontWeight.w500,
                           color: AppTheme.accentGreen,
                         ),
@@ -388,8 +384,7 @@ class _JournalHistoryScreenState extends State<JournalHistoryScreen> {
                       ),
                       child: Text(
                         mood,
-                        style: AppTheme.getTextStyle(
-                          fontSize: 12,
+                        style: HeadingSystem.getLabelMedium(context).copyWith(
                           fontWeight: FontWeight.w500,
                           color: Colors.white,
                         ),
@@ -471,8 +466,7 @@ class _JournalHistoryScreenState extends State<JournalHistoryScreen> {
                               ),
                               child: Text(
                                 emotion,
-                                style: AppTheme.getTextStyle(
-                                  fontSize: 10,
+                                style: HeadingSystem.getLabelSmall(context).copyWith(
                                   fontWeight: FontWeight.w500,
                                   color: Colors.white,
                                 ),
@@ -537,9 +531,8 @@ class _JournalHistoryScreenState extends State<JournalHistoryScreen> {
                       // Analysis timestamp
                       Text(
                         'Analyzed: ${DateFormat('MMM d, h:mm a').format(entry.aiAnalysis!.analyzedAt)}',
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        style: HeadingSystem.getLabelSmall(context).copyWith(
                           color: AppTheme.getTextTertiary(context),
-                          fontSize: 10,
                         ),
                       ),
                     ],
@@ -621,8 +614,7 @@ class _JournalHistoryScreenState extends State<JournalHistoryScreen> {
                             ? AppTheme.darkBackgroundTertiary 
                             : AppTheme.backgroundTertiary,
                         selectedColor: AppTheme.getMoodColor(mood),
-                        labelStyle: AppTheme.getTextStyle(
-                          fontSize: 12,
+                        labelStyle: HeadingSystem.getLabelMedium(context).copyWith(
                           fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
                           color: isSelected ? Colors.white : AppTheme.getTextSecondary(context),
                         ),
@@ -652,7 +644,7 @@ class _JournalHistoryScreenState extends State<JournalHistoryScreen> {
                         journalProvider.startDate != null 
                             ? DateFormat('MMM d, y').format(journalProvider.startDate!)
                             : 'Start Date',
-                        style: const TextStyle(fontSize: 12),
+                        style: HeadingSystem.getLabelMedium(context),
                       ),
                     ),
                   ),
@@ -665,7 +657,7 @@ class _JournalHistoryScreenState extends State<JournalHistoryScreen> {
                         journalProvider.endDate != null 
                             ? DateFormat('MMM d, y').format(journalProvider.endDate!)
                             : 'End Date',
-                        style: const TextStyle(fontSize: 12),
+                        style: HeadingSystem.getLabelMedium(context),
                       ),
                     ),
                   ),
@@ -794,8 +786,7 @@ class _JournalHistoryScreenState extends State<JournalHistoryScreen> {
                     Expanded(
                       child: Text(
                         'This will permanently delete $wordCount ${wordCount == 1 ? 'word' : 'words'}. This action cannot be undone.',
-                        style: AppTheme.getTextStyle(
-                          fontSize: 12,
+                        style: HeadingSystem.getLabelMedium(context).copyWith(
                           fontWeight: FontWeight.w500,
                           color: AppTheme.accentRed,
                         ),
@@ -829,8 +820,7 @@ class _JournalHistoryScreenState extends State<JournalHistoryScreen> {
               ),
               child: Text(
                 'Delete',
-                style: AppTheme.getTextStyle(
-                  fontSize: 14,
+                style: HeadingSystem.getLabelLarge(context).copyWith(
                   fontWeight: FontWeight.w600,
                   color: Colors.white,
                 ),
@@ -1210,8 +1200,7 @@ class _JournalHistoryScreenState extends State<JournalHistoryScreen> {
                                         ? AppTheme.darkBackgroundTertiary 
                                         : AppTheme.backgroundTertiary,
                                     selectedColor: AppTheme.moodEnergetic,
-                                    labelStyle: AppTheme.getTextStyle(
-                                      fontSize: 14,
+                                    labelStyle: HeadingSystem.getLabelLarge(context).copyWith(
                                       fontWeight: year == journalProvider.selectedYear ? FontWeight.w600 : FontWeight.w500,
                                       color: year == journalProvider.selectedYear ? Colors.white : AppTheme.getTextSecondary(context),
                                     ),
@@ -1252,9 +1241,8 @@ class _JournalHistoryScreenState extends State<JournalHistoryScreen> {
                                 },
                                 child: Text(
                                   'Clear all',
-                                  style: TextStyle(
+                                  style: HeadingSystem.getLabelMedium(context).copyWith(
                                     color: AppTheme.getPrimaryColor(context),
-                                    fontSize: 12,
                                   ),
                                 ),
                               ),

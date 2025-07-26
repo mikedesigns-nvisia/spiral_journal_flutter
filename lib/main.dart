@@ -32,6 +32,8 @@ import 'package:spiral_journal/config/api_key_setup.dart';
 import 'package:spiral_journal/config/local_config.dart';
 import 'package:spiral_journal/widgets/app_background.dart';
 import 'package:spiral_journal/utils/ios_theme_enforcer.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:google_fonts/google_fonts.dart';
 void main() async {
   final startTime = DateTime.now();
   WidgetsFlutterBinding.ensureInitialized();
@@ -39,11 +41,17 @@ void main() async {
   // Initialize error handling system first
   AppErrorHandler.initialize();
   
+  // Load environment variables from .env file
+  await dotenv.load(fileName: ".env");
+  
   // Initialize local configuration system (replaces Firebase)
   await LocalConfig.initialize();
   
   // Initialize API keys (critical)
   await ApiKeySetup.initializeApiKeys();
+  
+  // Preload Google Fonts to prevent network errors
+  await _preloadGoogleFonts();
   
   // Initialize local analytics service
   final analyticsInitFuture = _initializeLocalAnalytics();
@@ -68,6 +76,28 @@ void main() async {
   AnalyticsService().logAppLaunchTime(launchTime);
   
   debugPrint('App launch completed');
+}
+
+/// Preload Google Fonts to prevent network errors during runtime
+Future<void> _preloadGoogleFonts() async {
+  try {
+    debugPrint('Preloading Google Fonts...');
+    
+    // Preload the Noto Sans JP font family
+    await GoogleFonts.pendingFonts([
+      GoogleFonts.notoSansJp(),
+      GoogleFonts.notoSansJp(fontWeight: FontWeight.w300),
+      GoogleFonts.notoSansJp(fontWeight: FontWeight.w400),
+      GoogleFonts.notoSansJp(fontWeight: FontWeight.w500),
+      GoogleFonts.notoSansJp(fontWeight: FontWeight.w600),
+      GoogleFonts.notoSansJp(fontWeight: FontWeight.w700),
+    ]);
+    
+    debugPrint('Google Fonts preloaded successfully');
+  } catch (e) {
+    debugPrint('Failed to preload Google Fonts (will use fallback): $e');
+    // Continue with app initialization - fallbacks will handle this
+  }
 }
 
 /// Initialize local analytics service

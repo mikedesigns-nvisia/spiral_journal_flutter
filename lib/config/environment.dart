@@ -1,13 +1,12 @@
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+
 /// Environment Configuration
 /// This file contains environment-specific settings for the application
 class EnvironmentConfig {
   static const Environment current = Environment.development;
   
-  // Built-in Claude API Configuration (from environment variables)
-  static const String claudeApiKey = String.fromEnvironment(
-    'CLAUDE_API_KEY',
-    defaultValue: '',
-  );
+  // Claude API Configuration (loaded from .env file at runtime)
+  static String get claudeApiKey => dotenv.env['CLAUDE_API_KEY'] ?? '';
   
   // Daily Journal & Usage Limits
   static const int monthlyAnalysisLimit = 30; // One per day for 30 days

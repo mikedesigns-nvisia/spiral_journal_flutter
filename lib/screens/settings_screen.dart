@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:spiral_journal/theme/app_theme.dart';
+import 'package:spiral_journal/design_system/heading_system.dart';
 import 'package:spiral_journal/providers/journal_provider.dart';
 import 'package:spiral_journal/providers/core_provider_refactored.dart';
 import 'package:spiral_journal/services/settings_service.dart';
@@ -108,14 +109,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     child: Icon(
                       Icons.settings_rounded,
                       color: AppTheme.getPrimaryColor(context),
-                      size: 24,
+                      size: HeadingSystem.iconSizeL,
                     ),
                   ),
                   const SizedBox(width: 16),
-                  Text(
-                    'Settings',
-                    style: Theme.of(context).textTheme.headlineLarge,
-                  ),
+                  HeadingSystem.pageHeading(context, 'Settings'),
                 ],
               ),
               const SizedBox(height: 32),
@@ -312,12 +310,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               
               // App Version
               Center(
-                child: Text(
-                  'Spiral Journal v1.0.0',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppTheme.textTertiary,
-                  ),
-                ),
+                child: HeadingSystem.caption(context, 'Spiral Journal v1.0.0'),
               ),
               
               const SizedBox(height: 100), // Extra space for bottom navigation
@@ -332,15 +325,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          title,
-          style: AppTheme.getTextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-            color: AppTheme.getPrimaryColor(context),
-          ),
-        ),
-        const SizedBox(height: 12),
+        HeadingSystem.sectionHeading(context, title),
         Card(
           child: Column(
             children: items,
@@ -357,24 +342,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
     bool value,
     ValueChanged<bool> onChanged,
   ) {
-    return ListTile(
-      leading: Icon(icon, color: AppTheme.getPrimaryColor(context)),
-      title: Text(
-        title,
-        style: AppTheme.getTextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.w500,
-          color: AppTheme.getTextPrimary(context),
-        ),
-      ),
-      subtitle: Text(
-        subtitle,
-        style: AppTheme.getTextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.w400,
-          color: AppTheme.getTextSecondary(context),
-        ),
-      ),
+    return HeadingSystem.listTile(
+      context: context,
+      title: title,
+      subtitle: subtitle,
+      leadingIcon: icon,
       trailing: Switch(
         value: value,
         onChanged: onChanged,
@@ -390,31 +362,44 @@ class _SettingsScreenState extends State<SettingsScreen> {
     VoidCallback? onTap, {
     bool isDestructive = false,
   }) {
-    return ListTile(
-      leading: Icon(
-        icon,
-        color: isDestructive ? AppTheme.accentRed : AppTheme.getPrimaryColor(context),
-      ),
-      title: Text(
-        title,
-        style: AppTheme.getTextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.w500,
-          color: isDestructive ? AppTheme.accentRed : AppTheme.getTextPrimary(context),
+    if (isDestructive) {
+      // For destructive actions, we need custom styling
+      return ListTile(
+        leading: Icon(
+          icon,
+          color: AppTheme.accentRed,
+          size: HeadingSystem.iconSizeM,
         ),
-      ),
-      subtitle: Text(
-        subtitle,
-        style: AppTheme.getTextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.w400,
-          color: AppTheme.getTextSecondary(context),
+        title: Text(
+          title,
+          style: HeadingSystem.getTitleMedium(context).copyWith(
+            color: AppTheme.accentRed,
+          ),
         ),
-      ),
+        subtitle: Text(
+          subtitle,
+          style: HeadingSystem.getBodyMedium(context),
+        ),
+        trailing: onTap != null
+            ? Icon(
+                Icons.arrow_forward_ios,
+                size: HeadingSystem.iconSizeS,
+                color: AppTheme.getTextTertiary(context),
+              )
+            : null,
+        onTap: onTap,
+      );
+    }
+    
+    return HeadingSystem.listTile(
+      context: context,
+      title: title,
+      subtitle: subtitle,
+      leadingIcon: icon,
       trailing: onTap != null
           ? Icon(
               Icons.arrow_forward_ios,
-              size: 16,
+              size: HeadingSystem.iconSizeS,
               color: AppTheme.getTextTertiary(context),
             )
           : null,
@@ -423,24 +408,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Widget _buildInfoItem(IconData icon, String title, String subtitle) {
-    return ListTile(
-      leading: Icon(icon, color: AppTheme.getPrimaryColor(context)),
-      title: Text(
-        title,
-        style: AppTheme.getTextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.w500,
-          color: AppTheme.getTextPrimary(context),
-        ),
-      ),
-      subtitle: Text(
-        subtitle,
-        style: AppTheme.getTextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.w400,
-          color: AppTheme.getTextSecondary(context),
-        ),
-      ),
+    return HeadingSystem.listTile(
+      context: context,
+      title: title,
+      subtitle: subtitle,
+      leadingIcon: icon,
     );
   }
 
@@ -450,27 +422,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
       minute: int.parse(_currentPreferences.reminderTime.split(':')[1]),
     );
     
-    return ListTile(
-      leading: Icon(Icons.schedule, color: AppTheme.getPrimaryColor(context)),
-      title: Text(
-        'Reminder Time',
-        style: AppTheme.getTextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.w500,
-          color: AppTheme.getTextPrimary(context),
-        ),
-      ),
-      subtitle: Text(
-        reminderTime.format(context),
-        style: AppTheme.getTextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.w400,
-          color: AppTheme.getTextSecondary(context),
-        ),
-      ),
+    return HeadingSystem.listTile(
+      context: context,
+      title: 'Reminder Time',
+      subtitle: reminderTime.format(context),
+      leadingIcon: Icons.schedule,
       trailing: Icon(
         Icons.arrow_forward_ios,
-        size: 16,
+        size: HeadingSystem.iconSizeS,
         color: AppTheme.getTextTertiary(context),
       ),
       onTap: _selectReminderTime,
@@ -506,9 +465,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               children: [
                 Text(
                   _currentPreferences.personalizedInsightsEnabled ? 'Personalized Analysis Active' : 'Core Updates Only',
-                  style: AppTheme.getTextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
+                  style: HeadingSystem.getTitleMedium(context).copyWith(
                     color: _currentPreferences.personalizedInsightsEnabled ? AppTheme.accentGreen : AppTheme.textTertiary,
                   ),
                 ),
@@ -517,9 +474,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   _currentPreferences.personalizedInsightsEnabled 
                       ? 'AI provides personalized feedback and commentary on your entries'
                       : 'AI only updates your emotional cores without personal commentary',
-                  style: AppTheme.getTextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w400,
+                  style: HeadingSystem.getLabelSmall(context).copyWith(
                     color: _currentPreferences.personalizedInsightsEnabled ? AppTheme.textSecondary : AppTheme.textTertiary,
                   ),
                 ),
@@ -532,30 +487,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Widget _buildThemeSelector() {
-    return ListTile(
-      leading: Icon(
-        _getThemeIcon(_currentPreferences.themeMode),
-        color: AppTheme.getPrimaryColor(context),
-      ),
-      title: Text(
-        'Theme',
-        style: AppTheme.getTextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.w500,
-          color: AppTheme.getTextPrimary(context),
-        ),
-      ),
-      subtitle: Text(
-        _getThemeDescription(_currentPreferences.themeMode),
-        style: AppTheme.getTextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.w400,
-          color: AppTheme.getTextSecondary(context),
-        ),
-      ),
+    return HeadingSystem.listTile(
+      context: context,
+      title: 'Theme',
+      subtitle: _getThemeDescription(_currentPreferences.themeMode),
+      leadingIcon: _getThemeIcon(_currentPreferences.themeMode),
       trailing: Icon(
         Icons.arrow_forward_ios,
-        size: 16,
+        size: HeadingSystem.iconSizeS,
         color: AppTheme.textTertiary,
       ),
       onTap: _showThemeDialog,
@@ -970,8 +909,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ),
       title: Text(
         title,
-        style: AppTheme.getTextStyle(
-          fontSize: 16,
+        style: HeadingSystem.getTitleMedium(context).copyWith(
           fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
           color: isSelected 
               ? AppTheme.getPrimaryColor(context) 
@@ -980,11 +918,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ),
       subtitle: Text(
         subtitle,
-        style: AppTheme.getTextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.w400,
-          color: AppTheme.getTextSecondary(context),
-        ),
+        style: HeadingSystem.getBodyMedium(context),
       ),
       trailing: isSelected
           ? Icon(
