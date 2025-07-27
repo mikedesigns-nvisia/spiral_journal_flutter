@@ -597,7 +597,7 @@ class _PrimaryEmotionalStateWidgetState extends State<PrimaryEmotionalStateWidge
           ),
           child: Center(
             child: Text(
-              '${(state.intensity * 100).round()}%',
+              '${((state.intensity > 1.0 ? state.intensity / 10.0 : state.intensity).clamp(0.0, 1.0) * 100).round()}%',
               style: HeadingSystem.getTitleMedium(context).copyWith(
                 color: state.accessibleColor,
                 fontWeight: FontWeight.bold,

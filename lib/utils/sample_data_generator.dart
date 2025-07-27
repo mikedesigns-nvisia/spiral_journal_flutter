@@ -143,7 +143,7 @@ extension EmotionalAnalysisResultExtension on dynamic {
       emotionalIntensity: intensity / 10.0, // Convert to 0-1 scale
       keyThemes: themes,
       personalizedInsight: insight,
-      coreImpacts: impacts,
+      coreAdjustments: impacts,
       analyzedAt: DateTime.now(),
     );
   }

@@ -1,7 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/journal_entry.dart';
-import '../models/core.dart';
+import '../models/core.dart' hide EmotionalPattern;
+import '../models/journal_entry.dart' show JournalEmotionalPattern;
 import '../config/environment.dart';
 import 'ai_service_interface.dart';
 import 'providers/claude_ai_provider.dart';
@@ -427,7 +428,7 @@ class AIServiceManager {
   }
 
   /// Identify emotional patterns across multiple entries
-  Future<List<EmotionalPattern>> identifyEmotionalPatterns(
+  Future<List<JournalEmotionalPattern>> identifyEmotionalPatterns(
     List<JournalEntry> entries,
   ) async {
     try {
@@ -507,7 +508,7 @@ class ComprehensiveAnalysisResult {
   final EmotionalAnalysisResult emotionalAnalysis;
   final List<EmotionalCore> updatedCores;
   final Map<String, double> coreUpdates;
-  final List<EmotionalPattern> emotionalPatterns;
+  final List<JournalEmotionalPattern> emotionalPatterns;
   final DateTime analysisTimestamp;
 
   ComprehensiveAnalysisResult({

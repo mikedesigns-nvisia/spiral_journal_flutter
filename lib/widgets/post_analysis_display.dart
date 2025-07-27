@@ -5,227 +5,619 @@ import 'package:spiral_journal/design_system/responsive_layout.dart';
 import 'package:spiral_journal/models/journal_entry.dart';
 import 'package:spiral_journal/services/emotional_analyzer.dart';
 
-/// Widget that displays AI analysis results after a journal entry has been analyzed
+/// Enhanced widget that displays AI analysis results using the new Claude response structure
 class PostAnalysisDisplay extends StatelessWidget {
   final JournalEntry journalEntry;
-  final EmotionalAnalysisResult analysisResult;
-  final VoidCallback? onCreateNewEntry;
+  final EmotionalAnalysisResult? analysisResult; // Legacy support
+  final VoidCallback? onViewAnalysis;
 
   const PostAnalysisDisplay({
     super.key,
     required this.journalEntry,
-    required this.analysisResult,
-    this.onCreateNewEntry,
+    this.analysisResult, // Made optional for new structure
+    this.onViewAnalysis,
   });
 
   @override
   Widget build(BuildContext context) {
+    final analysis = journalEntry.aiAnalysis;
+    
+    // If no analysis is available, show placeholder
+    if (analysis == null) {
+      return ComponentLibrary.gradientCard(
+        gradient: DesignTokens.getCardGradient(context),
+        child: _buildNoAnalysisState(context),
+      );
+    }
+
+    return Column(
+      children: [
+        // 1. Entry Insight Card (Featured)
+        if (analysis.entryInsight != null)
+          _buildEntryInsightCard(context, analysis),
+        
+        if (analysis.entryInsight != null)
+          SizedBox(height: DesignTokens.spaceL),
+        
+        // 2. Primary Emotions Summary
+        _buildPrimaryEmotionsCard(context, analysis),
+        
+        SizedBox(height: DesignTokens.spaceL),
+        
+        // 3. Mind Reflection Card (Enhanced)
+        if (analysis.mindReflection != null)
+          _buildMindReflectionCard(context, analysis.mindReflection!),
+        
+        if (analysis.mindReflection != null)
+          SizedBox(height: DesignTokens.spaceL),
+        
+        // 4. Growth Indicators Card
+        if (analysis.growthIndicators.isNotEmpty)
+          _buildGrowthIndicatorsCard(context, analysis),
+        
+        if (analysis.growthIndicators.isNotEmpty)
+          SizedBox(height: DesignTokens.spaceL),
+        
+        // 5. Core Impact Analysis
+        if (analysis.coreAdjustments.isNotEmpty)
+          _buildCoreImpactCard(context, analysis),
+        
+        if (analysis.coreAdjustments.isNotEmpty)
+          SizedBox(height: DesignTokens.spaceL),
+        
+        // 6. Emotional Patterns
+        if (analysis.emotionalPatterns.isNotEmpty)
+          _buildEmotionalPatternsCard(context, analysis),
+        
+        if (analysis.emotionalPatterns.isNotEmpty)
+          SizedBox(height: DesignTokens.spaceL),
+        
+        // Action button to view full analysis (if available)
+        if (onViewAnalysis != null)
+          _buildViewAnalysisButton(context),
+      ],
+    );
+  }
+
+  /// Build the featured entry insight card
+  Widget _buildEntryInsightCard(BuildContext context, EmotionalAnalysis analysis) {
     return ComponentLibrary.gradientCard(
       gradient: DesignTokens.getCardGradient(context),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header showing analysis completion
-          _buildHeader(context),
-          
-          SizedBox(height: DesignTokens.spaceXL),
-          
-          // Show detected emotions
-          _buildEmotionsSection(context),
-          
+          Row(
+            children: [
+              Container(
+                padding: EdgeInsets.all(DesignTokens.spaceM),
+                decoration: BoxDecoration(
+                  color: DesignTokens.accentYellow.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(DesignTokens.radiusM),
+                ),
+                child: Icon(
+                  Icons.lightbulb_outline_rounded,
+                  color: DesignTokens.accentYellow,
+                  size: DesignTokens.iconSizeL,
+                ),
+              ),
+              SizedBox(width: DesignTokens.spaceL),
+              Expanded(
+                child: ResponsiveText(
+                  'Key Insight',
+                  baseFontSize: DesignTokens.fontSizeXL,
+                  fontWeight: DesignTokens.fontWeightBold,
+                  color: DesignTokens.getTextPrimary(context),
+                ),
+              ),
+            ],
+          ),
           SizedBox(height: DesignTokens.spaceL),
-          
-          // Show personalized insight
-          _buildInsightSection(context),
-          
-          SizedBox(height: DesignTokens.spaceL),
-          
-          // Show key themes
-          if (analysisResult.keyThemes.isNotEmpty)
-            _buildThemesSection(context),
-          
-          SizedBox(height: DesignTokens.spaceXL),
-          
-          // Action button to create new entry (if available)
-          if (onCreateNewEntry != null)
-            _buildNewEntryButton(context),
+          Container(
+            padding: EdgeInsets.all(DesignTokens.spaceL),
+            decoration: BoxDecoration(
+              color: DesignTokens.accentYellow.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(DesignTokens.radiusL),
+              border: Border.all(
+                color: DesignTokens.accentYellow.withOpacity(0.3),
+                width: 1,
+              ),
+            ),
+            child: ResponsiveText(
+              analysis.entryInsight!,
+              baseFontSize: DesignTokens.fontSizeL,
+              fontWeight: DesignTokens.fontWeightMedium,
+              color: DesignTokens.getTextPrimary(context),
+              maxLines: null,
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildHeader(BuildContext context) {
-    return Row(
-      children: [
-        Container(
-          padding: EdgeInsets.all(DesignTokens.spaceM),
-          decoration: BoxDecoration(
-            color: DesignTokens.accentGreen.withOpacity(0.15),
-            borderRadius: BorderRadius.circular(DesignTokens.radiusM),
-          ),
-          child: Icon(
-            Icons.psychology_rounded,
-            color: DesignTokens.accentGreen,
-            size: DesignTokens.iconSizeL,
-          ),
-        ),
-        SizedBox(width: DesignTokens.spaceL),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+  /// Build primary emotions card with intensity
+  Widget _buildPrimaryEmotionsCard(BuildContext context, EmotionalAnalysis analysis) {
+    return ComponentLibrary.gradientCard(
+      gradient: DesignTokens.getCardGradient(context),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
             children: [
-              ResponsiveText(
-                'Analysis Complete',
-                baseFontSize: DesignTokens.fontSizeXL,
-                fontWeight: DesignTokens.fontWeightBold,
-                color: DesignTokens.getTextPrimary(context),
+              Container(
+                padding: EdgeInsets.all(DesignTokens.spaceM),
+                decoration: BoxDecoration(
+                  color: DesignTokens.accentBlue.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(DesignTokens.radiusM),
+                ),
+                child: Icon(
+                  Icons.favorite_rounded,
+                  color: DesignTokens.accentBlue,
+                  size: DesignTokens.iconSizeL,
+                ),
               ),
-              SizedBox(height: DesignTokens.spaceXS),
-              ResponsiveText(
-                'Your journal entry has been analyzed',
-                baseFontSize: DesignTokens.fontSizeM,
-                fontWeight: DesignTokens.fontWeightRegular,
-                color: DesignTokens.getTextSecondary(context),
+              SizedBox(width: DesignTokens.spaceL),
+              Expanded(
+                child: ResponsiveText(
+                  'Primary Emotions',
+                  baseFontSize: DesignTokens.fontSizeL,
+                  fontWeight: DesignTokens.fontWeightSemiBold,
+                  color: DesignTokens.getTextPrimary(context),
+                ),
+              ),
+              Container(
+                padding: EdgeInsets.symmetric(
+                  horizontal: DesignTokens.spaceM,
+                  vertical: DesignTokens.spaceS,
+                ),
+                decoration: BoxDecoration(
+                  color: DesignTokens.accentBlue.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(DesignTokens.radiusM),
+                ),
+                child: ResponsiveText(
+                  '${((analysis.emotionalIntensity > 1.0 ? analysis.emotionalIntensity / 10.0 : analysis.emotionalIntensity).clamp(0.0, 1.0) * 100).round()}%',
+                  baseFontSize: DesignTokens.fontSizeM,
+                  fontWeight: DesignTokens.fontWeightBold,
+                  color: DesignTokens.accentBlue,
+                ),
               ),
             ],
           ),
-        ),
-      ],
+          SizedBox(height: DesignTokens.spaceL),
+          Wrap(
+            spacing: DesignTokens.spaceS,
+            runSpacing: DesignTokens.spaceS,
+            children: analysis.primaryEmotions.take(5).map((emotion) {
+              return Container(
+                padding: EdgeInsets.symmetric(
+                  horizontal: DesignTokens.spaceM,
+                  vertical: DesignTokens.spaceS,
+                ),
+                decoration: BoxDecoration(
+                  color: DesignTokens.accentBlue.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(DesignTokens.radiusM),
+                  border: Border.all(
+                    color: DesignTokens.accentBlue.withOpacity(0.3),
+                    width: 1,
+                  ),
+                ),
+                child: ResponsiveText(
+                  emotion,
+                  baseFontSize: DesignTokens.fontSizeM,
+                  fontWeight: DesignTokens.fontWeightMedium,
+                  color: DesignTokens.accentBlue,
+                ),
+              );
+            }).toList(),
+          ),
+        ],
+      ),
     );
   }
 
-  Widget _buildEmotionsSection(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        ResponsiveText(
-          'Detected Emotions',
-          baseFontSize: DesignTokens.fontSizeL,
-          fontWeight: DesignTokens.fontWeightSemiBold,
-          color: DesignTokens.getTextPrimary(context),
-        ),
-        SizedBox(height: DesignTokens.spaceM),
-        Wrap(
-          spacing: DesignTokens.spaceS,
-          runSpacing: DesignTokens.spaceS,
-          children: analysisResult.primaryEmotions.take(5).map((emotion) {
-            return Container(
-              padding: EdgeInsets.symmetric(
-                horizontal: DesignTokens.spaceM,
-                vertical: DesignTokens.spaceS,
-              ),
-              decoration: BoxDecoration(
-                color: DesignTokens.accentBlue.withOpacity(0.15),
-                borderRadius: BorderRadius.circular(DesignTokens.radiusM),
-                border: Border.all(
-                  color: DesignTokens.accentBlue.withOpacity(0.3),
-                  width: 1,
+  /// Build enhanced mind reflection card
+  Widget _buildMindReflectionCard(BuildContext context, MindReflection mindReflection) {
+    return ComponentLibrary.gradientCard(
+      gradient: DesignTokens.getCardGradient(context),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: EdgeInsets.all(DesignTokens.spaceM),
+                decoration: BoxDecoration(
+                  color: DesignTokens.accentGreen.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(DesignTokens.radiusM),
+                ),
+                child: Icon(
+                  Icons.auto_awesome_rounded,
+                  color: DesignTokens.accentGreen,
+                  size: DesignTokens.iconSizeL,
                 ),
               ),
-              child: ResponsiveText(
-                emotion,
-                baseFontSize: DesignTokens.fontSizeM,
-                fontWeight: DesignTokens.fontWeightMedium,
-                color: DesignTokens.accentBlue,
+              SizedBox(width: DesignTokens.spaceL),
+              Expanded(
+                child: ResponsiveText(
+                  mindReflection.title,
+                  baseFontSize: DesignTokens.fontSizeL,
+                  fontWeight: DesignTokens.fontWeightSemiBold,
+                  color: DesignTokens.getTextPrimary(context),
+                  maxLines: 2,
+                ),
               ),
-            );
-          }).toList(),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildInsightSection(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        ResponsiveText(
-          'Personal Insight',
-          baseFontSize: DesignTokens.fontSizeL,
-          fontWeight: DesignTokens.fontWeightSemiBold,
-          color: DesignTokens.getTextPrimary(context),
-        ),
-        SizedBox(height: DesignTokens.spaceM),
-        Container(
-          padding: EdgeInsets.all(DesignTokens.spaceL),
-          decoration: BoxDecoration(
-            color: DesignTokens.accentYellow.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(DesignTokens.radiusL),
-            border: Border.all(
-              color: DesignTokens.accentYellow.withOpacity(0.3),
-              width: 1,
+            ],
+          ),
+          SizedBox(height: DesignTokens.spaceL),
+          Container(
+            padding: EdgeInsets.all(DesignTokens.spaceL),
+            decoration: BoxDecoration(
+              color: DesignTokens.getBackgroundSecondary(context).withOpacity(0.5),
+              borderRadius: BorderRadius.circular(DesignTokens.radiusM),
+            ),
+            child: ResponsiveText(
+              mindReflection.summary,
+              baseFontSize: DesignTokens.fontSizeM,
+              fontWeight: DesignTokens.fontWeightRegular,
+              color: DesignTokens.getTextPrimary(context),
+              maxLines: null,
             ),
           ),
-          child: ResponsiveText(
-            analysisResult.personalizedInsight,
-            baseFontSize: DesignTokens.fontSizeM,
-            fontWeight: DesignTokens.fontWeightRegular,
-            color: DesignTokens.getTextPrimary(context),
-            maxLines: null,
-          ),
-        ),
-      ],
+          if (mindReflection.insights.isNotEmpty) ...[
+            SizedBox(height: DesignTokens.spaceL),
+            ...mindReflection.insights.take(3).map((insight) {
+              return Padding(
+                padding: EdgeInsets.only(bottom: DesignTokens.spaceM),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      width: 6,
+                      height: 6,
+                      margin: EdgeInsets.only(top: DesignTokens.spaceS),
+                      decoration: BoxDecoration(
+                        color: DesignTokens.accentGreen,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    SizedBox(width: DesignTokens.spaceM),
+                    Expanded(
+                      child: ResponsiveText(
+                        insight,
+                        baseFontSize: DesignTokens.fontSizeM,
+                        fontWeight: DesignTokens.fontWeightRegular,
+                        color: DesignTokens.getTextPrimary(context),
+                        maxLines: null,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }).toList(),
+          ],
+        ],
+      ),
     );
   }
 
-  Widget _buildThemesSection(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        ResponsiveText(
-          'Cores Represented',
-          baseFontSize: DesignTokens.fontSizeL,
-          fontWeight: DesignTokens.fontWeightSemiBold,
-          color: DesignTokens.getTextPrimary(context),
-        ),
-        SizedBox(height: DesignTokens.spaceM),
-        Column(
-          children: analysisResult.keyThemes.take(3).map((theme) {
+  /// Build growth indicators card
+  Widget _buildGrowthIndicatorsCard(BuildContext context, EmotionalAnalysis analysis) {
+    return ComponentLibrary.gradientCard(
+      gradient: DesignTokens.getCardGradient(context),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: EdgeInsets.all(DesignTokens.spaceM),
+                decoration: BoxDecoration(
+                  color: DesignTokens.successColor.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(DesignTokens.radiusM),
+                ),
+                child: Icon(
+                  Icons.trending_up_rounded,
+                  color: DesignTokens.successColor,
+                  size: DesignTokens.iconSizeL,
+                ),
+              ),
+              SizedBox(width: DesignTokens.spaceL),
+              Expanded(
+                child: ResponsiveText(
+                  'Growth Indicators',
+                  baseFontSize: DesignTokens.fontSizeL,
+                  fontWeight: DesignTokens.fontWeightSemiBold,
+                  color: DesignTokens.getTextPrimary(context),
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: DesignTokens.spaceL),
+          Wrap(
+            spacing: DesignTokens.spaceS,
+            runSpacing: DesignTokens.spaceS,
+            children: analysis.growthIndicators.map((indicator) {
+              return Container(
+                padding: EdgeInsets.symmetric(
+                  horizontal: DesignTokens.spaceM,
+                  vertical: DesignTokens.spaceS,
+                ),
+                decoration: BoxDecoration(
+                  color: DesignTokens.successColor.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(DesignTokens.radiusM),
+                  border: Border.all(
+                    color: DesignTokens.successColor.withOpacity(0.3),
+                    width: 1,
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.arrow_upward_rounded,
+                      size: DesignTokens.iconSizeS,
+                      color: DesignTokens.successColor,
+                    ),
+                    SizedBox(width: DesignTokens.spaceXS),
+                    ResponsiveText(
+                      indicator,
+                      baseFontSize: DesignTokens.fontSizeM,
+                      fontWeight: DesignTokens.fontWeightMedium,
+                      color: DesignTokens.successColor,
+                    ),
+                  ],
+                ),
+              );
+            }).toList(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Build core impact analysis card
+  Widget _buildCoreImpactCard(BuildContext context, EmotionalAnalysis analysis) {
+    return ComponentLibrary.gradientCard(
+      gradient: DesignTokens.getCardGradient(context),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: EdgeInsets.all(DesignTokens.spaceM),
+                decoration: BoxDecoration(
+                  color: DesignTokens.getPrimaryColor(context).withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(DesignTokens.radiusM),
+                ),
+                child: Icon(
+                  Icons.adjust_rounded,
+                  color: DesignTokens.getPrimaryColor(context),
+                  size: DesignTokens.iconSizeL,
+                ),
+              ),
+              SizedBox(width: DesignTokens.spaceL),
+              Expanded(
+                child: ResponsiveText(
+                  'Core Impact Analysis',
+                  baseFontSize: DesignTokens.fontSizeL,
+                  fontWeight: DesignTokens.fontWeightSemiBold,
+                  color: DesignTokens.getTextPrimary(context),
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: DesignTokens.spaceL),
+          ...analysis.coreAdjustments.entries.map((entry) {
+            final impactValue = entry.value;
+            final isPositive = impactValue > 0;
+            final normalizedValue = impactValue.abs().clamp(0.0, 1.0);
+            
             return Padding(
-              padding: EdgeInsets.only(bottom: DesignTokens.spaceS),
-              child: Row(
+              padding: EdgeInsets.only(bottom: DesignTokens.spaceM),
+              child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Container(
-                    width: 4,
-                    height: 4,
-                    margin: EdgeInsets.only(
-                      top: DesignTokens.spaceS,
-                      right: DesignTokens.spaceM,
-                    ),
-                    decoration: BoxDecoration(
-                      color: DesignTokens.getPrimaryColor(context),
-                      shape: BoxShape.circle,
-                    ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      ResponsiveText(
+                        entry.key,
+                        baseFontSize: DesignTokens.fontSizeM,
+                        fontWeight: DesignTokens.fontWeightMedium,
+                        color: DesignTokens.getTextPrimary(context),
+                      ),
+                      Row(
+                        children: [
+                          Icon(
+                            isPositive ? Icons.arrow_upward : Icons.arrow_downward,
+                            size: DesignTokens.iconSizeS,
+                            color: isPositive ? DesignTokens.successColor : DesignTokens.warningColor,
+                          ),
+                          SizedBox(width: DesignTokens.spaceXS),
+                          ResponsiveText(
+                            '${(normalizedValue * 100).round()}%',
+                            baseFontSize: DesignTokens.fontSizeM,
+                            fontWeight: DesignTokens.fontWeightBold,
+                            color: isPositive ? DesignTokens.successColor : DesignTokens.warningColor,
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
-                  Expanded(
-                    child: ResponsiveText(
-                      theme,
-                      baseFontSize: DesignTokens.fontSizeM,
-                      fontWeight: DesignTokens.fontWeightRegular,
-                      color: DesignTokens.getTextPrimary(context),
-                      maxLines: null,
+                  SizedBox(height: DesignTokens.spaceS),
+                  Container(
+                    height: 6,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(DesignTokens.radiusS),
+                      color: DesignTokens.getBackgroundTertiary(context),
+                    ),
+                    child: FractionallySizedBox(
+                      alignment: Alignment.centerLeft,
+                      widthFactor: normalizedValue,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(DesignTokens.radiusS),
+                          color: isPositive ? DesignTokens.successColor : DesignTokens.warningColor,
+                        ),
+                      ),
                     ),
                   ),
                 ],
               ),
             );
           }).toList(),
+        ],
+      ),
+    );
+  }
+
+  /// Build emotional patterns card
+  Widget _buildEmotionalPatternsCard(BuildContext context, EmotionalAnalysis analysis) {
+    return ComponentLibrary.gradientCard(
+      gradient: DesignTokens.getCardGradient(context),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: EdgeInsets.all(DesignTokens.spaceM),
+                decoration: BoxDecoration(
+                  color: DesignTokens.accentBlue.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(DesignTokens.radiusM),
+                ),
+                child: Icon(
+                  Icons.timeline_rounded,
+                  color: DesignTokens.accentBlue,
+                  size: DesignTokens.iconSizeL,
+                ),
+              ),
+              SizedBox(width: DesignTokens.spaceL),
+              Expanded(
+                child: ResponsiveText(
+                  'Emotional Patterns',
+                  baseFontSize: DesignTokens.fontSizeL,
+                  fontWeight: DesignTokens.fontWeightSemiBold,
+                  color: DesignTokens.getTextPrimary(context),
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: DesignTokens.spaceL),
+          ...analysis.emotionalPatterns.take(3).map((pattern) {
+            return Container(
+              margin: EdgeInsets.only(bottom: DesignTokens.spaceM),
+              padding: EdgeInsets.all(DesignTokens.spaceL),
+              decoration: BoxDecoration(
+                color: pattern.isGrowth 
+                    ? DesignTokens.successColor.withOpacity(0.1)
+                    : DesignTokens.warningColor.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(DesignTokens.radiusM),
+                border: Border.all(
+                  color: pattern.isGrowth 
+                      ? DesignTokens.successColor.withOpacity(0.3)
+                      : DesignTokens.warningColor.withOpacity(0.3),
+                  width: 1,
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: DesignTokens.spaceS,
+                          vertical: DesignTokens.spaceXS,
+                        ),
+                        decoration: BoxDecoration(
+                          color: pattern.isGrowth 
+                              ? DesignTokens.successColor.withOpacity(0.2)
+                              : DesignTokens.warningColor.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(DesignTokens.radiusS),
+                        ),
+                        child: ResponsiveText(
+                          pattern.category,
+                          baseFontSize: DesignTokens.fontSizeS,
+                          fontWeight: DesignTokens.fontWeightMedium,
+                          color: pattern.isGrowth 
+                              ? DesignTokens.successColor
+                              : DesignTokens.warningColor,
+                        ),
+                      ),
+                      SizedBox(width: DesignTokens.spaceS),
+                      Icon(
+                        pattern.isGrowth ? Icons.trending_up : Icons.info_outline,
+                        size: DesignTokens.iconSizeS,
+                        color: pattern.isGrowth 
+                            ? DesignTokens.successColor
+                            : DesignTokens.warningColor,
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: DesignTokens.spaceS),
+                  ResponsiveText(
+                    pattern.title,
+                    baseFontSize: DesignTokens.fontSizeM,
+                    fontWeight: DesignTokens.fontWeightSemiBold,
+                    color: DesignTokens.getTextPrimary(context),
+                  ),
+                  SizedBox(height: DesignTokens.spaceS),
+                  ResponsiveText(
+                    pattern.description,
+                    baseFontSize: DesignTokens.fontSizeM,
+                    fontWeight: DesignTokens.fontWeightRegular,
+                    color: DesignTokens.getTextSecondary(context),
+                    maxLines: null,
+                  ),
+                ],
+              ),
+            );
+          }).toList(),
+        ],
+      ),
+    );
+  }
+
+  /// Build no analysis state
+  Widget _buildNoAnalysisState(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Icon(
+          Icons.psychology_outlined,
+          size: DesignTokens.iconSizeXL,
+          color: DesignTokens.getTextTertiary(context),
+        ),
+        SizedBox(height: DesignTokens.spaceL),
+        ResponsiveText(
+          'Analysis Pending',
+          baseFontSize: DesignTokens.fontSizeL,
+          fontWeight: DesignTokens.fontWeightSemiBold,
+          color: DesignTokens.getTextSecondary(context),
+        ),
+        SizedBox(height: DesignTokens.spaceS),
+        ResponsiveText(
+          'Your journal entry is being analyzed...',
+          baseFontSize: DesignTokens.fontSizeM,
+          fontWeight: DesignTokens.fontWeightRegular,
+          color: DesignTokens.getTextTertiary(context),
         ),
       ],
     );
   }
 
-  Widget _buildNewEntryButton(BuildContext context) {
+  Widget _buildViewAnalysisButton(BuildContext context) {
     return Center(
       child: ElevatedButton.icon(
-        onPressed: onCreateNewEntry,
+        onPressed: onViewAnalysis,
         icon: Icon(
-          Icons.edit_rounded,
+          Icons.psychology_rounded,
           size: DesignTokens.iconSizeM,
         ),
         label: ResponsiveText(
-          'Create New Entry',
+          'View Analysis',
           baseFontSize: DesignTokens.fontSizeM,
           fontWeight: DesignTokens.fontWeightMedium,
         ),

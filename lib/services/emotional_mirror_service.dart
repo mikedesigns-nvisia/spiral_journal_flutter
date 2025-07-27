@@ -57,7 +57,7 @@ class EmotionalMirrorService {
       return EmotionalMirrorData(
         moodOverview: moodOverview,
         emotionalTrends: trends,
-        emotionalPatterns: patterns,
+        emotionalPatterns: _convertToEmotionalPatterns(patterns),
         emotionalBalance: balance,
         insights: insights,
         selfAwarenessScore: selfAwarenessScore,
@@ -240,7 +240,7 @@ class EmotionalMirrorService {
       final coreEvolution = _calculateCoreEvolution(entries, cores);
       
       return EmotionalJourneyData(
-        patterns: patterns,
+        patterns: _convertToEmotionalPatterns(patterns),
         trends: trends,
         milestones: milestones,
         coreEvolution: coreEvolution,
@@ -367,7 +367,7 @@ class EmotionalMirrorService {
   List<String> _generateEmotionalInsights(
     List<JournalEntry> entries,
     List<EmotionalCore> cores,
-    List<EmotionalPattern> patterns,
+    List<JournalEmotionalPattern> patterns,
   ) {
     final insights = <String>[];
 
@@ -519,7 +519,21 @@ class EmotionalMirrorService {
   }
 
   /// Generate pattern-based insight
-  String _generatePatternInsight(List<EmotionalPattern> patterns, List<JournalEntry> entries) {
+  /// Convert JournalEmotionalPattern to EmotionalPattern for compatibility
+  List<EmotionalPattern> _convertToEmotionalPatterns(List<JournalEmotionalPattern> journalPatterns) {
+    return journalPatterns.map((jp) => EmotionalPattern(
+      title: jp.title,
+      description: jp.description,
+      type: jp.type,
+      category: jp.category,
+      confidence: 0.7, // Default confidence
+      firstDetected: DateTime.now().subtract(const Duration(days: 7)),
+      lastSeen: DateTime.now(),
+      relatedEmotions: [], // Could be derived from category if needed
+    )).toList();
+  }
+
+  String _generatePatternInsight(List<JournalEmotionalPattern> patterns, List<JournalEntry> entries) {
     if (patterns.isEmpty) return '';
     
     final growthPatterns = patterns.where((p) => p.type == 'growth').toList();
@@ -528,7 +542,8 @@ class EmotionalMirrorService {
     if (growthPatterns.isNotEmpty) {
       // Vary the growth pattern insight
       final pattern = growthPatterns.first;
-      if (pattern.confidence > 0.7) {
+      // Note: JournalEmotionalPattern doesn't have confidence, assume high confidence for growth patterns
+      if (pattern.type == 'growth') {
         return 'Strong ${pattern.title.toLowerCase()} patterns indicate significant emotional development.';
       } else {
         return 'Emerging ${pattern.title.toLowerCase()} trends suggest new areas of personal growth.';

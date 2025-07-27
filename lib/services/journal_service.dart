@@ -506,10 +506,19 @@ class JournalService {
         final emotionalAnalysis = EmotionalAnalysis(
           primaryEmotions: analysis['primary_emotions']?.cast<String>() ?? [],
           emotionalIntensity: (analysis['emotional_intensity'] ?? 0.0).toDouble(),
-          keyThemes: analysis['growth_indicators']?.cast<String>() ?? [],
-          personalizedInsight: analysis['insight']?.toString(),
-          coreImpacts: Map<String, double>.from(analysis['core_impacts'] ?? {}),
+          growthIndicators: analysis['growth_indicators']?.cast<String>() ?? [],
+          coreAdjustments: Map<String, double>.from(analysis['core_adjustments'] ?? {}),
+          mindReflection: analysis['mind_reflection'] != null 
+              ? MindReflection.fromJson(analysis['mind_reflection']) 
+              : null,
+          emotionalPatterns: (analysis['emotional_patterns'] as List?)
+              ?.map((pattern) => JournalEmotionalPattern.fromJson(pattern))
+              .toList() ?? [],
+          entryInsight: analysis['entry_insight'],
           analyzedAt: DateTime.now(),
+          // Legacy fields for backward compatibility
+          keyThemes: analysis['growth_indicators']?.cast<String>() ?? [],
+          personalizedInsight: analysis['entry_insight'] ?? analysis['insight']?.toString(),
         );
         
         final updatedEntry = entry.copyWith(

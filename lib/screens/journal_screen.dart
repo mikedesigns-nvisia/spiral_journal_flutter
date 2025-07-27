@@ -453,8 +453,12 @@ class _JournalScreenState extends State<JournalScreen> {
         emotionalIntensity: analysisResult.emotionalIntensity,
         keyThemes: analysisResult.keyThemes,
         personalizedInsight: analysisResult.personalizedInsight,
-        coreImpacts: {}, // TODO: Add core impacts if available
         analyzedAt: DateTime.now(),
+        growthIndicators: analysisResult.growthIndicators,
+        coreAdjustments: {},
+        mindReflection: null,
+        emotionalPatterns: [],
+        entryInsight: analysisResult.personalizedInsight,
       );
 
       // Update the saved entry with AI analysis results
@@ -495,7 +499,7 @@ class _JournalScreenState extends State<JournalScreen> {
             backgroundColor: AppTheme.accentGreen,
             duration: const Duration(seconds: 4),
             action: SnackBarAction(
-              label: 'View Details',
+              label: 'View Analysis',
               onPressed: () => _showDetailedAnalysisResults(analysisResult, analysisTime),
             ),
           ),
@@ -529,228 +533,174 @@ class _JournalScreenState extends State<JournalScreen> {
   }
 
   void _showDetailedAnalysisResults(dynamic analysisResult, Duration analysisTime) {
-    showDialog(
+    showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
       builder: (BuildContext context) {
-        return AlertDialog(
-          title: Row(
-            children: [
-              Icon(
-                Icons.psychology_rounded,
-                color: DesignTokens.getPrimaryColor(context),
+        return DraggableScrollableSheet(
+          initialChildSize: 0.9,
+          minChildSize: 0.5,
+          maxChildSize: 0.95,
+          builder: (context, scrollController) {
+            return Container(
+              decoration: BoxDecoration(
+                color: Theme.of(context).scaffoldBackgroundColor,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
               ),
-              const SizedBox(width: 8),
-              const Text('AI Analysis Results'),
-            ],
-          ),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Performance metrics
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: DesignTokens.getColorWithOpacity(
-                      DesignTokens.getPrimaryColor(context), 
-                      0.1
-                    ),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    'Analysis completed in ${analysisTime.inMilliseconds}ms',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      fontWeight: FontWeight.w500,
+              child: Column(
+                children: [
+                  // Handle bar for dragging
+                  Container(
+                    width: 40,
+                    height: 4,
+                    margin: const EdgeInsets.symmetric(vertical: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[300],
+                      borderRadius: BorderRadius.circular(2),
                     ),
                   ),
-                ),
-                const SizedBox(height: 16),
-                
-                // Personal insight
-                if (analysisResult.personalizedInsight.isNotEmpty) ...[
-                  Text(
-                    'Personal Insight:',
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    analysisResult.personalizedInsight,
-                    style: Theme.of(context).textTheme.bodyMedium,
-                  ),
-                  const SizedBox(height: 16),
-                ],
-                
-                // Detected emotions
-                if (analysisResult.primaryEmotions.isNotEmpty) ...[
-                  Text(
-                    'Detected Emotions:',
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 6,
-                    runSpacing: 6,
-                    children: analysisResult.primaryEmotions.map<Widget>((emotion) {
-                      return Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: DesignTokens.getMoodColor(emotion),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text(
-                          emotion,
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                  const SizedBox(height: 16),
-                ],
-                
-                // Cores Represented
-                Consumer<CoreProvider>(
-                  builder: (context, coreProvider, child) {
-                    final affectedCores = _getAffectedCores(coreProvider, analysisResult.keyThemes);
-                    
-                    if (affectedCores.isEmpty) return const SizedBox.shrink();
-                    
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                  // Header with close button
+                  Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Row(
                       children: [
-                        Text(
-                          'Cores Represented:',
-                          style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                            fontWeight: FontWeight.w600,
+                        Icon(
+                          Icons.psychology_rounded,
+                          color: DesignTokens.getPrimaryColor(context),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'AI Analysis Results',
+                            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
-                        const SizedBox(height: 8),
-                        ...affectedCores.map<Widget>((coreData) {
-                          final core = coreData['core'] as EmotionalCore;
-                          final contribution = coreData['contribution'] as String;
-                          final coreColor = _getCoreColorFromHex(core.color);
-                          
-                          return Container(
-                            margin: const EdgeInsets.only(bottom: 8),
+                        IconButton(
+                          onPressed: () => Navigator.of(context).pop(),
+                          icon: const Icon(Icons.close),
+                        ),
+                      ],
+                    ),
+                  ),
+                  // Content area
+                  Expanded(
+                    child: SingleChildScrollView(
+                      controller: scrollController,
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Performance metrics
+                          Container(
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
-                              color: coreColor.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(
-                                color: coreColor.withOpacity(0.3),
-                                width: 1,
+                              color: DesignTokens.getColorWithOpacity(
+                                DesignTokens.getPrimaryColor(context), 
+                                0.1
                               ),
+                              borderRadius: BorderRadius.circular(8),
                             ),
                             child: Row(
                               children: [
-                                Container(
-                                  padding: const EdgeInsets.all(6),
-                                  decoration: BoxDecoration(
-                                    color: coreColor.withOpacity(0.8),
-                                    borderRadius: BorderRadius.circular(6),
-                                  ),
-                                  child: Icon(
-                                    _getCoreIcon(core.name),
-                                    size: 16,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        core.name,
-                                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                          fontWeight: FontWeight.w600,
-                                          color: coreColor,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 2),
-                                      Text(
-                                        contribution,
-                                        style: HeadingSystem.getLabelSmall(context).copyWith(
-                                          color: DesignTokens.getTextSecondary(context),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
                                 Icon(
-                                  Icons.trending_up_rounded,
-                                  size: 14,
-                                  color: coreColor,
+                                  Icons.speed,
+                                  size: 16,
+                                  color: DesignTokens.getPrimaryColor(context),
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'Analysis completed in ${analysisTime.inMilliseconds}ms',
+                                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    fontWeight: FontWeight.w500,
+                                  ),
                                 ),
                               ],
                             ),
-                          );
-                        }).toList(),
-                        const SizedBox(height: 16),
-                      ],
-                    );
-                  },
-                ),
-                
-                // Emotional metrics
-                Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Intensity',
-                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              fontWeight: FontWeight.w600,
+                          ),
+                          const SizedBox(height: 20),
+                          
+                          // Show the complete PostAnalysisDisplay if we have today's entry
+                          if (_todaysAnalyzedEntry != null) 
+                            PostAnalysisDisplay(
+                              journalEntry: _todaysAnalyzedEntry!,
+                              analysisResult: null,
+                              onViewAnalysis: null, // Don't show view analysis button in modal
+                            )
+                          else
+                            // Fallback content for old analysis results
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // Personal insight
+                                if (analysisResult.personalizedInsight.isNotEmpty) ...[
+                                  Text(
+                                    'Personal Insight:',
+                                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  Container(
+                                    padding: const EdgeInsets.all(16),
+                                    decoration: BoxDecoration(
+                                      color: DesignTokens.getColorWithOpacity(
+                                        DesignTokens.getPrimaryColor(context), 
+                                        0.1
+                                      ),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Text(
+                                      analysisResult.personalizedInsight,
+                                      style: Theme.of(context).textTheme.bodyMedium,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 20),
+                                ],
+                                
+                                // Detected emotions
+                                if (analysisResult.primaryEmotions.isNotEmpty) ...[
+                                  Text(
+                                    'Detected Emotions:',
+                                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  Wrap(
+                                    spacing: 8,
+                                    runSpacing: 8,
+                                    children: analysisResult.primaryEmotions.map<Widget>((emotion) {
+                                      return Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                        decoration: BoxDecoration(
+                                          color: DesignTokens.getMoodColor(emotion),
+                                          borderRadius: BorderRadius.circular(16),
+                                        ),
+                                        child: Text(
+                                          emotion,
+                                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                      );
+                                    }).toList(),
+                                  ),
+                                  const SizedBox(height: 20),
+                                ],
+                              ],
                             ),
-                          ),
-                          Text(
-                            '${(analysisResult.emotionalIntensity * 10).toStringAsFixed(1)}/10',
-                            style: Theme.of(context).textTheme.bodyMedium,
-                          ),
                         ],
                       ),
                     ),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Sentiment',
-                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          Text(
-                            analysisResult.overallSentiment > 0.1 
-                                ? 'Positive' 
-                                : analysisResult.overallSentiment < -0.1 
-                                    ? 'Negative' 
-                                    : 'Neutral',
-                            style: Theme.of(context).textTheme.bodyMedium,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Close'),
-            ),
-          ],
+                  ),
+                ],
+              ),
+            );
+          },
         );
       },
     );
@@ -851,7 +801,7 @@ class _JournalScreenState extends State<JournalScreen> {
                 ? PostAnalysisDisplay(
                     journalEntry: _todaysAnalyzedEntry!,
                     analysisResult: _todaysAnalysisResult!,
-                    onCreateNewEntry: _resetToNewEntry,
+                    onViewAnalysis: () => _showDetailedAnalysisResults(_todaysAnalysisResult, Duration.zero),
                   )
                 : Column(
                     crossAxisAlignment: CrossAxisAlignment.start,

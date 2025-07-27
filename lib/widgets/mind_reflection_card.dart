@@ -24,7 +24,7 @@ class MindReflectionCard extends StatelessWidget {
             children: [
               // Header section using standardized component
               CardHeader(
-                icon: Icons.psychology_rounded,
+                icon: Icons.auto_awesome_rounded,
                 title: 'Mind Reflection',
                 iconBackgroundColor: DesignTokens.accentYellow,
                 iconColor: Colors.white,
@@ -231,27 +231,72 @@ class MindReflectionCard extends StatelessWidget {
 
   /// Get the primary emotional state from recent journal entries
   EmotionalState? _getPrimaryEmotionalState(BuildContext context, JournalProvider journalProvider) {
-    final recentEntries = journalProvider.entries.take(5).toList();
+    final recentEntries = journalProvider.entries.take(10).toList(); // Look at more entries
     
     if (recentEntries.isEmpty) return null;
     
-    // Find the most recent entry with AI analysis
+    // Collect all emotions and intensities from recent analyzed entries
+    final List<Map<String, dynamic>> emotionData = [];
+    
     for (final entry in recentEntries) {
       if (entry.isAnalyzed && entry.aiAnalysis != null && entry.aiAnalysis!.primaryEmotions.isNotEmpty) {
-        final primaryEmotion = entry.aiAnalysis!.primaryEmotions.first;
-        final intensity = entry.aiAnalysis!.emotionalIntensity;
-        
-        return EmotionalState.create(
-          emotion: primaryEmotion,
-          intensity: intensity,
-          confidence: 0.8, // Default confidence
-          context: context,
-          customDescription: _getEmotionDescription(primaryEmotion),
-        );
+        for (final emotion in entry.aiAnalysis!.primaryEmotions) {
+          emotionData.add({
+            'emotion': emotion,
+            'intensity': entry.aiAnalysis!.emotionalIntensity,
+            'date': entry.date,
+          });
+        }
       }
     }
     
-    return null;
+    if (emotionData.isEmpty) return null;
+    
+    // Find the most frequent emotion in recent entries
+    final emotionCounts = <String, List<double>>{};
+    for (final data in emotionData) {
+      final emotion = data['emotion'] as String;
+      final intensity = data['intensity'] as double;
+      
+      emotionCounts[emotion] ??= [];
+      emotionCounts[emotion]!.add(intensity);
+    }
+    
+    // Calculate weighted average for each emotion
+    String dominantEmotion = '';
+    double maxWeight = 0.0;
+    double avgIntensity = 0.0;
+    
+    for (final entry in emotionCounts.entries) {
+      final emotion = entry.key;
+      final intensities = entry.value;
+      final avgEmotionIntensity = intensities.reduce((a, b) => a + b) / intensities.length;
+      final weight = intensities.length * avgEmotionIntensity; // Frequency * avg intensity
+      
+      if (weight > maxWeight) {
+        maxWeight = weight;
+        dominantEmotion = emotion;
+        avgIntensity = avgEmotionIntensity;
+      }
+    }
+    
+    if (dominantEmotion.isEmpty) return null;
+    
+    // Ensure intensity is in 0.0-1.0 range
+    final normalizedIntensity = avgIntensity > 1.0 ? avgIntensity / 10.0 : avgIntensity;
+    final clampedIntensity = normalizedIntensity.clamp(0.0, 1.0);
+    
+    // Calculate confidence based on frequency and consistency
+    final frequency = emotionCounts[dominantEmotion]!.length;
+    final confidence = (frequency / recentEntries.length.toDouble()).clamp(0.3, 1.0);
+    
+    return EmotionalState.create(
+      emotion: dominantEmotion,
+      intensity: clampedIntensity,
+      confidence: confidence,
+      context: context,
+      customDescription: _getEmotionDescription(dominantEmotion),
+    );
   }
 
 

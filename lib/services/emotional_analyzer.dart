@@ -1,6 +1,5 @@
 import 'package:flutter/foundation.dart';
 import '../models/journal_entry.dart';
-import '../models/core.dart';
 
 /// Service for analyzing emotional patterns and extracting structured insights from AI responses.
 /// 
@@ -82,15 +81,11 @@ class EmotionalAnalyzer {
         coreImpacts: result.coreImpacts.map((key, value) => 
             MapEntry(key, value.clamp(-1.0, 1.0))),
         emotionalPatterns: result.emotionalPatterns
-            .map((pattern) => EmotionalPattern(
+            .map((pattern) => JournalEmotionalPattern(
               title: _sanitizeText(pattern.title),
               description: _sanitizeText(pattern.description, maxLength: 200),
               type: pattern.type,
               category: _sanitizeText(pattern.category),
-              confidence: pattern.confidence,
-              firstDetected: pattern.firstDetected,
-              lastSeen: pattern.lastSeen,
-              relatedEmotions: pattern.relatedEmotions,
             ))
             .take(3) // Limit to 3 patterns max
             .toList(),
@@ -108,11 +103,11 @@ class EmotionalAnalyzer {
   }
 
   /// Extract emotional patterns from multiple journal entries
-  List<EmotionalPattern> identifyPatterns(List<JournalEntry> entries) {
+  List<JournalEmotionalPattern> identifyPatterns(List<JournalEntry> entries) {
     if (entries.isEmpty) return [];
 
     try {
-      final patterns = <EmotionalPattern>[];
+      final patterns = <JournalEmotionalPattern>[];
 
       // Analyze mood frequency patterns
       final moodFrequency = _analyzeMoodFrequency(entries);
@@ -387,27 +382,17 @@ class EmotionalAnalyzer {
     }
   }
 
-  List<EmotionalPattern> _extractEmotionalPatterns(Map<String, dynamic> response) {
+  List<JournalEmotionalPattern> _extractEmotionalPatterns(Map<String, dynamic> response) {
     try {
       final patterns = response['emotional_patterns'] as List<dynamic>?;
       if (patterns != null) {
         return patterns.map((pattern) {
           final patternMap = pattern as Map<String, dynamic>;
-          return EmotionalPattern(
+          return JournalEmotionalPattern(
             title: patternMap['title'] as String? ?? 'Emotional Development',
             description: patternMap['description'] as String? ?? 'Developing emotional awareness',
             type: patternMap['type'] as String? ?? 'growth',
             category: patternMap['category'] as String? ?? 'Growth',
-            confidence: (patternMap['confidence'] as num?)?.toDouble() ?? 0.7,
-            firstDetected: patternMap['firstDetected'] != null 
-                ? DateTime.parse(patternMap['firstDetected'])
-                : DateTime.now(),
-            lastSeen: patternMap['lastSeen'] != null 
-                ? DateTime.parse(patternMap['lastSeen'])
-                : DateTime.now(),
-            relatedEmotions: patternMap['relatedEmotions'] != null 
-                ? List<String>.from(patternMap['relatedEmotions'])
-                : [],
           );
         }).toList();
       }
@@ -453,15 +438,11 @@ class EmotionalAnalyzer {
       personalizedInsight: 'Thank you for taking time to reflect and journal.',
       coreImpacts: {'Self-Awareness': 0.1},
       emotionalPatterns: [
-        EmotionalPattern(
+        JournalEmotionalPattern(
           title: 'Journaling Practice',
           description: 'Building emotional awareness through writing',
           type: 'growth',
           category: 'Growth',
-          confidence: 0.7,
-          firstDetected: DateTime.now(),
-          lastSeen: DateTime.now(),
-          relatedEmotions: entry.moods.isNotEmpty ? [entry.moods.first] : ['neutral'],
         ),
       ],
       growthIndicators: ['self_reflection'],
@@ -500,26 +481,22 @@ class EmotionalAnalyzer {
     return frequency;
   }
 
-  EmotionalPattern _createMoodPattern(Map<String, int> moodFrequency) {
+  JournalEmotionalPattern _createMoodPattern(Map<String, int> moodFrequency) {
     final sortedMoods = moodFrequency.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
     
     final topMood = sortedMoods.first.key;
     final frequency = sortedMoods.first.value;
     
-    return EmotionalPattern(
+    return JournalEmotionalPattern(
       title: 'Dominant Emotional State',
       description: 'Your most frequent mood is "$topMood" appearing $frequency times, indicating a consistent emotional pattern.',
       type: 'recurring',
       category: 'Mood Patterns',
-      confidence: 0.8,
-      firstDetected: DateTime.now().subtract(const Duration(days: 30)),
-      lastSeen: DateTime.now(),
-      relatedEmotions: [topMood],
     );
   }
 
-  EmotionalPattern? _analyzeTemporalPatterns(List<JournalEntry> entries) {
+  JournalEmotionalPattern? _analyzeTemporalPatterns(List<JournalEntry> entries) {
     if (entries.length < 3) return null;
     
     // Analyze day of week patterns
@@ -533,55 +510,43 @@ class EmotionalAnalyzer {
     
     if (sortedDays.isNotEmpty && sortedDays.first.value > 1) {
       final topDay = sortedDays.first.key;
-      return EmotionalPattern(
+      return JournalEmotionalPattern(
         title: 'Journaling Rhythm',
         description: 'You tend to journal most frequently on $topDay, showing a consistent reflection pattern.',
         type: 'recurring',
         category: 'Temporal Patterns',
-        confidence: 0.7,
-        firstDetected: DateTime.now().subtract(const Duration(days: 21)),
-        lastSeen: DateTime.now(),
-        relatedEmotions: ['consistent', 'routine'],
       );
     }
     
     return null;
   }
 
-  EmotionalPattern? _analyzeContentLengthPatterns(List<JournalEntry> entries) {
+  JournalEmotionalPattern? _analyzeContentLengthPatterns(List<JournalEntry> entries) {
     if (entries.length < 3) return null;
     
     final lengths = entries.map((e) => e.content.split(' ').length).toList();
     final avgLength = lengths.reduce((a, b) => a + b) / lengths.length;
     
     if (avgLength > 100) {
-      return EmotionalPattern(
+      return JournalEmotionalPattern(
         title: 'Detailed Reflection',
         description: 'Your entries average ${avgLength.round()} words, showing deep, thoughtful reflection.',
         type: 'growth',
         category: 'Expression Patterns',
-        confidence: 0.8,
-        firstDetected: DateTime.now().subtract(const Duration(days: 14)),
-        lastSeen: DateTime.now(),
-        relatedEmotions: ['thoughtful', 'expressive'],
       );
     } else if (avgLength < 30) {
-      return EmotionalPattern(
+      return JournalEmotionalPattern(
         title: 'Concise Expression',
         description: 'Your entries are concise, averaging ${avgLength.round()} words. Consider expanding for deeper insights.',
         type: 'awareness',
         category: 'Expression Patterns',
-        confidence: 0.6,
-        firstDetected: DateTime.now().subtract(const Duration(days: 14)),
-        lastSeen: DateTime.now(),
-        relatedEmotions: ['brief', 'focused'],
       );
     }
     
     return null;
   }
 
-  EmotionalPattern? _analyzeIntensityPatterns(List<JournalEntry> entries) {
+  JournalEmotionalPattern? _analyzeIntensityPatterns(List<JournalEntry> entries) {
     if (entries.length < 3) return null;
     
     // Simple intensity calculation based on mood variety and content
@@ -595,15 +560,11 @@ class EmotionalAnalyzer {
     final avgIntensity = intensities.reduce((a, b) => a + b) / intensities.length;
     
     if (avgIntensity > 2.5) {
-      return EmotionalPattern(
+      return JournalEmotionalPattern(
         title: 'High Emotional Engagement',
         description: 'Your entries show high emotional intensity, indicating deep engagement with your feelings.',
         type: 'growth',
         category: 'Emotional Intensity',
-        confidence: 0.8,
-        firstDetected: DateTime.now().subtract(const Duration(days: 7)),
-        lastSeen: DateTime.now(),
-        relatedEmotions: ['intense', 'engaged'],
       );
     }
     
@@ -611,10 +572,10 @@ class EmotionalAnalyzer {
   }
 
   /// Remove duplicate patterns based on title and type similarity
-  List<EmotionalPattern> _removeDuplicatePatterns(List<EmotionalPattern> patterns) {
+  List<JournalEmotionalPattern> _removeDuplicatePatterns(List<JournalEmotionalPattern> patterns) {
     if (patterns.length <= 1) return patterns;
 
-    final deduplicatedPatterns = <EmotionalPattern>[];
+    final deduplicatedPatterns = <JournalEmotionalPattern>[];
     final seenTitles = <String>{};
     final seenTypes = <String, int>{};
 
@@ -821,7 +782,7 @@ class EmotionalAnalysisResult {
   final double overallSentiment; // -1 to 1 scale
   final String personalizedInsight;
   final Map<String, double> coreImpacts; // Core name -> impact value
-  final List<EmotionalPattern> emotionalPatterns;
+  final List<JournalEmotionalPattern> emotionalPatterns;
   final List<String> growthIndicators;
   final double validationScore; // 0-1 confidence score
 

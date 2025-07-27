@@ -5,45 +5,140 @@ enum EntryStatus {
   processed  // Entry is processed and cannot be edited (past days)
 }
 
-/// Represents the AI analysis results for a journal entry
-class EmotionalAnalysis {
-  final List<String> primaryEmotions;
-  final double emotionalIntensity; // 0.0 to 1.0
-  final List<String> keyThemes;
-  final String? personalizedInsight;
-  final Map<String, double> coreImpacts; // Impact on each personality core
-  final DateTime analyzedAt;
+/// Represents mind reflection data from AI analysis
+class MindReflection {
+  final String title;
+  final String summary;
+  final List<String> insights;
 
-  EmotionalAnalysis({
-    required this.primaryEmotions,
-    required this.emotionalIntensity,
-    required this.keyThemes,
-    this.personalizedInsight,
-    required this.coreImpacts,
-    required this.analyzedAt,
+  MindReflection({
+    required this.title,
+    required this.summary,
+    required this.insights,
   });
 
-  factory EmotionalAnalysis.fromJson(Map<String, dynamic> json) {
-    return EmotionalAnalysis(
-      primaryEmotions: List<String>.from(json['primaryEmotions'] ?? []),
-      emotionalIntensity: (json['emotionalIntensity'] ?? 0.0).toDouble(),
-      keyThemes: List<String>.from(json['keyThemes'] ?? []),
-      personalizedInsight: json['personalizedInsight'],
-      coreImpacts: Map<String, double>.from(json['coreImpacts'] ?? {}),
-      analyzedAt: DateTime.parse(json['analyzedAt']),
+  factory MindReflection.fromJson(Map<String, dynamic> json) {
+    return MindReflection(
+      title: json['title'] ?? '',
+      summary: json['summary'] ?? '',
+      insights: List<String>.from(json['insights'] ?? []),
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
-      'primaryEmotions': primaryEmotions,
-      'emotionalIntensity': emotionalIntensity,
-      'keyThemes': keyThemes,
-      'personalizedInsight': personalizedInsight,
-      'coreImpacts': coreImpacts,
-      'analyzedAt': analyzedAt.toIso8601String(),
+      'title': title,
+      'summary': summary,
+      'insights': insights,
     };
   }
+}
+
+/// Represents emotional patterns identified in the analysis
+class JournalEmotionalPattern {
+  final String category;
+  final String title;
+  final String description;
+  final String type; // 'growth' or 'challenge'
+
+  JournalEmotionalPattern({
+    required this.category,
+    required this.title,
+    required this.description,
+    required this.type,
+  });
+
+  factory JournalEmotionalPattern.fromJson(Map<String, dynamic> json) {
+    return JournalEmotionalPattern(
+      category: json['category'] ?? '',
+      title: json['title'] ?? '',
+      description: json['description'] ?? '',
+      type: json['type'] ?? 'growth',
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'category': category,
+      'title': title,
+      'description': description,
+      'type': type,
+    };
+  }
+
+  bool get isGrowth => type == 'growth';
+  bool get isChallenge => type == 'challenge';
+}
+
+/// Enhanced AI analysis results matching Claude's response structure
+class EmotionalAnalysis {
+  final List<String> primaryEmotions;
+  final double emotionalIntensity; // 0.0 to 1.0
+  final List<String> growthIndicators;
+  final Map<String, double> coreAdjustments; // Core impact adjustments
+  final MindReflection? mindReflection;
+  final List<JournalEmotionalPattern> emotionalPatterns;
+  final String? entryInsight; // Main insight for the entry
+  final DateTime analyzedAt;
+  
+  // Legacy fields for backward compatibility
+  final List<String> keyThemes;
+  final String? personalizedInsight;
+
+  EmotionalAnalysis({
+    required this.primaryEmotions,
+    required this.emotionalIntensity,
+    this.growthIndicators = const [],
+    this.coreAdjustments = const {},
+    this.mindReflection,
+    this.emotionalPatterns = const [],
+    this.entryInsight,
+    required this.analyzedAt,
+    // Legacy fields
+    this.keyThemes = const [],
+    this.personalizedInsight,
+  });
+
+  factory EmotionalAnalysis.fromJson(Map<String, dynamic> json) {
+    return EmotionalAnalysis(
+      primaryEmotions: List<String>.from(json['primary_emotions'] ?? json['primaryEmotions'] ?? []),
+      emotionalIntensity: (json['emotional_intensity'] ?? json['emotionalIntensity'] ?? 0.0).toDouble(),
+      growthIndicators: List<String>.from(json['growth_indicators'] ?? []),
+      coreAdjustments: Map<String, double>.from(json['core_adjustments'] ?? {}),
+      mindReflection: json['mind_reflection'] != null 
+          ? MindReflection.fromJson(json['mind_reflection']) 
+          : null,
+      emotionalPatterns: (json['emotional_patterns'] as List?)
+          ?.map((pattern) => JournalEmotionalPattern.fromJson(pattern))
+          .toList() ?? [],
+      entryInsight: json['entry_insight'],
+      analyzedAt: json['analyzedAt'] != null 
+          ? DateTime.parse(json['analyzedAt']) 
+          : DateTime.now(),
+      // Legacy fields for backward compatibility
+      keyThemes: List<String>.from(json['keyThemes'] ?? json['key_themes'] ?? []),
+      personalizedInsight: json['personalizedInsight'] ?? json['personalized_insight'],
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'primary_emotions': primaryEmotions,
+      'emotional_intensity': emotionalIntensity,
+      'growth_indicators': growthIndicators,
+      'core_adjustments': coreAdjustments,
+      'mind_reflection': mindReflection?.toJson(),
+      'emotional_patterns': emotionalPatterns.map((p) => p.toJson()).toList(),
+      'entry_insight': entryInsight,
+      'analyzedAt': analyzedAt.toIso8601String(),
+      // Legacy fields
+      'keyThemes': keyThemes,
+      'personalizedInsight': personalizedInsight,
+    };
+  }
+
+  // Convenience getters for backward compatibility
+  Map<String, double> get coreImpacts => coreAdjustments;
 }
 
 class JournalEntry {
