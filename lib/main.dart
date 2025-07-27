@@ -32,7 +32,6 @@ import 'package:spiral_journal/config/api_key_setup.dart';
 import 'package:spiral_journal/config/local_config.dart';
 import 'package:spiral_journal/widgets/app_background.dart';
 import 'package:spiral_journal/utils/ios_theme_enforcer.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:google_fonts/google_fonts.dart';
 void main() async {
   final startTime = DateTime.now();
@@ -41,8 +40,7 @@ void main() async {
   // Initialize error handling system first
   AppErrorHandler.initialize();
   
-  // Load environment variables from .env file
-  await dotenv.load(fileName: ".env");
+  // Environment variables are now injected at build time via --dart-define
   
   // Initialize local configuration system (replaces Firebase)
   await LocalConfig.initialize();

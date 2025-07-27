@@ -32,8 +32,6 @@ dependencies:
   flutter_secure_storage: ^9.2.4
   crypto: ^3.0.6
   
-  # Environment variables support
-  flutter_dotenv: ^5.1.0
   
   # Data export and validation
   convert: ^3.1.1
@@ -59,7 +57,6 @@ flutter:
     - assets/images/
     - assets/icons/
     - assets/fonts/
-    - .env
   
   # Local fonts (cached on install)
   fonts:
