@@ -376,28 +376,204 @@ class EmotionalMirrorService {
       return insights;
     }
 
-    // Analyze recent AI insights
+    // Create a set to track unique insights and avoid duplicates
+    final uniqueInsights = <String>{};
+    
+    // Analyze recent AI insights with deduplication
     final recentInsights = entries
         .where((entry) => entry.aiAnalysis?.personalizedInsight != null)
         .map((entry) => entry.aiAnalysis!.personalizedInsight!)
-        .take(3)
+        .where((insight) => insight.trim().isNotEmpty)
         .toList();
-
-    insights.addAll(recentInsights);
-
-    // Add core-based insights
-    final strongCores = cores.where((core) => core.percentage > 70.0).toList();
-    if (strongCores.isNotEmpty) {
-      insights.add('Your ${strongCores.first.name} is particularly strong, showing consistent growth in this area.');
+    
+    // Add diverse AI insights by checking for similarity
+    for (final insight in recentInsights) {
+      if (_isInsightUnique(insight, uniqueInsights) && uniqueInsights.length < 2) {
+        uniqueInsights.add(insight);
+      }
     }
-
+    
+    // Generate trend-based insights
+    final trendInsight = _generateTrendInsight(entries);
+    if (trendInsight.isNotEmpty && _isInsightUnique(trendInsight, uniqueInsights)) {
+      uniqueInsights.add(trendInsight);
+    }
+    
+    // Add core-based insights with variety
+    final coreInsight = _generateCoreInsight(cores);
+    if (coreInsight.isNotEmpty && _isInsightUnique(coreInsight, uniqueInsights)) {
+      uniqueInsights.add(coreInsight);
+    }
+    
     // Add pattern-based insights
-    final growthPatterns = patterns.where((p) => p.type == 'growth').toList();
-    if (growthPatterns.isNotEmpty) {
-      insights.add(growthPatterns.first.description);
+    final patternInsight = _generatePatternInsight(patterns, entries);
+    if (patternInsight.isNotEmpty && _isInsightUnique(patternInsight, uniqueInsights)) {
+      uniqueInsights.add(patternInsight);
     }
+    
+    // Add emotional balance insight if we need more variety
+    if (uniqueInsights.length < 3) {
+      final balanceInsight = _generateBalanceInsight(entries);
+      if (_isInsightUnique(balanceInsight, uniqueInsights)) {
+        uniqueInsights.add(balanceInsight);
+      }
+    }
+    
+    // Ensure we have at least 2 insights
+    if (uniqueInsights.length < 2) {
+      uniqueInsights.add('Your emotional self-awareness continues to develop through consistent journaling practice.');
+    }
+    
+    return uniqueInsights.take(4).toList();
+  }
 
-    return insights.take(4).toList();
+  /// Check if an insight is sufficiently unique compared to existing insights
+  bool _isInsightUnique(String newInsight, Set<String> existingInsights) {
+    if (existingInsights.isEmpty) return true;
+    
+    final newWords = newInsight.toLowerCase().split(RegExp(r'\W+'));
+    
+    for (final existing in existingInsights) {
+      final existingWords = existing.toLowerCase().split(RegExp(r'\W+'));
+      
+      // Calculate word overlap
+      final commonWords = newWords.where((word) => 
+        existingWords.contains(word) && word.length > 3).length;
+      
+      // If more than 40% of significant words overlap, consider it similar
+      final overlapRatio = commonWords / (newWords.where((w) => w.length > 3).length);
+      if (overlapRatio > 0.4) {
+        return false;
+      }
+    }
+    
+    return true;
+  }
+
+  /// Generate trend-based insight
+  String _generateTrendInsight(List<JournalEntry> entries) {
+    if (entries.length < 3) return '';
+    
+    // Analyze emotional intensity trends
+    final recentEntries = entries.take(7).toList();
+    final intensities = recentEntries
+        .where((e) => e.aiAnalysis?.emotionalIntensity != null)
+        .map((e) => e.aiAnalysis!.emotionalIntensity)
+        .toList();
+    
+    if (intensities.length >= 3) {
+      final avgEarly = intensities.take(intensities.length ~/ 2).fold(0.0, (a, b) => a + b) / (intensities.length ~/ 2);
+      final avgRecent = intensities.skip(intensities.length ~/ 2).fold(0.0, (a, b) => a + b) / (intensities.length - intensities.length ~/ 2);
+      
+      if (avgRecent > avgEarly + 0.1) {
+        return 'Your emotional intensity has been increasing recently, suggesting deeper engagement with your feelings.';
+      } else if (avgEarly > avgRecent + 0.1) {
+        return 'You\'ve been experiencing more balanced emotional states lately, indicating growing emotional regulation.';
+      }
+    }
+    
+    // Analyze consistency patterns
+    final journalingFreq = entries.length / 30.0; // entries per day over 30 days
+    if (journalingFreq > 0.8) {
+      return 'Your consistent journaling practice demonstrates strong commitment to emotional self-discovery.';
+    } else if (journalingFreq > 0.5) {
+      return 'Regular journaling sessions are building your emotional vocabulary and self-awareness.';
+    }
+    
+    return '';
+  }
+
+  /// Generate core-based insight with variety
+  String _generateCoreInsight(List<EmotionalCore> cores) {
+    if (cores.isEmpty) return '';
+    
+    // Sort cores by percentage to find patterns
+    final sortedCores = cores.toList()..sort((a, b) => b.percentage.compareTo(a.percentage));
+    
+    final strongCores = sortedCores.where((core) => core.percentage > 70.0).toList();
+    final growingCores = sortedCores.where((core) => 
+      core.currentLevel > core.previousLevel && core.percentage > 50.0).toList();
+    
+    if (strongCores.isNotEmpty) {
+      final topCore = strongCores.first;
+      final coreInsights = [
+        'Your ${topCore.name} core shows exceptional development, reflecting consistent growth in this area.',
+        '${topCore.name} emerges as a dominant strength, influencing your emotional responses and decisions.',
+        'Strong ${topCore.name} patterns suggest this quality is becoming integral to your personality.',
+        'Your well-developed ${topCore.name} core provides a stable foundation for emotional well-being.',
+      ];
+      final hash = topCore.name.hashCode.abs();
+      return coreInsights[hash % coreInsights.length];
+    }
+    
+    if (growingCores.isNotEmpty) {
+      final growingCore = growingCores.first;
+      return 'Your ${growingCore.name} core is actively developing, showing promising upward trends.';
+    }
+    
+    if (sortedCores.isNotEmpty) {
+      return 'Your personality cores show unique patterns that reflect your individual emotional journey.';
+    }
+    
+    return '';
+  }
+
+  /// Generate pattern-based insight
+  String _generatePatternInsight(List<EmotionalPattern> patterns, List<JournalEntry> entries) {
+    if (patterns.isEmpty) return '';
+    
+    final growthPatterns = patterns.where((p) => p.type == 'growth').toList();
+    final challengePatterns = patterns.where((p) => p.type == 'challenge').toList();
+    
+    if (growthPatterns.isNotEmpty) {
+      // Vary the growth pattern insight
+      final pattern = growthPatterns.first;
+      if (pattern.confidence > 0.7) {
+        return 'Strong ${pattern.title.toLowerCase()} patterns indicate significant emotional development.';
+      } else {
+        return 'Emerging ${pattern.title.toLowerCase()} trends suggest new areas of personal growth.';
+      }
+    }
+    
+    if (challengePatterns.isNotEmpty && entries.length > 5) {
+      return 'Recognizing challenging patterns is the first step toward emotional resilience and growth.';
+    }
+    
+    return '';
+  }
+
+  /// Generate emotional balance insight
+  String _generateBalanceInsight(List<JournalEntry> entries) {
+    final positiveEmotions = ['happy', 'grateful', 'excited', 'calm', 'content', 'joyful'];
+    final challengingEmotions = ['sad', 'anxious', 'stressed', 'frustrated', 'worried'];
+    
+    int positiveCount = 0;
+    int challengingCount = 0;
+    
+    for (final entry in entries) {
+      if (entry.aiAnalysis?.primaryEmotions.isNotEmpty == true) {
+        for (final emotion in entry.aiAnalysis!.primaryEmotions) {
+          if (positiveEmotions.contains(emotion.toLowerCase())) {
+            positiveCount++;
+          } else if (challengingEmotions.contains(emotion.toLowerCase())) {
+            challengingCount++;
+          }
+        }
+      }
+    }
+    
+    final total = positiveCount + challengingCount;
+    if (total == 0) return 'Your emotional journey is just beginning - each entry adds valuable insight.';
+    
+    final positiveRatio = positiveCount / total;
+    
+    if (positiveRatio > 0.7) {
+      return 'Your emotional landscape shows predominantly positive patterns, reflecting inner contentment.';
+    } else if (positiveRatio < 0.3) {
+      return 'Processing challenging emotions demonstrates emotional courage and commitment to growth.';
+    } else {
+      return 'Your emotional balance reflects the natural complexity of human experience and growth.';
+    }
   }
 
   double _calculateSelfAwarenessScore(List<JournalEntry> entries, List<EmotionalCore> cores) {

@@ -102,13 +102,24 @@ class AIServiceManager {
     try {
       String apiKey = _builtInClaudeApiKey;
       
-      // In development mode, check for dev API key
+      // In development mode, check for dev API key (fallback to env if secure storage fails)
       if (DevConfigService.isDevMode) {
-        final devService = DevConfigService();
-        final devApiKey = await devService.getDevClaudeApiKey();
-        if (devApiKey != null && devApiKey.isNotEmpty) {
-          apiKey = devApiKey;
+        try {
+          final devService = DevConfigService();
+          final devApiKey = await devService.getDevClaudeApiKey();
+          if (devApiKey != null && devApiKey.isNotEmpty) {
+            apiKey = devApiKey;
+          }
+        } catch (e) {
+          // If secure storage fails, use environment variable directly
+          debugPrint('Dev config failed, using environment API key: $e');
+          apiKey = _builtInClaudeApiKey;
         }
+      }
+
+      // Debug logging for API key
+      if (kDebugMode) {
+        debugPrint('AIServiceManager: Using API key: ${apiKey.isNotEmpty ? "${apiKey.substring(0, 20)}..." : "empty"}');
       }
 
       final config = AIServiceConfig(
@@ -122,6 +133,13 @@ class AIServiceManager {
       if (apiKey.isNotEmpty && apiKey.startsWith('sk-ant-')) {
         await service.setApiKey(apiKey);
         await service.testConnection();
+        if (kDebugMode) {
+          debugPrint('AIServiceManager: Claude API connection test successful');
+        }
+      } else {
+        if (kDebugMode) {
+          debugPrint('AIServiceManager: No valid API key found, skipping connection test');
+        }
       }
 
       _currentService = service;

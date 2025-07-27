@@ -173,7 +173,7 @@ class PostAnalysisDisplay extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         ResponsiveText(
-          'Key Themes',
+          'Cores Represented',
           baseFontSize: DesignTokens.fontSizeL,
           fontWeight: DesignTokens.fontWeightSemiBold,
           color: DesignTokens.getTextPrimary(context),

@@ -218,12 +218,8 @@ class _YourCoresCardState extends State<YourCoresCard>
       triggeredBy: 'core_tap',
     );
     
-    // Navigate to specific core with context
-    await _navigationService.navigateToCoreWithTransition(
-      context,
-      core.id,
-      navigationContext: navigationContext,
-    );
+    // Navigate to core library and highlight the specific core
+    NavigationService.instance.switchToTab(NavigationService.insightsTab);
   }
   
   Future<void> _onExploreAllPressed(BuildContext context) async {
@@ -580,8 +576,8 @@ class _YourCoresCardState extends State<YourCoresCard>
                   constraints: BoxConstraints(
                     minHeight: _accessibilityService.getMinimumTouchTargetSize(),
                   ),
-              padding: EdgeInsets.all(DesignTokens.spaceXL),
-              decoration: BoxDecoration(
+                  padding: EdgeInsets.all(DesignTokens.spaceXL),
+                  decoration: BoxDecoration(
                 color: DesignTokens.getColorWithOpacity(coreColor, 0.1),
                 borderRadius: BorderRadius.circular(DesignTokens.radiusL),
                 border: Border.all(

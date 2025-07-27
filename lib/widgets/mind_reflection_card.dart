@@ -5,15 +5,18 @@ import 'package:spiral_journal/services/navigation_service.dart';
 import 'package:spiral_journal/widgets/base_card.dart';
 import 'package:spiral_journal/theme/app_theme.dart';
 import 'package:spiral_journal/providers/emotional_mirror_provider.dart';
+import 'package:spiral_journal/providers/journal_provider.dart';
 import 'package:spiral_journal/models/emotional_mirror_data.dart';
+import 'package:spiral_journal/models/emotional_state.dart';
+import 'package:spiral_journal/widgets/primary_emotional_state_widget.dart';
 
 class MindReflectionCard extends StatelessWidget {
   const MindReflectionCard({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<EmotionalMirrorProvider>(
-      builder: (context, mirrorProvider, child) {
+    return Consumer2<EmotionalMirrorProvider, JournalProvider>(
+      builder: (context, mirrorProvider, journalProvider, child) {
         return BaseCard(
           margin: EdgeInsets.zero,
           child: Column(
@@ -30,13 +33,13 @@ class MindReflectionCard extends StatelessWidget {
               
               // Analysis content section using standardized container
               CardContentContainer(
-                child: _buildContent(context, mirrorProvider),
+                child: _buildContent(context, mirrorProvider, journalProvider),
               ),
               SizedBox(height: DesignTokens.spaceXL),
               
               // Footer section using standardized component
               CardFooter(
-                description: _getFooterDescription(mirrorProvider),
+                description: _getFooterDescription(mirrorProvider, journalProvider),
                 ctaText: 'View Details',
                 onCtaPressed: () {
                   NavigationService.instance.switchToTab(NavigationService.mirrorTab);
@@ -49,8 +52,11 @@ class MindReflectionCard extends StatelessWidget {
     );
   }
 
-  Widget _buildContent(BuildContext context, EmotionalMirrorProvider provider) {
-    if (provider.isLoading) {
+  Widget _buildContent(BuildContext context, EmotionalMirrorProvider provider, JournalProvider journalProvider) {
+    // Get the primary emotional state from recent journal entries
+    final primaryEmotionalState = _getPrimaryEmotionalState(context, journalProvider);
+    
+    if (provider.isLoading || journalProvider.isLoading) {
       return Column(
         children: [
           CircularProgressIndicator(
@@ -58,7 +64,7 @@ class MindReflectionCard extends StatelessWidget {
           ),
           SizedBox(height: DesignTokens.spaceL),
           Text(
-            'Analyzing your journal insights...',
+            'Analyzing your emotional state...',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
               color: DesignTokens.getTextSecondary(context),
             ),
@@ -90,6 +96,50 @@ class MindReflectionCard extends StatelessWidget {
       );
     }
 
+    // If we have a primary emotional state, use the PrimaryEmotionalStateWidget
+    if (primaryEmotionalState != null) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Current Emotional Reflection',
+            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+              fontWeight: FontWeight.w600,
+              color: DesignTokens.getTextPrimary(context),
+            ),
+          ),
+          SizedBox(height: DesignTokens.spaceXL),
+          
+          // Use the actual PrimaryEmotionalStateWidget
+          PrimaryEmotionalStateWidget(
+            primaryState: primaryEmotionalState,
+            showAnimation: false, // Disable animations in card context
+            showTabs: false, // Only show primary emotion
+            showTimestamp: false, // Hide timestamp in card
+            focusable: false, // Not focusable in card context
+            onTap: () {
+              NavigationService.instance.switchToTab(NavigationService.mirrorTab);
+            },
+          ),
+          
+          SizedBox(height: DesignTokens.spaceXL),
+          
+          // Add personalized insights based on the emotion
+          ..._generateInsightsFromState(primaryEmotionalState).asMap().entries.map((entry) {
+            final index = entry.key;
+            final insight = entry.value;
+            return Column(
+              children: [
+                _buildInsightBullet(context, insight),
+                if (index < 2) SizedBox(height: DesignTokens.spaceL), // Only show spacing between first 3 insights
+              ],
+            );
+          }).take(3).toList(),
+        ],
+      );
+    }
+
+    // Fallback to mirror data insights if no primary state
     final mirrorData = provider.mirrorData;
     if (mirrorData == null || mirrorData.insights.isEmpty) {
       return Column(
@@ -114,14 +164,13 @@ class MindReflectionCard extends StatelessWidget {
       );
     }
 
-    // Show real insights from the emotional mirror data
-    final insights = mirrorData.insights.take(3).toList(); // Show top 3 insights
+    // Show insights from the emotional mirror data
+    final insights = mirrorData.insights.take(3).toList();
     final moodDescription = mirrorData.moodOverview.description;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Title with consistent styling
         Text(
           'Emotional Pattern Analysis',
           style: Theme.of(context).textTheme.bodyLarge?.copyWith(
@@ -133,7 +182,6 @@ class MindReflectionCard extends StatelessWidget {
         ),
         SizedBox(height: DesignTokens.spaceXL),
         
-        // Description from real mood overview
         Text(
           moodDescription,
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
@@ -143,7 +191,6 @@ class MindReflectionCard extends StatelessWidget {
         ),
         SizedBox(height: DesignTokens.spaceXXL),
         
-        // Real insight bullets
         ...insights.asMap().entries.map((entry) {
           final index = entry.key;
           final insight = entry.value;
@@ -158,14 +205,22 @@ class MindReflectionCard extends StatelessWidget {
     );
   }
 
-  String _getFooterDescription(EmotionalMirrorProvider provider) {
+  String _getFooterDescription(EmotionalMirrorProvider provider, JournalProvider journalProvider) {
+    // Note: We can't get context here, so we'll check journal provider differently
+    final recentEntries = journalProvider.entries.take(5).toList();
+    final hasRecentEmotionalData = recentEntries.any((entry) => 
+      entry.isAnalyzed && entry.aiAnalysis != null && entry.aiAnalysis!.primaryEmotions.isNotEmpty);
+    
+    if (hasRecentEmotionalData) {
+      return 'Based on your recent emotional state';
+    }
+    
     final mirrorData = provider.mirrorData;
     if (mirrorData == null) {
       return 'Connect with your emotional patterns';
     }
     
     final analyzedCount = mirrorData.analyzedEntries;
-    final totalCount = mirrorData.totalEntries;
     
     if (analyzedCount == 0) {
       return 'Start journaling to see insights';
@@ -173,6 +228,217 @@ class MindReflectionCard extends StatelessWidget {
     
     return 'Based on $analyzedCount analyzed entries';
   }
+
+  /// Get the primary emotional state from recent journal entries
+  EmotionalState? _getPrimaryEmotionalState(BuildContext context, JournalProvider journalProvider) {
+    final recentEntries = journalProvider.entries.take(5).toList();
+    
+    if (recentEntries.isEmpty) return null;
+    
+    // Find the most recent entry with AI analysis
+    for (final entry in recentEntries) {
+      if (entry.isAnalyzed && entry.aiAnalysis != null && entry.aiAnalysis!.primaryEmotions.isNotEmpty) {
+        final primaryEmotion = entry.aiAnalysis!.primaryEmotions.first;
+        final intensity = entry.aiAnalysis!.emotionalIntensity;
+        
+        return EmotionalState.create(
+          emotion: primaryEmotion,
+          intensity: intensity,
+          confidence: 0.8, // Default confidence
+          context: context,
+          customDescription: _getEmotionDescription(primaryEmotion),
+        );
+      }
+    }
+    
+    return null;
+  }
+
+
+  /// Generate insights based on emotional state with variety and context
+  List<String> _generateInsightsFromState(EmotionalState state) {
+    final insights = <String>[];
+    final emotion = state.emotion.toLowerCase();
+    final intensity = state.intensity;
+    final timestamp = state.timestamp;
+    
+    // Generate time-aware insights
+    final timeContext = _getTimeContext(timestamp);
+    final intensityLevel = _getIntensityLevel(intensity);
+    
+    // Generate varied insights based on emotion and context
+    final baseInsights = _getEmotionInsights(emotion, intensityLevel, timeContext);
+    insights.addAll(baseInsights);
+    
+    // Add contextual insights based on time and intensity patterns
+    final contextualInsight = _generateContextualInsight(emotion, intensity, timeContext);
+    if (contextualInsight.isNotEmpty && !insights.contains(contextualInsight)) {
+      insights.add(contextualInsight);
+    }
+    
+    // Add growth-oriented insight
+    final growthInsight = _generateGrowthInsight(emotion, intensity);
+    if (growthInsight.isNotEmpty && !insights.contains(growthInsight)) {
+      insights.add(growthInsight);
+    }
+    
+    // Ensure we have at least 2 unique insights
+    if (insights.length < 2) {
+      insights.add('Your emotional awareness is developing through mindful reflection');
+    }
+    
+    return insights.take(3).toList();
+  }
+
+  /// Get time-based context for insights
+  String _getTimeContext(DateTime timestamp) {
+    final now = DateTime.now();
+    final timeDiff = now.difference(timestamp);
+    
+    if (timeDiff.inMinutes < 30) return 'recent';
+    if (timeDiff.inHours < 6) return 'earlier_today';
+    if (timeDiff.inDays < 1) return 'today';
+    if (timeDiff.inDays < 7) return 'this_week';
+    return 'past';
+  }
+
+  /// Get intensity level description
+  String _getIntensityLevel(double intensity) {
+    if (intensity > 0.8) return 'high';
+    if (intensity > 0.6) return 'strong';
+    if (intensity > 0.4) return 'moderate';
+    if (intensity > 0.2) return 'mild';
+    return 'subtle';
+  }
+
+  /// Generate varied insights based on emotion type
+  List<String> _getEmotionInsights(String emotion, String intensity, String timeContext) {
+    final insights = <String>[];
+    
+    // Create insight pools for each emotion type
+    if (emotion.contains('happy') || emotion.contains('joy')) {
+      final happyInsights = [
+        'Your positive energy creates ripples of joy in your daily experience',
+        'Happiness reflects your inner alignment with what truly matters',
+        'This joyful state enhances your creativity and social connections',
+        'Your optimism is a strength that helps you navigate life\'s challenges',
+        'Joy often emerges when we feel grateful and present in the moment',
+      ];
+      insights.add(_selectVariedInsight(happyInsights, emotion, intensity));
+      
+    } else if (emotion.contains('calm') || emotion.contains('peaceful')) {
+      final calmInsights = [
+        'Inner peace allows for deeper self-understanding and clarity',
+        'Your calm state creates space for meaningful reflection and growth',
+        'Tranquility indicates a healthy balance between action and rest',
+        'This peaceful moment offers an opportunity for renewed perspective',
+        'Calmness strengthens your ability to respond rather than react',
+      ];
+      insights.add(_selectVariedInsight(calmInsights, emotion, intensity));
+      
+    } else if (emotion.contains('anxious') || emotion.contains('worried')) {
+      final anxiousInsights = [
+        'Anxiety often signals that something important deserves your attention',
+        'These feelings show your care and investment in meaningful outcomes',
+        'Worry can be transformed into productive planning and preparation',
+        'Your sensitivity to uncertainty reflects deep emotional intelligence',
+        'This discomfort may be guiding you toward necessary changes',
+      ];
+      insights.add(_selectVariedInsight(anxiousInsights, emotion, intensity));
+      
+    } else if (emotion.contains('sad') || emotion.contains('melancholy')) {
+      final sadInsights = [
+        'Sadness reflects your capacity to value what matters deeply',
+        'Processing difficult emotions builds emotional resilience over time',
+        'This introspective state often precedes important personal insights',
+        'Your willingness to feel sadness shows emotional courage and authenticity',
+        'Melancholy can deepen your appreciation for life\'s precious moments',
+      ];
+      insights.add(_selectVariedInsight(sadInsights, emotion, intensity));
+      
+    } else if (emotion.contains('excited') || emotion.contains('energetic')) {
+      final excitedInsights = [
+        'Your enthusiasm creates momentum for positive change and growth',
+        'Excitement indicates alignment between your values and opportunities',
+        'This energetic state enhances your ability to inspire and connect with others',
+        'Your anticipation reflects hope and engagement with life\'s possibilities',
+        'Channel this vitality into projects that reflect your authentic interests',
+      ];
+      insights.add(_selectVariedInsight(excitedInsights, emotion, intensity));
+      
+    } else {
+      final generalInsights = [
+        'Every emotional experience offers unique wisdom about your inner landscape',
+        'Your emotional complexity reflects a rich and evolving inner life',
+        'This feeling provides valuable information about your current needs and values',
+        'Emotional awareness is the foundation of personal growth and authentic living',
+        'Your willingness to explore emotions demonstrates courage and self-compassion',
+      ];
+      insights.add(_selectVariedInsight(generalInsights, emotion, intensity));
+    }
+    
+    return insights;
+  }
+
+  /// Select varied insight based on emotion and intensity
+  String _selectVariedInsight(List<String> insightPool, String emotion, String intensity) {
+    // Use a simple hash to vary selection based on emotion and intensity
+    final hash = (emotion.hashCode + intensity.hashCode).abs();
+    return insightPool[hash % insightPool.length];
+  }
+
+  /// Generate contextual insight based on time and patterns
+  String _generateContextualInsight(String emotion, double intensity, String timeContext) {
+    switch (timeContext) {
+      case 'recent':
+        if (intensity > 0.7) {
+          return 'Strong emotions in the present moment offer immediate opportunities for self-discovery';
+        }
+        return 'Recent feelings often reveal your immediate responses to current life situations';
+      
+      case 'earlier_today':
+        return 'Reflecting on earlier emotions helps you understand your daily emotional rhythms';
+      
+      case 'today':
+        return 'Today\'s emotional patterns provide insights into your current life phase and priorities';
+      
+      case 'this_week':
+        return 'This week\'s emotional themes may highlight important areas for attention and growth';
+      
+      default:
+        return 'Past emotions viewed with perspective often reveal growth and learning patterns';
+    }
+  }
+
+  /// Generate growth-oriented insight
+  String _generateGrowthInsight(String emotion, double intensity) {
+    if (intensity > 0.8) {
+      return 'Intense emotions, when embraced with awareness, become catalysts for significant personal evolution';
+    } else if (intensity > 0.5) {
+      return 'Moderate emotional experiences help you develop nuanced understanding of your inner world';
+    } else {
+      return 'Subtle emotions require mindful attention and often reveal profound insights about your authentic self';
+    }
+  }
+
+  /// Get emotion description for the emotional state
+  String _getEmotionDescription(String emotion) {
+    final descriptions = {
+      'happy': 'A sense of joy and contentment fills your being',
+      'sad': 'Processing feelings of sadness and introspection',
+      'calm': 'Experiencing peace and emotional equilibrium',
+      'anxious': 'Navigating feelings of worry and uncertainty',
+      'excited': 'Energized with anticipation and enthusiasm',
+      'angry': 'Processing intense feelings that need attention',
+      'grateful': 'Appreciating the positive aspects of life',
+      'frustrated': 'Working through challenging situations',
+      'content': 'Finding satisfaction in the present moment',
+      'peaceful': 'Embracing tranquility and inner harmony',
+    };
+    
+    return descriptions[emotion.toLowerCase()] ?? 'Experiencing a unique emotional state';
+  }
+
 
   Widget _buildInsightBullet(BuildContext context, String text) {
     return Row(

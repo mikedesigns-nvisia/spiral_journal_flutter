@@ -532,7 +532,7 @@ You MUST respond with a valid JSON object containing exactly this structure:
 - 1.0: Maximum intensity (life-changing events, extreme emotions)
 
 ### Growth Indicators:
-Identify 2-4 specific areas where the user is showing personal development or positive patterns. These become `keyThemes` in the app.
+Identify 2-4 specific areas where the user is showing personal development or positive patterns. These become `coresRepresented` in the app and are displayed in the UI as "Cores Represented".
 
 ### Mind Reflection:
 - **Title**: Create an engaging title that captures the main emotional theme
@@ -609,6 +609,8 @@ The app stores analysis data in the following structure:
 - Focus on the most significant emotional patterns
 - Ensure all text fields are brief and impactful
 - Prioritize quality over quantity in pattern detection
+- Generate varied insights to avoid repetition across similar entries
+- Use different phrasing and perspectives for similar emotional states
 
 Now analyze the following journal entry and provide insights in the exact format specified above.''';
   }
@@ -720,7 +722,7 @@ Keep it personal, supportive, and focused on their emotional journey.
 
     return {
       "primary_emotions": emotionalAnalysis['primary_emotions'],
-      "emotional_intensity": (emotionalAnalysis['emotional_intensity'] as num).toDouble() * 10, // Convert 0-1 to 0-10
+      "emotional_intensity": (emotionalAnalysis['emotional_intensity'] as num).toDouble(), // Keep 0-1 scale consistent
       "growth_indicators": emotionalAnalysis['key_themes'],
       "core_adjustments": coreAdjustments,
       "mind_reflection": {
