@@ -2,7 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'dart:convert';
 import 'package:sqflite/sqflite.dart';
 import 'package:uuid/uuid.dart';
-import '../constants/app_constants.dart';
+import '../core/app_constants.dart';
 import '../constants/validation_constants.dart';
 import '../models/journal_entry.dart';
 import '../utils/database_exceptions.dart';

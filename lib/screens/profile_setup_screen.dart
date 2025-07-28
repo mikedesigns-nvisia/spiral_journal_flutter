@@ -4,7 +4,7 @@ import '../models/user_profile.dart';
 import '../services/profile_service.dart';
 import '../services/settings_service.dart';
 import '../theme/app_theme.dart';
-import '../constants/app_constants.dart';
+import '../core/app_constants.dart';
 import '../screens/main_screen.dart';
 import '../widgets/app_background.dart';
 import '../services/navigation_flow_controller.dart';

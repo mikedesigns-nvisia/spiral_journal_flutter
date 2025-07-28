@@ -1,5 +1,5 @@
 import 'package:flutter/foundation.dart';
-import '../constants/app_constants.dart';
+import '../core/app_constants.dart';
 import '../constants/validation_constants.dart';
 import '../models/journal_entry.dart';
 import '../models/core.dart';

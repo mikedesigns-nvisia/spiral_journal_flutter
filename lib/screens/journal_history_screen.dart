@@ -1060,7 +1060,7 @@ class _JournalHistoryScreenState extends State<JournalHistoryScreen> {
                       Expanded(
                         child: Text(
                           'Journal History',
-                          style: Theme.of(context).textTheme.headlineLarge,
+                          style: Theme.of(context).textTheme.headlineSmall,
                         ),
                       ),
                       Consumer<JournalProvider>(

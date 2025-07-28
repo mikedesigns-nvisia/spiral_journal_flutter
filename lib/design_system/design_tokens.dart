@@ -96,12 +96,9 @@ class DesignTokens {
   /// Font family with Google Fonts primary, local cached as fallback
   static String get fontFamily {
     try {
-      // Try Google Fonts first (will use cached local fonts if available)
-      return GoogleFonts.notoSansJp().fontFamily ?? 'NotoSansJP';
+      return GoogleFonts.notoSansJp().fontFamily ?? _getFallbackFontFamily();
     } catch (e) {
-      debugPrint('Google Fonts failed, using cached local font: $e');
-      // Fallback to bundled local font (cached on install)
-      return 'NotoSansJP';
+      return _getFallbackFontFamily();
     }
   }
   
@@ -520,14 +517,14 @@ class DesignTokens {
         decoration: decoration,
       );
     } catch (e) {
-      debugPrint('Google Fonts failed in getTextStyle, using cached local font: $e');
+      debugPrint('Google Fonts failed in getTextStyle, using fallback font: $e');
       return TextStyle(
         fontSize: fontSize,
         fontWeight: fontWeight,
         color: color,
         height: height,
         decoration: decoration,
-        fontFamily: 'NotoSansJP', // Use cached local font as fallback
+        fontFamily: _getFallbackFontFamily(),
       );
     }
   }

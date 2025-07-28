@@ -13,7 +13,7 @@ class AppTheme {
   static ThemeData get lightTheme {
     return ThemeData(
       useMaterial3: true,
-      fontFamily: DesignTokens.fontFamily,
+      // Removed global fontFamily to allow text styles to use their own fonts
       brightness: Brightness.light,
       
       // Color Scheme
@@ -144,7 +144,7 @@ class AppTheme {
   static ThemeData get darkTheme {
     return ThemeData(
       useMaterial3: true,
-      fontFamily: DesignTokens.fontFamily,
+      // Removed global fontFamily to allow text styles to use their own fonts
       brightness: Brightness.dark,
       
       // Color Scheme

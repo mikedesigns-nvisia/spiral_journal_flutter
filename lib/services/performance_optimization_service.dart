@@ -442,9 +442,10 @@ class PerformanceOptimizationService {
     _lastFrameTime = now;
     
     // Log performance issues
-    if (_currentFPS < 30 && kDebugMode) {
-      debugPrint('PerformanceOptimizationService: Low FPS detected: ${_currentFPS.toStringAsFixed(1)}');
-    }
+    // Commented out to reduce noise during development
+    // if (_currentFPS < 30 && kDebugMode) {
+    //   debugPrint('PerformanceOptimizationService: Low FPS detected: ${_currentFPS.toStringAsFixed(1)}');
+    // }
   }
 
   /// Track frame rate for smooth animations
