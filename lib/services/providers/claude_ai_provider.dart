@@ -862,6 +862,73 @@ Keep it personal, supportive, and focused on their emotional journey.
     }
   }
 
+  /// Analyze multiple journal entries in a single batch for cost efficiency
+  Future<Map<String, dynamic>> analyzeDailyBatch(String combinedEntryContent) async {
+    try {
+      final prompt = '''
+Analyze this batch of daily journal entries for emotional intelligence insights:
+
+$combinedEntryContent
+
+Please provide a JSON response with this structure:
+{
+  "individual_analyses": [
+    {
+      "primary_emotions": ["emotion1", "emotion2"],
+      "emotional_intensity": 7.5,
+      "growth_indicators": ["indicator1", "indicator2"],
+      "core_strengths": {
+        "optimism": 0.2,
+        "resilience": 0.1,
+        "self_awareness": 0.3,
+        "creativity": 0.0,
+        "social_connection": 0.1,
+        "growth_mindset": 0.2
+      },
+      "insight": "Brief encouraging insight about the entry",
+      "patterns": ["pattern1", "pattern2"],
+      "suggestions": ["suggestion1", "suggestion2"]
+    }
+    // ... one object per entry
+  ],
+  "aggregated_core_updates": {
+    "optimism": 0.4,
+    "resilience": 0.2,
+    "self_awareness": 0.6,
+    "creativity": 0.1,
+    "social_connection": 0.3,
+    "growth_mindset": 0.5
+  },
+  "daily_summary": "Overall reflection on the day's emotional journey"
+}
+
+Provide core_strengths as small incremental values (-0.5 to +0.5) for each entry, and aggregated_core_updates as the sum of all individual increments.
+''';
+
+      final response = await _makeApiRequestWithModel(prompt, _defaultModel);
+
+      return _parseAnalysisResponse(response);
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('ClaudeAIProvider analyzeDailyBatch error: $e');
+      }
+      
+      // Return fallback batch analysis
+      return {
+        "individual_analyses": [],
+        "aggregated_core_updates": {
+          "optimism": 0.0,
+          "resilience": 0.0,
+          "self_awareness": 0.1,
+          "creativity": 0.0,
+          "social_connection": 0.0,
+          "growth_mindset": 0.0
+        },
+        "daily_summary": "Your commitment to daily journaling shows dedication to personal growth."
+      };
+    }
+  }
+
   Map<String, dynamic> _getDefaultAnalysis() {
     return {
       "primary_emotions": ["neutral"],

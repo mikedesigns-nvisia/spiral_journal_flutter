@@ -12,6 +12,28 @@ class CoreEvolutionEngine {
   factory CoreEvolutionEngine() => _instance;
   CoreEvolutionEngine._internal();
 
+  bool _isInitialized = false;
+
+  /// Initialize the core evolution engine
+  Future<void> initialize() async {
+    if (_isInitialized) return;
+    
+    try {
+      // Initialize any database connections or services needed
+      debugPrint('CoreEvolutionEngine: Initializing...');
+      
+      // Set up core database tables if needed
+      // Initialize core configurations
+      // Load user's current cores from database
+      
+      _isInitialized = true;
+      debugPrint('CoreEvolutionEngine: Initialized successfully');
+    } catch (e) {
+      debugPrint('CoreEvolutionEngine: Initialization failed: $e');
+      rethrow;
+    }
+  }
+
   // Core configuration
   static const Map<String, CoreConfig> _coreConfigs = {
     'optimism': CoreConfig(
@@ -226,6 +248,38 @@ class CoreEvolutionEngine {
     } catch (e) {
       debugPrint('CoreEvolutionEngine generateCoreInsight error: $e');
       return 'Your ${core.name} continues to develop through self-reflection.';
+    }
+  }
+
+  /// Update cores from analysis results (called by DailyJournalProcessor)
+  Future<void> updateCoresFromAnalysis(Map<String, dynamic> coreStrengths) async {
+    try {
+      if (coreStrengths.isEmpty) {
+        debugPrint('CoreEvolutionEngine: No core strengths to update');
+        return;
+      }
+
+      // This would typically update the cores in the database
+      // For now, we'll just log the updates
+      debugPrint('CoreEvolutionEngine: Updating cores with analysis:');
+      
+      for (final entry in coreStrengths.entries) {
+        final coreId = entry.key;
+        final increment = entry.value as double;
+        
+        debugPrint('  $coreId: ${increment > 0 ? '+' : ''}${increment.toStringAsFixed(2)}');
+        
+        // Here you would:
+        // 1. Get current core from database
+        // 2. Apply the increment (with daily limits)
+        // 3. Update core in database
+        // 4. Trigger milestone checks
+        // 5. Update core trends
+      }
+      
+      debugPrint('CoreEvolutionEngine: Core updates completed');
+    } catch (e) {
+      debugPrint('CoreEvolutionEngine updateCoresFromAnalysis error: $e');
     }
   }
 

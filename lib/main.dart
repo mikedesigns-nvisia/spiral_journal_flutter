@@ -16,6 +16,7 @@ import 'package:spiral_journal/screens/core_library_screen.dart';
 
 import 'package:spiral_journal/services/journal_service.dart';
 import 'package:spiral_journal/services/ai_service_manager.dart';
+import 'package:spiral_journal/services/ios_background_scheduler.dart';
 import 'package:spiral_journal/services/profile_service.dart';
 import 'package:spiral_journal/services/app_initializer.dart';
 import 'package:spiral_journal/services/settings_service.dart';
@@ -130,6 +131,7 @@ Future<void> _initializeBackgroundServices() async {
     await Future.wait([
       JournalService().initialize(),
       AIServiceManager().initialize(),
+      IOSBackgroundScheduler().initialize(),
     ]);
     
     debugPrint('Background services initialized successfully');

@@ -144,8 +144,12 @@
 	<true/>
 	<key>UIBackgroundModes</key>
 	<array>
-		<string>fetch</string>
-		<string>remote-notification</string>
+		<string>background-app-refresh</string>
+	</array>
+	<!-- Background Task Identifiers for BGTaskScheduler -->
+	<key>BGTaskSchedulerPermittedIdentifiers</key>
+	<array>
+		<string>com.spiraljournal.daily-processing</string>
 	</array>
 	<key>UIBackgroundRefreshStatusDidChangeNotification</key>
 	<true/>
