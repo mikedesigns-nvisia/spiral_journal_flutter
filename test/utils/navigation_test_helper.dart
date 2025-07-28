@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'test_diagnostics_helper.dart';
-import 'widget_test_utils.dart';
 
 /// Helper class for robust navigation testing with proper waiting strategies
 class NavigationTestHelper {

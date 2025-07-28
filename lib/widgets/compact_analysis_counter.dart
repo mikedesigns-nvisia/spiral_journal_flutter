@@ -96,12 +96,12 @@ class _CompactAnalysisCounterState extends State<CompactAnalysisCounter> {
               color: DesignTokens.getBackgroundSecondary(context),
               borderRadius: BorderRadius.circular(DesignTokens.radiusM),
               border: Border.all(
-                color: _getColor(context).withOpacity(0.3),
+                color: _getColor(context).withValues(alpha: 0.3),
                 width: 1,
               ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
+                  color: Colors.black.withValues(alpha: 0.1),
                   blurRadius: 8,
                   offset: const Offset(0, 4),
                 ),
@@ -137,10 +137,10 @@ class _CompactAnalysisCounterState extends State<CompactAnalysisCounter> {
           vertical: DesignTokens.spaceS,
         ),
         decoration: BoxDecoration(
-          color: DesignTokens.getBackgroundSecondary(context).withOpacity(0.7),
+          color: DesignTokens.getBackgroundSecondary(context).withValues(alpha: 0.7),
           borderRadius: BorderRadius.circular(DesignTokens.radiusM),
           border: Border.all(
-            color: _getColor(context).withOpacity(0.2),
+            color: _getColor(context).withValues(alpha: 0.2),
             width: 1,
           ),
         ),

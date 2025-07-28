@@ -23,7 +23,7 @@ void main() {
     });
 
     tearDown(() async {
-      await provider.dispose();
+      provider.dispose();
       await testHelper.tearDown();
     });
 
@@ -42,7 +42,7 @@ void main() {
         final failingProvider = CoreProvider();
         
         // Mock a failure scenario by disposing services before init
-        await failingProvider.dispose();
+        failingProvider.dispose();
         
         // Attempt initialization - should handle gracefully
         await failingProvider.initialize();
@@ -417,7 +417,7 @@ void main() {
 
       test('should handle data load failures gracefully', () async {
         // Simulate a failure by disposing the provider first
-        await provider.dispose();
+        provider.dispose();
         
         await provider.loadAllCores();
         
@@ -454,7 +454,7 @@ void main() {
       test('should execute recovery actions correctly', () async {
         // Set up an error state
         await provider.loadAllCores();
-        await provider.dispose(); // Force an error
+        provider.dispose(); // Force an error
         await provider.loadAllCores(); // This should fail
         
         expect(provider.error, isNotNull);
@@ -478,7 +478,7 @@ void main() {
 
       test('should clear errors correctly', () async {
         // Force an error
-        await provider.dispose();
+        provider.dispose();
         await provider.loadAllCores();
         
         expect(provider.error, isNotNull);
@@ -544,7 +544,7 @@ void main() {
         // Verify resources are active
         expect(provider.coreUpdateStream, isNotNull);
         
-        await provider.dispose();
+        provider.dispose();
         
         // Verify cleanup
         expect(() => provider.notifyListeners(), returnsNormally);

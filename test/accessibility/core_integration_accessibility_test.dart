@@ -30,7 +30,7 @@ void main() {
     });
 
     tearDown(() async {
-      await coreProvider.dispose();
+      coreProvider.dispose();
       navigationService.dispose();
       await testHelper.tearDown();
     });
@@ -224,7 +224,7 @@ void main() {
         expect(announcements, isNotEmpty);
         expect(announcements.any((a) => a.contains('loading')), isTrue);
 
-        await loadingProvider.dispose();
+        loadingProvider.dispose();
       });
 
       testWidgets('should handle error state announcements', (WidgetTester tester) async {
@@ -531,7 +531,7 @@ void main() {
               ChangeNotifierProvider<CoreProvider>.value(value: coreProvider),
             ],
             child: MediaQuery(
-              data: const MediaQueryData(textScaleFactor: 2.0),
+              data: const MediaQueryData(textScaler: TextScaler.linear(2.0)),
               child: const YourCoresCard(),
             ),
           ),
@@ -559,7 +559,7 @@ void main() {
               ChangeNotifierProvider<CoreProvider>.value(value: coreProvider),
             ],
             child: MediaQuery(
-              data: const MediaQueryData(textScaleFactor: 3.0),
+              data: const MediaQueryData(textScaler: TextScaler.linear(3.0)),
               child: const CoreLibraryScreen(),
             ),
           ),
@@ -581,7 +581,7 @@ void main() {
               ChangeNotifierProvider<CoreProvider>.value(value: coreProvider),
             ],
             child: MediaQuery(
-              data: const MediaQueryData(textScaleFactor: 0.8),
+              data: const MediaQueryData(textScaler: TextScaler.linear(0.8)),
               child: const YourCoresCard(),
             ),
           ),

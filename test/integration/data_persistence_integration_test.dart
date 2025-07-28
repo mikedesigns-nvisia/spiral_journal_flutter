@@ -6,7 +6,6 @@ import 'package:spiral_journal/database/database_helper.dart';
 import 'package:spiral_journal/models/journal_entry.dart';
 import 'package:spiral_journal/services/data_export_service.dart';
 import 'package:spiral_journal/services/secure_data_deletion_service.dart';
-import 'package:spiral_journal/models/export_data.dart';
 import '../utils/test_setup_helper.dart';
 
 void main() {

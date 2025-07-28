@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'dart:math' as math;
 import '../models/core.dart';
-import '../models/journal_entry.dart';
 import '../design_system/design_tokens.dart';
 import '../services/accessibility_service.dart';
 
@@ -132,7 +130,7 @@ class _CoreCorrelationChartState extends State<CoreCorrelationChart>
           borderRadius: BorderRadius.circular(DesignTokens.borderRadius3),
           border: Border.all(
             color: _accessibilityService.highContrastMode 
-                ? DesignTokens.borderColor.withOpacity(0.8)
+                ? DesignTokens.borderColor.withValues(alpha: 0.8)
                 : DesignTokens.borderColor,
             width: _accessibilityService.highContrastMode ? 2 : 1,
           ),
@@ -170,7 +168,7 @@ class _CoreCorrelationChartState extends State<CoreCorrelationChart>
         Container(
           padding: const EdgeInsets.all(DesignTokens.spacing2),
           decoration: BoxDecoration(
-            color: DesignTokens.primaryColor.withOpacity(0.1),
+            color: DesignTokens.primaryColor.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(DesignTokens.borderRadius2),
           ),
           child: Icon(
@@ -211,7 +209,7 @@ class _CoreCorrelationChartState extends State<CoreCorrelationChart>
     return Container(
       padding: const EdgeInsets.all(DesignTokens.spacing3),
       decoration: BoxDecoration(
-        color: DesignTokens.primaryColor.withOpacity(0.05),
+        color: DesignTokens.primaryColor.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(DesignTokens.borderRadius2),
       ),
       child: Row(
@@ -236,7 +234,7 @@ class _CoreCorrelationChartState extends State<CoreCorrelationChart>
           width: 12,
           height: 12,
           decoration: BoxDecoration(
-            color: color.withOpacity(opacity),
+            color: color.withValues(alpha: opacity),
             shape: BoxShape.circle,
             border: Border.all(color: color, width: 1),
           ),
@@ -301,11 +299,11 @@ class _CoreCorrelationChartState extends State<CoreCorrelationChart>
               ),
               decoration: BoxDecoration(
                 color: isSelected 
-                    ? DesignTokens.primaryColor.withOpacity(0.1)
+                    ? DesignTokens.primaryColor.withValues(alpha: 0.1)
                     : Colors.transparent,
                 borderRadius: BorderRadius.circular(DesignTokens.borderRadius2),
                 border: isSelected 
-                    ? Border.all(color: DesignTokens.primaryColor.withOpacity(0.3))
+                    ? Border.all(color: DesignTokens.primaryColor.withValues(alpha: 0.3))
                     : null,
               ),
               child: Row(
@@ -388,11 +386,11 @@ class _CoreCorrelationChartState extends State<CoreCorrelationChart>
         ),
         decoration: BoxDecoration(
           color: _getCorrelationColor(correlation.correlationStrength)
-              .withOpacity(0.1 + (strength * 0.3)),
+              .withValues(alpha: 0.1 + (strength * 0.3)),
           borderRadius: BorderRadius.circular(DesignTokens.borderRadius2),
           border: Border.all(
             color: _getCorrelationColor(correlation.correlationStrength)
-                .withOpacity(0.5 + (strength * 0.5)),
+                .withValues(alpha: 0.5 + (strength * 0.5)),
             width: isSelected ? 2 : 1,
           ),
         ),
@@ -463,8 +461,8 @@ class _CoreCorrelationChartState extends State<CoreCorrelationChart>
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [
-                  DesignTokens.primaryColor.withOpacity(0.3),
-                  DesignTokens.primaryColor.withOpacity(0.7),
+                  DesignTokens.primaryColor.withValues(alpha: 0.3),
+                  DesignTokens.primaryColor.withValues(alpha: 0.7),
                 ],
               ),
             ),
@@ -493,10 +491,10 @@ class _CoreCorrelationChartState extends State<CoreCorrelationChart>
     return Container(
       padding: const EdgeInsets.all(DesignTokens.spacing3),
       decoration: BoxDecoration(
-        color: DesignTokens.successColor.withOpacity(0.05),
+        color: DesignTokens.successColor.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(DesignTokens.borderRadius2),
         border: Border.all(
-          color: DesignTokens.successColor.withOpacity(0.2),
+          color: DesignTokens.successColor.withValues(alpha: 0.2),
           width: 1,
         ),
       ),
@@ -554,7 +552,7 @@ class _CoreCorrelationChartState extends State<CoreCorrelationChart>
           Icon(
             Icons.scatter_plot_outlined,
             size: 48,
-            color: DesignTokens.textSecondaryColor.withOpacity(0.5),
+            color: DesignTokens.textSecondaryColor.withValues(alpha: 0.5),
           ),
           
           const SizedBox(height: DesignTokens.spacing3),

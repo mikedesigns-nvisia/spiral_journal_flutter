@@ -1,7 +1,5 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:spiral_journal/models/journal_entry.dart';
-import 'package:spiral_journal/services/ai_service_manager.dart';
 
 void main() {
   print('🧪 Testing AI Analysis Persistence...\n');

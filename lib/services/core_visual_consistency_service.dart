@@ -259,9 +259,9 @@ class CoreVisualConsistencyService {
               height: size,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: color.withOpacity(0.1),
+                color: color.withValues(alpha: 0.1),
                 border: _accessibilityService.highContrastMode
-                    ? Border.all(color: color.withOpacity(0.3), width: 1)
+                    ? Border.all(color: color.withValues(alpha: 0.3), width: 1)
                     : null,
               ),
             ),
@@ -453,7 +453,7 @@ class CoreProgressPainter extends CustomPainter {
 
     // Background arc
     final backgroundPaint = Paint()
-      ..color = color.withOpacity(0.2)
+      ..color = color.withValues(alpha: 0.2)
       ..strokeWidth = strokeWidth
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round;

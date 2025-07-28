@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'design_tokens.dart';
 
 /// Design tokens specifically for slide components and interactions
 class SlideDesignTokens {
@@ -196,17 +195,17 @@ class SlideDesignTokens {
         foreground: theme.colorScheme.onErrorContainer,
         accent: theme.colorScheme.error,
         indicator: theme.colorScheme.error,
-        shadow: theme.colorScheme.error.withOpacity(0.2),
+        shadow: theme.colorScheme.error.withValues(alpha: 0.2),
       );
     }
 
     if (isLoading) {
       return SlideColorScheme(
         background: theme.colorScheme.surface,
-        foreground: theme.colorScheme.onSurface.withOpacity(0.6),
-        accent: theme.colorScheme.primary.withOpacity(0.6),
-        indicator: theme.colorScheme.primary.withOpacity(0.4),
-        shadow: theme.colorScheme.shadow.withOpacity(0.1),
+        foreground: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+        accent: theme.colorScheme.primary.withValues(alpha: 0.6),
+        indicator: theme.colorScheme.primary.withValues(alpha: 0.4),
+        shadow: theme.colorScheme.shadow.withValues(alpha: 0.1),
       );
     }
 
@@ -216,7 +215,7 @@ class SlideDesignTokens {
         foreground: theme.colorScheme.onPrimaryContainer,
         accent: theme.colorScheme.primary,
         indicator: theme.colorScheme.primary,
-        shadow: theme.colorScheme.primary.withOpacity(0.2),
+        shadow: theme.colorScheme.primary.withValues(alpha: 0.2),
       );
     }
 
@@ -225,7 +224,7 @@ class SlideDesignTokens {
       foreground: theme.colorScheme.onSurface,
       accent: theme.colorScheme.secondary,
       indicator: theme.colorScheme.outline,
-      shadow: theme.colorScheme.shadow.withOpacity(isDark ? 0.3 : 0.1),
+      shadow: theme.colorScheme.shadow.withValues(alpha: isDark ? 0.3 : 0.1),
     );
   }
 

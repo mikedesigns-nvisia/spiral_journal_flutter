@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:spiral_journal/design_system/design_tokens.dart';
-import '../models/onboarding_slide.dart';
 import '../controllers/onboarding_controller.dart';
 import '../services/theme_service.dart';
 

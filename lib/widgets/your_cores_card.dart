@@ -698,14 +698,14 @@ class _YourCoresCardState extends State<YourCoresCard>
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: [
-                        coreColor.withOpacity(0.8),
+                        coreColor.withValues(alpha: 0.8),
                         coreColor,
                       ],
                     ),
                     borderRadius: BorderRadius.circular(hasRecentChange ? 3 : 2),
                     boxShadow: hasRecentChange ? [
                       BoxShadow(
-                        color: coreColor.withOpacity(0.3),
+                        color: coreColor.withValues(alpha: 0.3),
                         blurRadius: 4,
                         offset: const Offset(0, 1),
                       ),
@@ -748,7 +748,7 @@ class _YourCoresCardState extends State<YourCoresCard>
                   vertical: 2,
                 ),
                 decoration: BoxDecoration(
-                  color: _getTrendColor(core.trend).withOpacity(0.1),
+                  color: _getTrendColor(core.trend).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(DesignTokens.radiusS),
                 ),
                 child: Text(
@@ -782,7 +782,7 @@ class _YourCoresCardState extends State<YourCoresCard>
               end: Alignment.centerRight,
               colors: [
                 Colors.transparent,
-                coreColor.withOpacity(0.3),
+                coreColor.withValues(alpha: 0.3),
                 Colors.transparent,
               ],
               stops: [
@@ -812,7 +812,7 @@ class _YourCoresCardState extends State<YourCoresCard>
             width: 16,
             height: 16,
             decoration: BoxDecoration(
-              color: trendColor.withOpacity(0.2),
+              color: trendColor.withValues(alpha: 0.2),
               shape: BoxShape.circle,
             ),
           ),
@@ -825,7 +825,7 @@ class _YourCoresCardState extends State<YourCoresCard>
               shape: BoxShape.circle,
               boxShadow: [
                 BoxShadow(
-                  color: trendColor.withOpacity(0.5),
+                  color: trendColor.withValues(alpha: 0.5),
                   blurRadius: 4,
                   spreadRadius: 1,
                 ),
@@ -863,11 +863,11 @@ class _YourCoresCardState extends State<YourCoresCard>
         vertical: DesignTokens.spaceXS,
       ),
       decoration: BoxDecoration(
-        color: DesignTokens.primaryOrange.withOpacity(0.9),
+        color: DesignTokens.primaryOrange.withValues(alpha: 0.9),
         borderRadius: BorderRadius.circular(DesignTokens.radiusS),
         boxShadow: [
           BoxShadow(
-            color: DesignTokens.primaryOrange.withOpacity(0.3),
+            color: DesignTokens.primaryOrange.withValues(alpha: 0.3),
             blurRadius: 4,
             offset: const Offset(0, 1),
           ),
@@ -915,10 +915,10 @@ class _YourCoresCardState extends State<YourCoresCard>
       duration: const Duration(milliseconds: 300),
       padding: EdgeInsets.all(DesignTokens.spaceXS),
       decoration: BoxDecoration(
-        color: trendColor.withOpacity(0.1),
+        color: trendColor.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(DesignTokens.radiusS),
         border: Border.all(
-          color: trendColor.withOpacity(0.3),
+          color: trendColor.withValues(alpha: 0.3),
           width: 1,
         ),
       ),
@@ -939,7 +939,7 @@ class _YourCoresCardState extends State<YourCoresCard>
       return SizedBox(height: DesignTokens.spaceL);
     }
     
-    return Container(
+    return SizedBox(
       height: DesignTokens.spaceL,
       child: Stack(
         children: [
@@ -955,8 +955,8 @@ class _YourCoresCardState extends State<YourCoresCard>
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    _getCoreColor(previousCore.color).withOpacity(0.3),
-                    _getCoreColor(currentCore.color).withOpacity(0.3),
+                    _getCoreColor(previousCore.color).withValues(alpha: 0.3),
+                    _getCoreColor(currentCore.color).withValues(alpha: 0.3),
                   ],
                 ),
               ),
@@ -971,7 +971,7 @@ class _YourCoresCardState extends State<YourCoresCard>
                 width: 8,
                 height: 8,
                 decoration: BoxDecoration(
-                  color: DesignTokens.primaryOrange.withOpacity(0.6),
+                  color: DesignTokens.primaryOrange.withValues(alpha: 0.6),
                   shape: BoxShape.circle,
                   border: Border.all(
                     color: Colors.white,

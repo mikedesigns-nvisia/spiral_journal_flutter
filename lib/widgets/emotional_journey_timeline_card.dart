@@ -128,7 +128,7 @@ class _EmotionalJourneyTimelineCardState extends State<EmotionalJourneyTimelineC
                     child: Icon(
                       Icons.timeline_rounded,
                       color: Colors.white,
-                      size: iPhoneDetector.getAdaptiveIconSize(context, base: DesignTokens.iconSizeL),
+                      size: iPhoneDetector.getAdaptiveIconSize(context, base: DesignTokens.iconSizeS),
                     ),
                   ),
                 );

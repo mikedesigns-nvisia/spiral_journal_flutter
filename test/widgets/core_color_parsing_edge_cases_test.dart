@@ -2,9 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:spiral_journal/screens/core_library_screen.dart';
-import 'package:spiral_journal/models/core.dart';
 import 'package:spiral_journal/theme/app_theme.dart';
-import 'package:spiral_journal/services/core_library_service.dart';
 
 void main() {
   group('Core Color Parsing Edge Cases', () {
@@ -452,9 +450,9 @@ void main() {
     testWidgets('should handle transparent and semi-transparent colors', (WidgetTester tester) async {
       final transparentColors = [
         Colors.transparent,
-        Colors.blue.withOpacity(0.0),
-        Colors.red.withOpacity(0.5),
-        Colors.green.withOpacity(1.0),
+        Colors.blue.withValues(alpha: 0.0),
+        Colors.red.withValues(alpha: 0.5),
+        Colors.green.withValues(alpha: 1.0),
         const Color(0x00000000), // Fully transparent
         const Color(0x80FF0000), // Semi-transparent red
         const Color(0xFFFF0000), // Fully opaque red

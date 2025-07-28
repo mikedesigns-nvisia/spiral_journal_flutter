@@ -5,7 +5,6 @@ import 'lib/services/claude_ai_service.dart';
 import 'lib/services/providers/claude_ai_provider.dart';
 import 'lib/services/ai_service_interface.dart';
 import 'lib/models/journal_entry.dart';
-import 'lib/models/core.dart';
 
 /// Comprehensive Claude API Integration Test
 /// Tests the new API key with both legacy and modern providers

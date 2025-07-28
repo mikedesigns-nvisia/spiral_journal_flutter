@@ -246,12 +246,12 @@ class _CoreImpactIndicatorState extends State<CoreImpactIndicator>
                         vertical: _accessibilityService.getAccessibleSpacing(),
                       ),
                       decoration: BoxDecoration(
-                        color: _getImpactColor().withOpacity(
+                        color: _getImpactColor().withValues(alpha: 
                           _accessibilityService.highContrastMode ? 0.2 : 0.1,
                         ),
                         borderRadius: BorderRadius.circular(DesignTokens.borderRadius2),
                         border: Border.all(
-                          color: _getImpactColor().withOpacity(
+                          color: _getImpactColor().withValues(alpha: 
                             _accessibilityService.highContrastMode ? 0.8 : 0.3,
                           ),
                           width: _accessibilityService.highContrastMode ? 2 : 1,

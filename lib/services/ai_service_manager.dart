@@ -2,7 +2,6 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/journal_entry.dart';
 import '../models/core.dart' hide EmotionalPattern;
-import '../models/journal_entry.dart' show JournalEmotionalPattern;
 import '../config/environment.dart';
 import 'ai_service_interface.dart';
 import 'providers/claude_ai_provider.dart';

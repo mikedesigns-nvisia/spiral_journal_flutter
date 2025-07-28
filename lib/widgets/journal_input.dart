@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:spiral_journal/design_system/design_tokens.dart';
 import 'package:spiral_journal/design_system/component_library.dart';
-import 'package:spiral_journal/design_system/responsive_layout.dart';
 import 'package:spiral_journal/design_system/heading_system.dart';
 
 class JournalInput extends StatefulWidget {

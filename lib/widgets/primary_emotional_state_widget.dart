@@ -380,13 +380,13 @@ class _PrimaryEmotionalStateWidgetState extends State<PrimaryEmotionalStateWidge
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
         colors: [
-          currentState.accessibleColor.withOpacity(0.1),
-          currentState.accessibleColor.withOpacity(0.05),
+          currentState.accessibleColor.withValues(alpha: 0.1),
+          currentState.accessibleColor.withValues(alpha: 0.05),
         ],
       ),
       borderRadius: BorderRadius.circular(DesignTokens.radiusL),
       border: Border.all(
-        color: currentState.accessibleColor.withOpacity(0.3),
+        color: currentState.accessibleColor.withValues(alpha: 0.3),
         width: _focusNode.hasFocus ? 2 : 1,
       ),
     );
@@ -401,7 +401,7 @@ class _PrimaryEmotionalStateWidgetState extends State<PrimaryEmotionalStateWidge
           child: Container(
             height: 44, // Slightly taller for better touch targets
             decoration: BoxDecoration(
-              color: DesignTokens.getBackgroundSecondary(context).withOpacity(0.5),
+              color: DesignTokens.getBackgroundSecondary(context).withValues(alpha: 0.5),
               borderRadius: BorderRadius.circular(DesignTokens.radiusM),
             ),
             child: TabBar(
@@ -547,7 +547,7 @@ class _PrimaryEmotionalStateWidgetState extends State<PrimaryEmotionalStateWidge
             color: state.accessibleColor,
             shape: BoxShape.circle,
             border: Border.all(
-              color: state.accessibleColor.withOpacity(0.5),
+              color: state.accessibleColor.withValues(alpha: 0.5),
               width: 2,
             ),
           ),
@@ -592,7 +592,7 @@ class _PrimaryEmotionalStateWidgetState extends State<PrimaryEmotionalStateWidge
             vertical: DesignTokens.spaceS,
           ),
           decoration: BoxDecoration(
-            color: state.accessibleColor.withOpacity(0.2),
+            color: state.accessibleColor.withValues(alpha: 0.2),
             borderRadius: BorderRadius.circular(DesignTokens.radiusM),
           ),
           child: Center(
@@ -614,7 +614,7 @@ class _PrimaryEmotionalStateWidgetState extends State<PrimaryEmotionalStateWidge
     return Container(
       padding: EdgeInsets.all(DesignTokens.spaceM),
       decoration: BoxDecoration(
-        color: DesignTokens.getBackgroundSecondary(context).withOpacity(0.5),
+        color: DesignTokens.getBackgroundSecondary(context).withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(DesignTokens.radiusM),
       ),
       child: Row(
@@ -679,7 +679,7 @@ class _PrimaryEmotionalStateWidgetState extends State<PrimaryEmotionalStateWidge
                     gradient: LinearGradient(
                       colors: [
                         _getConfidenceColor(state.confidence),
-                        _getConfidenceColor(state.confidence).withOpacity(0.7),
+                        _getConfidenceColor(state.confidence).withValues(alpha: 0.7),
                       ],
                     ),
                   ),

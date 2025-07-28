@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
@@ -37,7 +36,7 @@ void main() {
     });
 
     tearDown(() async {
-      await coreProvider.dispose();
+      coreProvider.dispose();
       navigationService.dispose();
       await testHelper.tearDown();
     });
@@ -395,8 +394,8 @@ void main() {
                  equals(core2.lastUpdated.millisecondsSinceEpoch));
 
         } finally {
-          await provider1.dispose();
-          await provider2.dispose();
+          provider1.dispose();
+          provider2.dispose();
         }
       });
 

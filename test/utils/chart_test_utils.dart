@@ -1,9 +1,7 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:spiral_journal/services/emotional_mirror_service.dart';
 import 'test_diagnostics_helper.dart';
-import 'test_exception_handler.dart';
 
 /// Utility class for testing chart components with valid data generation and validation
 class ChartTestUtils {

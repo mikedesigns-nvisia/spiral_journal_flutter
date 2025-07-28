@@ -3,7 +3,6 @@ import 'dart:async';
 import 'dart:math' as math;
 import 'package:spiral_journal/design_system/design_tokens.dart';
 import 'package:spiral_journal/design_system/responsive_layout.dart';
-import 'package:spiral_journal/utils/animation_utils.dart';
 
 class AnalysisCounterWidget extends StatefulWidget {
   const AnalysisCounterWidget({super.key});
@@ -157,12 +156,12 @@ class _AnalysisCounterWidgetState extends State<AnalysisCounterWidget>
             color: DesignTokens.getBackgroundSecondary(context),
             borderRadius: BorderRadius.circular(DesignTokens.cardRadius),
             border: Border.all(
-              color: _getProgressColor(context).withOpacity(0.3),
+              color: _getProgressColor(context).withValues(alpha: 0.3),
               width: 1,
             ),
             boxShadow: [
               BoxShadow(
-                color: _getProgressColor(context).withOpacity(0.1),
+                color: _getProgressColor(context).withValues(alpha: 0.1),
                 blurRadius: DesignTokens.elevationM,
                 offset: const Offset(0, 4),
               ),
@@ -249,7 +248,7 @@ class _AnalysisCounterWidgetState extends State<AnalysisCounterWidget>
                   color: _getProgressColor(context),
                   boxShadow: [
                     BoxShadow(
-                      color: _getProgressColor(context).withOpacity(0.5),
+                      color: _getProgressColor(context).withValues(alpha: 0.5),
                       blurRadius: 4,
                       spreadRadius: 1,
                     ),

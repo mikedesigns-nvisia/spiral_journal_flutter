@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:spiral_journal/services/emotional_mirror_service.dart';
 import 'chart_test_utils.dart';
-import 'test_diagnostics_helper.dart';
-import 'test_exception_handler.dart';
 
 void main() {
   group('ChartTestUtils Tests', () {

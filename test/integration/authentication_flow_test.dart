@@ -5,7 +5,7 @@ import 'package:spiral_journal/services/app_initializer.dart';
 import 'package:spiral_journal/controllers/splash_screen_controller.dart';
 // PIN authentication imports removed - using biometrics-only authentication
 import 'package:spiral_journal/main.dart';
-import 'package:spiral_journal/constants/app_constants.dart';
+import 'package:spiral_journal/core/app_constants.dart';
 import '../utils/test_setup_helper.dart';
 
 void main() {

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:spiral_journal/controllers/emotional_mirror_slide_controller.dart';
 import 'package:spiral_journal/models/slide_config.dart';
-import 'package:spiral_journal/providers/emotional_mirror_provider.dart';
 
 void main() {
   group('EmotionalMirrorSlideController', () {

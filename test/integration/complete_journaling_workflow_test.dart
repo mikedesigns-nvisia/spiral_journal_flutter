@@ -11,16 +11,7 @@ import 'package:spiral_journal/services/theme_service.dart';
 import 'package:spiral_journal/services/core_library_service.dart';
 import 'package:spiral_journal/services/core_evolution_engine.dart';
 import 'package:spiral_journal/services/emotional_analyzer.dart';
-import 'package:spiral_journal/services/profile_service.dart';
-import 'package:spiral_journal/services/app_initializer.dart';
-import 'package:spiral_journal/controllers/splash_screen_controller.dart';
-import 'package:spiral_journal/models/journal_entry.dart';
-import 'package:spiral_journal/screens/main_screen.dart';
-import 'package:spiral_journal/widgets/mood_selector.dart';
-import 'package:spiral_journal/widgets/journal_input.dart';
 import '../utils/test_setup_helper.dart';
-import '../utils/widget_test_utils.dart';
-import '../utils/mock_service_factory.dart';
 import '../utils/integration_test_app.dart';
 import '../utils/navigation_test_helper.dart';
 

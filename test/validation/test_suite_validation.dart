@@ -1,5 +1,4 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import '../utils/test_setup_helper.dart';
 import '../utils/database_test_utils.dart';
 import '../utils/test_coverage_verifier.dart';

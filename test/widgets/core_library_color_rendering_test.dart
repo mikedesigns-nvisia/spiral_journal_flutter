@@ -4,7 +4,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:spiral_journal/screens/core_library_screen.dart';
 import 'package:spiral_journal/models/core.dart';
 import 'package:spiral_journal/theme/app_theme.dart';
-import 'package:spiral_journal/services/core_library_service.dart';
 
 void main() {
   group('Core Library Color Rendering Tests', () {

@@ -400,10 +400,10 @@ class _JournalHistoryScreenState extends State<JournalHistoryScreen> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: AppTheme.accentGreen.withOpacity(0.1),
+                    color: AppTheme.accentGreen.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(
-                      color: AppTheme.accentGreen.withOpacity(0.3),
+                      color: AppTheme.accentGreen.withValues(alpha: 0.3),
                     ),
                   ),
                   child: Column(
@@ -506,7 +506,7 @@ class _JournalHistoryScreenState extends State<JournalHistoryScreen> {
                               ],
                             ),
                           );
-                        }).toList(),
+                        }),
                         const SizedBox(height: 12),
                       ],
                       
@@ -769,10 +769,10 @@ class _JournalHistoryScreenState extends State<JournalHistoryScreen> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: AppTheme.accentRed.withOpacity(0.1),
+                  color: AppTheme.accentRed.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(
-                    color: AppTheme.accentRed.withOpacity(0.3),
+                    color: AppTheme.accentRed.withValues(alpha: 0.3),
                   ),
                 ),
                 child: Row(

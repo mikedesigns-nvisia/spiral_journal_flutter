@@ -1,8 +1,5 @@
-import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import '../models/journal_entry.dart';
-import '../models/core.dart';
-import '../config/environment.dart';
 import '../utils/app_error_handler.dart';
 import '../repositories/journal_repository.dart';
 import '../repositories/journal_repository_impl.dart';

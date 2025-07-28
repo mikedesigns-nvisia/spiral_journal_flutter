@@ -1,9 +1,7 @@
 import 'dart:async';
-import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import '../models/core.dart';
 import '../models/core_error.dart';
-import '../models/journal_entry.dart';
 import 'core_cache_manager.dart';
 
 /// Service for handling offline functionality and graceful degradation

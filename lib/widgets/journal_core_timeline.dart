@@ -131,7 +131,7 @@ class _JournalCoreTimelineState extends State<JournalCoreTimeline>
                 );
               },
             );
-          }).toList(),
+          }),
           
           // Show more indicator
           if (widget.timelineItems.length > widget.maxItems) ...[
@@ -149,7 +149,7 @@ class _JournalCoreTimelineState extends State<JournalCoreTimeline>
         Container(
           padding: const EdgeInsets.all(DesignTokens.spacing2),
           decoration: BoxDecoration(
-            color: DesignTokens.primaryColor.withOpacity(0.1),
+            color: DesignTokens.primaryColor.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(DesignTokens.borderRadius2),
           ),
           child: Icon(
@@ -222,7 +222,7 @@ class _JournalCoreTimelineState extends State<JournalCoreTimeline>
             ),
             boxShadow: [
               BoxShadow(
-                color: _getTimelineColor(item).withOpacity(0.3),
+                color: _getTimelineColor(item).withValues(alpha: 0.3),
                 blurRadius: 4,
                 spreadRadius: 1,
               ),
@@ -241,7 +241,7 @@ class _JournalCoreTimelineState extends State<JournalCoreTimeline>
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
                 colors: [
-                  _getTimelineColor(item).withOpacity(0.5),
+                  _getTimelineColor(item).withValues(alpha: 0.5),
                   DesignTokens.borderColor,
                 ],
               ),
@@ -263,7 +263,7 @@ class _JournalCoreTimelineState extends State<JournalCoreTimeline>
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -328,7 +328,7 @@ class _JournalCoreTimelineState extends State<JournalCoreTimeline>
       child: Container(
         padding: const EdgeInsets.all(DesignTokens.spacing2),
         decoration: BoxDecoration(
-          color: DesignTokens.surfaceColor.withOpacity(0.5),
+          color: DesignTokens.surfaceColor.withValues(alpha: 0.5),
           borderRadius: BorderRadius.circular(DesignTokens.borderRadius2),
         ),
         child: Column(
@@ -353,7 +353,7 @@ class _JournalCoreTimelineState extends State<JournalCoreTimeline>
                       vertical: DesignTokens.spacing1,
                     ),
                     decoration: BoxDecoration(
-                      color: DesignTokens.primaryColor.withOpacity(0.1),
+                      color: DesignTokens.primaryColor.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(DesignTokens.borderRadius1),
                     ),
                     child: Text(
@@ -414,10 +414,10 @@ class _JournalCoreTimelineState extends State<JournalCoreTimeline>
     return Container(
       padding: const EdgeInsets.all(DesignTokens.spacing3),
       decoration: BoxDecoration(
-        color: DesignTokens.primaryColor.withOpacity(0.05),
+        color: DesignTokens.primaryColor.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(DesignTokens.borderRadius2),
         border: Border.all(
-          color: DesignTokens.primaryColor.withOpacity(0.2),
+          color: DesignTokens.primaryColor.withValues(alpha: 0.2),
           width: 1,
         ),
       ),
@@ -460,7 +460,7 @@ class _JournalCoreTimelineState extends State<JournalCoreTimeline>
           Icon(
             Icons.timeline_outlined,
             size: 48,
-            color: DesignTokens.textSecondaryColor.withOpacity(0.5),
+            color: DesignTokens.textSecondaryColor.withValues(alpha: 0.5),
           ),
           
           const SizedBox(height: DesignTokens.spacing3),

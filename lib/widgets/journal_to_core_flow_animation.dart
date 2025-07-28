@@ -186,8 +186,8 @@ class _JournalToCoreFlowAnimationState extends State<JournalToCoreFlowAnimation>
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            DesignTokens.primaryColor.withOpacity(0.05),
-            DesignTokens.successColor.withOpacity(0.05),
+            DesignTokens.primaryColor.withValues(alpha: 0.05),
+            DesignTokens.successColor.withValues(alpha: 0.05),
           ],
         ),
         borderRadius: BorderRadius.circular(DesignTokens.borderRadius3),
@@ -275,7 +275,7 @@ class _JournalToCoreFlowAnimationState extends State<JournalToCoreFlowAnimation>
                   borderRadius: BorderRadius.circular(DesignTokens.borderRadius2),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
+                      color: Colors.black.withValues(alpha: 0.1),
                       blurRadius: 4,
                       offset: const Offset(0, 2),
                     ),
@@ -312,7 +312,7 @@ class _JournalToCoreFlowAnimationState extends State<JournalToCoreFlowAnimation>
                   borderRadius: BorderRadius.circular(DesignTokens.borderRadius2),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
+                      color: Colors.black.withValues(alpha: 0.1),
                       blurRadius: 4,
                       offset: const Offset(0, 2),
                     ),
@@ -370,7 +370,7 @@ class _JournalToCoreFlowAnimationState extends State<JournalToCoreFlowAnimation>
                     borderRadius: BorderRadius.circular(DesignTokens.borderRadius2),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
+                        color: Colors.black.withValues(alpha: 0.1),
                         blurRadius: 4,
                         offset: const Offset(0, 2),
                       ),
@@ -483,7 +483,7 @@ class FlowAnimationPainter extends CustomPainter {
     final radius = 30.0 * journalScale;
     
     // Journal circle
-    paint.color = DesignTokens.primaryColor.withOpacity(0.8);
+    paint.color = DesignTokens.primaryColor.withValues(alpha: 0.8);
     canvas.drawCircle(center, radius, paint);
     
     // Journal icon
@@ -510,7 +510,7 @@ class FlowAnimationPainter extends CustomPainter {
     final radius = 40.0 * analysisProgress;
     
     // Analysis circle
-    paint.color = DesignTokens.warningColor.withOpacity(0.3 * analysisProgress);
+    paint.color = DesignTokens.warningColor.withValues(alpha: 0.3 * analysisProgress);
     canvas.drawCircle(center, radius, paint);
     
     // Analysis waves
@@ -518,7 +518,7 @@ class FlowAnimationPainter extends CustomPainter {
       final waveRadius = radius + (i * 15.0);
       final waveOpacity = (1.0 - (i * 0.3)) * analysisProgress;
       
-      paint.color = DesignTokens.warningColor.withOpacity(0.2 * waveOpacity);
+      paint.color = DesignTokens.warningColor.withValues(alpha: 0.2 * waveOpacity);
       paint.style = PaintingStyle.stroke;
       paint.strokeWidth = 2.0;
       
@@ -549,7 +549,7 @@ class FlowAnimationPainter extends CustomPainter {
       
       final currentPos = Offset.lerp(startPos, endPos, adjustedProgress)!;
       
-      paint.color = particle.color.withOpacity(
+      paint.color = particle.color.withValues(alpha: 
         (1.0 - adjustedProgress) * flowProgress,
       );
       
@@ -570,9 +570,9 @@ class FlowAnimationPainter extends CustomPainter {
       // Core circle
       try {
         paint.color = Color(int.parse(core.color.replaceFirst('#', '0xFF')))
-            .withOpacity(0.8 * coreReveal);
+            .withValues(alpha: 0.8 * coreReveal);
       } catch (e) {
-        paint.color = DesignTokens.primaryColor.withOpacity(0.8 * coreReveal);
+        paint.color = DesignTokens.primaryColor.withValues(alpha: 0.8 * coreReveal);
       }
       
       canvas.drawCircle(position, radius, paint);
@@ -580,7 +580,7 @@ class FlowAnimationPainter extends CustomPainter {
       // Pulse effect
       if (pulseProgress > 0) {
         final pulseRadius = radius + (10.0 * pulseProgress);
-        paint.color = paint.color.withOpacity(0.3 * (1.0 - pulseProgress));
+        paint.color = paint.color.withValues(alpha: 0.3 * (1.0 - pulseProgress));
         paint.style = PaintingStyle.stroke;
         paint.strokeWidth = 2.0;
         
@@ -607,7 +607,7 @@ class FlowAnimationPainter extends CustomPainter {
           ? DesignTokens.successColor 
           : DesignTokens.warningColor;
       
-      paint.color = arrowColor.withOpacity(impactProgress);
+      paint.color = arrowColor.withValues(alpha: impactProgress);
       paint.style = PaintingStyle.stroke;
       paint.strokeWidth = 3.0;
       paint.strokeCap = StrokeCap.round;

@@ -173,7 +173,7 @@ class _OptimizedChartWidgetState extends State<OptimizedChartWidget>
     with SingleTickerProviderStateMixin {
   late AnimationController _animationController;
   Widget? _cachedChart;
-  bool _isBuilding = false;
+  final bool _isBuilding = false;
 
   @override
   void initState() {

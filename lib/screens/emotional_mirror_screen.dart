@@ -6,9 +6,7 @@ import '../design_system/responsive_layout.dart';
 import '../design_system/heading_system.dart';
 import '../providers/emotional_mirror_provider.dart';
 import '../widgets/loading_state_widget.dart' as loading_widget;
-import '../widgets/primary_emotional_state_widget.dart';
 import '../utils/iphone_detector.dart';
-import '../models/emotional_mirror_data.dart';
 import '../models/emotional_state.dart';
 
 class EmotionalMirrorScreen extends StatefulWidget {
@@ -91,7 +89,7 @@ class _EmotionalMirrorScreenState extends State<EmotionalMirrorScreen> {
                   style: HeadingSystem.getHeadlineMedium(context),
                 ),
                 Text(
-                  '${provider.selectedTimeRange.displayName}',
+                  provider.selectedTimeRange.displayName,
                   style: HeadingSystem.getBodySmall(context),
                 ),
               ],
@@ -166,13 +164,13 @@ class _EmotionalMirrorScreenState extends State<EmotionalMirrorScreen> {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            primaryState.primaryColor.withOpacity(0.1),
-            primaryState.primaryColor.withOpacity(0.05),
+            primaryState.primaryColor.withValues(alpha: 0.1),
+            primaryState.primaryColor.withValues(alpha: 0.05),
           ],
         ),
         borderRadius: BorderRadius.circular(DesignTokens.radiusL),
         border: Border.all(
-          color: primaryState.primaryColor.withOpacity(0.3),
+          color: primaryState.primaryColor.withValues(alpha: 0.3),
         ),
       ),
       child: Column(
@@ -186,7 +184,7 @@ class _EmotionalMirrorScreenState extends State<EmotionalMirrorScreen> {
                 Container(
                   padding: EdgeInsets.all(DesignTokens.spaceS),
                   decoration: BoxDecoration(
-                    color: primaryState.primaryColor.withOpacity(0.15),
+                    color: primaryState.primaryColor.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(DesignTokens.radiusM),
                   ),
                   child: Icon(
@@ -221,10 +219,10 @@ class _EmotionalMirrorScreenState extends State<EmotionalMirrorScreen> {
                     vertical: DesignTokens.spaceS,
                   ),
                   decoration: BoxDecoration(
-                    color: _getConfidenceColor(primaryState.confidence).withOpacity(0.15),
+                    color: _getConfidenceColor(primaryState.confidence).withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(DesignTokens.radiusL),
                     border: Border.all(
-                      color: _getConfidenceColor(primaryState.confidence).withOpacity(0.3),
+                      color: _getConfidenceColor(primaryState.confidence).withValues(alpha: 0.3),
                     ),
                   ),
                   child: Row(
@@ -288,7 +286,7 @@ class _EmotionalMirrorScreenState extends State<EmotionalMirrorScreen> {
                         gradient: LinearGradient(
                           colors: [
                             primaryState.primaryColor,
-                            primaryState.primaryColor.withOpacity(0.7),
+                            primaryState.primaryColor.withValues(alpha: 0.7),
                           ],
                         ),
                       ),
@@ -305,7 +303,7 @@ class _EmotionalMirrorScreenState extends State<EmotionalMirrorScreen> {
             child: Container(
               padding: EdgeInsets.all(DesignTokens.spaceM),
               decoration: BoxDecoration(
-                color: DesignTokens.getBackgroundSecondary(context).withOpacity(0.5),
+                color: DesignTokens.getBackgroundSecondary(context).withValues(alpha: 0.5),
                 borderRadius: BorderRadius.circular(DesignTokens.radiusM),
               ),
               child: Row(
@@ -440,13 +438,13 @@ class _EmotionalMirrorScreenState extends State<EmotionalMirrorScreen> {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            DesignTokens.getPrimaryColor(context).withOpacity(0.1),
-            DesignTokens.accentBlue.withOpacity(0.05),
+            DesignTokens.getPrimaryColor(context).withValues(alpha: 0.1),
+            DesignTokens.accentBlue.withValues(alpha: 0.05),
           ],
         ),
         borderRadius: BorderRadius.circular(DesignTokens.radiusL),
         border: Border.all(
-          color: DesignTokens.getPrimaryColor(context).withOpacity(0.2),
+          color: DesignTokens.getPrimaryColor(context).withValues(alpha: 0.2),
         ),
       ),
       child: Column(
@@ -480,7 +478,7 @@ class _EmotionalMirrorScreenState extends State<EmotionalMirrorScreen> {
                 Container(
                   padding: EdgeInsets.all(DesignTokens.spaceS),
                   decoration: BoxDecoration(
-                    color: DesignTokens.accentYellow.withOpacity(0.15),
+                    color: DesignTokens.accentYellow.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(DesignTokens.radiusM),
                   ),
                   child: Icon(
@@ -505,7 +503,7 @@ class _EmotionalMirrorScreenState extends State<EmotionalMirrorScreen> {
                       style: HeadingSystem.getLabelMedium(context),
                     ),
                     Text(
-                      '${totalEntries} / ${nextMilestone['entries']} entries',
+                      '$totalEntries / ${nextMilestone['entries']} entries',
                       style: HeadingSystem.getLabelMedium(context).copyWith(
                         color: DesignTokens.getPrimaryColor(context),
                         fontWeight: FontWeight.bold,
@@ -529,7 +527,7 @@ class _EmotionalMirrorScreenState extends State<EmotionalMirrorScreen> {
                         gradient: LinearGradient(
                           colors: [
                             DesignTokens.accentYellow,
-                            DesignTokens.accentYellow.withOpacity(0.7),
+                            DesignTokens.accentYellow.withValues(alpha: 0.7),
                           ],
                         ),
                       ),
@@ -590,13 +588,13 @@ class _EmotionalMirrorScreenState extends State<EmotionalMirrorScreen> {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            color.withOpacity(0.1),
-            color.withOpacity(0.05),
+            color.withValues(alpha: 0.1),
+            color.withValues(alpha: 0.05),
           ],
         ),
         borderRadius: BorderRadius.circular(DesignTokens.radiusL),
         border: Border.all(
-          color: color.withOpacity(0.3),
+          color: color.withValues(alpha: 0.3),
         ),
       ),
       child: Column(
@@ -738,13 +736,13 @@ class _EmotionalMirrorScreenState extends State<EmotionalMirrorScreen> {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            DesignTokens.accentGreen.withOpacity(0.1),
-            DesignTokens.accentBlue.withOpacity(0.05),
+            DesignTokens.accentGreen.withValues(alpha: 0.1),
+            DesignTokens.accentBlue.withValues(alpha: 0.05),
           ],
         ),
         borderRadius: BorderRadius.circular(DesignTokens.radiusL),
         border: Border.all(
-          color: DesignTokens.accentGreen.withOpacity(0.2),
+          color: DesignTokens.accentGreen.withValues(alpha: 0.2),
         ),
       ),
       child: Column(
@@ -778,7 +776,7 @@ class _EmotionalMirrorScreenState extends State<EmotionalMirrorScreen> {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(DesignTokens.radiusM),
         border: Border.all(
-          color: DesignTokens.accentGreen.withOpacity(0.5),
+          color: DesignTokens.accentGreen.withValues(alpha: 0.5),
           width: 1.5,
         ),
       ),
@@ -979,11 +977,11 @@ class _EmotionalMirrorScreenState extends State<EmotionalMirrorScreen> {
   // Helper methods
   List<Color> _getMoodBalanceColors(double balance) {
     if (balance > 0.3) {
-      return [DesignTokens.successColor.withOpacity(0.7), DesignTokens.successColor];
+      return [DesignTokens.successColor.withValues(alpha: 0.7), DesignTokens.successColor];
     } else if (balance < -0.3) {
-      return [DesignTokens.errorColor.withOpacity(0.7), DesignTokens.errorColor];
+      return [DesignTokens.errorColor.withValues(alpha: 0.7), DesignTokens.errorColor];
     } else {
-      return [DesignTokens.accentBlue.withOpacity(0.7), DesignTokens.accentYellow, DesignTokens.successColor.withOpacity(0.7)];
+      return [DesignTokens.accentBlue.withValues(alpha: 0.7), DesignTokens.accentYellow, DesignTokens.successColor.withValues(alpha: 0.7)];
     }
   }
 

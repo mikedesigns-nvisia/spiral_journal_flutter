@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../models/emotional_mirror_data.dart';
-import '../theme/app_theme.dart';
 import '../design_system/design_tokens.dart';
 import '../design_system/component_library.dart';
 import '../design_system/heading_system.dart';
@@ -29,7 +28,7 @@ class EmotionalTrendChart extends StatelessWidget {
       chartId: 'emotional_trend_${trendPoints.length}',
       chartBuilder: () => ComponentLibrary.gradientCard(
         gradient: DesignTokens.getCardGradient(context),
-        child: Container(
+        child: SizedBox(
           height: height,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -39,7 +38,7 @@ class EmotionalTrendChart extends StatelessWidget {
                   Container(
                     padding: EdgeInsets.all(DesignTokens.spaceS),
                     decoration: BoxDecoration(
-                      color: DesignTokens.accentBlue.withOpacity(0.15),
+                      color: DesignTokens.accentBlue.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(DesignTokens.radiusM),
                     ),
                     child: Icon(
@@ -122,7 +121,7 @@ class EmotionalTrendChart extends StatelessWidget {
   Widget _buildEmptyState(BuildContext context) {
     return ComponentLibrary.gradientCard(
       gradient: DesignTokens.getCardGradient(context),
-      child: Container(
+      child: SizedBox(
         height: height,
         child: Center(
           child: Column(
@@ -131,7 +130,7 @@ class EmotionalTrendChart extends StatelessWidget {
               Container(
                 padding: EdgeInsets.all(DesignTokens.spaceL),
                 decoration: BoxDecoration(
-                  color: DesignTokens.accentBlue.withOpacity(0.1),
+                  color: DesignTokens.accentBlue.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
@@ -235,7 +234,7 @@ class _TrendChartPainter extends CustomPainter {
       ..strokeCap = StrokeCap.round;
 
     final fillPaint = Paint()
-      ..color = primaryColor.withOpacity(0.1)
+      ..color = primaryColor.withValues(alpha: 0.1)
       ..style = PaintingStyle.fill;
 
     final pointPaint = Paint()
@@ -299,7 +298,7 @@ class _TrendChartPainter extends CustomPainter {
 
   void _drawGridAndLabels(Canvas canvas, Size size, Rect chartRect) {
     final gridPaint = Paint()
-      ..color = textColor.withOpacity(0.1)
+      ..color = textColor.withValues(alpha: 0.1)
       ..strokeWidth = 1;
 
     final textPainter = TextPainter(
@@ -334,7 +333,7 @@ class _TrendChartPainter extends CustomPainter {
       textPainter.text = TextSpan(
         text: intensity.toStringAsFixed(1),
         style: TextStyle(
-          color: textColor.withOpacity(0.6),
+          color: textColor.withValues(alpha: 0.6),
           fontSize: 10,
         ),
       );
@@ -368,7 +367,7 @@ class _TrendChartPainter extends CustomPainter {
           textPainter.text = TextSpan(
             text: '${date.month}/${date.day}',
             style: TextStyle(
-              color: textColor.withOpacity(0.6),
+              color: textColor.withValues(alpha: 0.6),
               fontSize: 10,
             ),
           );
@@ -395,7 +394,7 @@ class _TrendChartPainter extends CustomPainter {
       textPainter.text = TextSpan(
         text: '${date.month}/${date.day}',
         style: TextStyle(
-          color: textColor.withOpacity(0.6),
+          color: textColor.withValues(alpha: 0.6),
           fontSize: 10,
         ),
       );
@@ -432,7 +431,7 @@ class SentimentTrendChart extends StatelessWidget {
 
     return ComponentLibrary.gradientCard(
       gradient: DesignTokens.getCardGradient(context),
-      child: Container(
+      child: SizedBox(
         height: height,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -442,7 +441,7 @@ class SentimentTrendChart extends StatelessWidget {
                 Container(
                   padding: EdgeInsets.all(DesignTokens.spaceS),
                   decoration: BoxDecoration(
-                    color: DesignTokens.accentGreen.withOpacity(0.15),
+                    color: DesignTokens.accentGreen.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(DesignTokens.radiusM),
                   ),
                   child: Icon(
@@ -507,7 +506,7 @@ class SentimentTrendChart extends StatelessWidget {
   Widget _buildEmptyState(BuildContext context) {
     return ComponentLibrary.gradientCard(
       gradient: DesignTokens.getCardGradient(context),
-      child: Container(
+      child: SizedBox(
         height: height,
         child: Center(
           child: Column(
@@ -516,7 +515,7 @@ class SentimentTrendChart extends StatelessWidget {
               Container(
                 padding: EdgeInsets.all(DesignTokens.spaceL),
                 decoration: BoxDecoration(
-                  color: DesignTokens.accentGreen.withOpacity(0.1),
+                  color: DesignTokens.accentGreen.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
@@ -634,7 +633,7 @@ class _SentimentChartPainter extends CustomPainter {
 
     // Draw center line (neutral sentiment)
     final centerLinePaint = Paint()
-      ..color = textColor.withOpacity(0.3)
+      ..color = textColor.withValues(alpha: 0.3)
       ..strokeWidth = 1;
     
     canvas.drawLine(
@@ -668,7 +667,7 @@ class _SentimentChartPainter extends CustomPainter {
       final isPositive = clampedSentiment >= 0;
       
       final barPaint = Paint()
-        ..color = isPositive ? positiveColor.withOpacity(0.7) : negativeColor.withOpacity(0.7)
+        ..color = isPositive ? positiveColor.withValues(alpha: 0.7) : negativeColor.withValues(alpha: 0.7)
         ..style = PaintingStyle.fill;
 
       // Calculate bar width using safe method
@@ -701,7 +700,7 @@ class _SentimentChartPainter extends CustomPainter {
 
   void _drawGridAndLabels(Canvas canvas, Size size, Rect chartRect, double centerY) {
     final gridPaint = Paint()
-      ..color = textColor.withOpacity(0.1)
+      ..color = textColor.withValues(alpha: 0.1)
       ..strokeWidth = 1;
 
     final textPainter = TextPainter(
@@ -732,7 +731,7 @@ class _SentimentChartPainter extends CustomPainter {
       textPainter.text = TextSpan(
         text: label,
         style: TextStyle(
-          color: textColor.withOpacity(0.6),
+          color: textColor.withValues(alpha: 0.6),
           fontSize: 10,
         ),
       );
@@ -760,7 +759,7 @@ class _SentimentChartPainter extends CustomPainter {
         textPainter.text = TextSpan(
           text: '${date.month}/${date.day}',
           style: TextStyle(
-            color: textColor.withOpacity(0.6),
+            color: textColor.withValues(alpha: 0.6),
             fontSize: 10,
           ),
         );
@@ -779,7 +778,7 @@ class _SentimentChartPainter extends CustomPainter {
       textPainter.text = TextSpan(
         text: '${date.month}/${date.day}',
         style: TextStyle(
-          color: textColor.withOpacity(0.6),
+          color: textColor.withValues(alpha: 0.6),
           fontSize: 10,
         ),
       );

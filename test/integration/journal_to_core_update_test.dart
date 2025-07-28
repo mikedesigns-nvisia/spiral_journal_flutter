@@ -1,6 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:spiral_journal/models/core.dart';
 import 'package:spiral_journal/models/journal_entry.dart';
 import 'package:spiral_journal/providers/journal_provider.dart';
 import 'package:spiral_journal/services/core_library_service.dart';

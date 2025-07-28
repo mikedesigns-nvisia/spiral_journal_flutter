@@ -63,7 +63,7 @@ class MockServiceFactory {
         throw TypeError();
       }
       
-      return data as T;
+      return data;
     } catch (error, stackTrace) {
       if (error is ArgumentError || error is TypeError) {
         rethrow;
@@ -122,7 +122,7 @@ class MockServiceFactory {
         throw TypeError();
       }
       
-      return data as T;
+      return data;
     } catch (error, stackTrace) {
       if (error is ArgumentError || error is TypeError) {
         rethrow;

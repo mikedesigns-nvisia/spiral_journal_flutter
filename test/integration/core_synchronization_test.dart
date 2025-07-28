@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:spiral_journal/providers/core_provider.dart';
@@ -36,10 +35,10 @@ void main() {
     });
 
     tearDown(() async {
-      await coreProvider.dispose();
-      await syncService.dispose();
+      coreProvider.dispose();
+      syncService.dispose();
       await cacheManager.dispose();
-      await offlineService.dispose();
+      offlineService.dispose();
       await testHelper.tearDown();
     });
 
@@ -99,7 +98,7 @@ void main() {
           await subscription2.cancel();
 
         } finally {
-          await provider2.dispose();
+          provider2.dispose();
         }
       });
 
@@ -271,7 +270,7 @@ void main() {
         await syncService.processBatch(batchSize: 1);
 
         // Verify retry was scheduled
-        final stats = await syncService.getSyncStatistics();
+        final stats = syncService.getSyncStatistics();
         expect(stats['failedSyncs'], greaterThan(0));
         expect(stats['retryAttempts'], greaterThan(0));
       });
@@ -302,7 +301,7 @@ void main() {
         await syncService.optimizeNetworkRequests();
 
         // Verify optimization occurred
-        final stats = await syncService.getSyncStatistics();
+        final stats = syncService.getSyncStatistics();
         expect(stats['batchedRequests'], greaterThan(0));
         expect(stats['networkOptimizations'], greaterThan(0));
       });
@@ -401,13 +400,13 @@ void main() {
         await coreProvider.loadAllCores();
 
         // Verify cache was warmed
-        final cacheStats = await cacheManager.getCacheStatistics();
+        final cacheStats = cacheManager.getCacheStatistics();
         expect(cacheStats['totalCores'], equals(6));
 
         // Verify cache hit rate improves on subsequent loads
         await coreProvider.loadAllCores();
         
-        final updatedStats = await cacheManager.getCacheStatistics();
+        final updatedStats = cacheManager.getCacheStatistics();
         expect(updatedStats['cacheHits'], greaterThan(0));
         expect(updatedStats['hitRate'], greaterThan(0.5));
       });

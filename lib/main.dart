@@ -1,9 +1,8 @@
 import 'dart:async';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:spiral_journal/services/analytics_service.dart';
-import 'package:spiral_journal/constants/app_constants.dart';
+import 'package:spiral_journal/core/app_constants.dart';
 import 'package:spiral_journal/theme/app_theme.dart';
 import 'package:spiral_journal/services/theme_service.dart';
 import 'package:spiral_journal/screens/main_screen.dart';

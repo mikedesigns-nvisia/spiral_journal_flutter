@@ -1,7 +1,6 @@
 #!/usr/bin/env dart
 
 import 'dart:io';
-import 'package:flutter_test/flutter_test.dart';
 import 'package:spiral_journal/utils/sample_data_generator.dart';
 import 'package:spiral_journal/services/core_library_service.dart';
 import 'package:spiral_journal/repositories/journal_repository_impl.dart';

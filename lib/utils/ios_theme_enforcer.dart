@@ -126,8 +126,6 @@ class iOSThemeEnforcer {
         secondary: isDark ? DesignTokens.darkPrimaryLight : DesignTokens.primaryLight,
         surface: isDark ? DesignTokens.darkBackgroundSecondary : DesignTokens.backgroundSecondary,
         onSurface: isDark ? DesignTokens.darkTextPrimary : DesignTokens.textPrimary,
-        background: isDark ? DesignTokens.darkBackgroundPrimary : DesignTokens.backgroundPrimary,
-        onBackground: isDark ? DesignTokens.darkTextPrimary : DesignTokens.textPrimary,
       ),
       
       // Force proper app bar theme

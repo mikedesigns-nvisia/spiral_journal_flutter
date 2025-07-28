@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'dart:async';
-import 'package:spiral_journal/constants/app_constants.dart';
+import 'package:spiral_journal/core/app_constants.dart';
 import 'package:spiral_journal/services/authentication_manager.dart';
 import 'package:spiral_journal/services/settings_service.dart';
 import 'package:spiral_journal/services/local_auth_service.dart';

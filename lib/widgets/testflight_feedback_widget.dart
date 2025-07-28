@@ -1,8 +1,7 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:spiral_journal/services/feedback_service.dart';
 import 'package:spiral_journal/theme/app_theme.dart';
-import 'package:spiral_journal/constants/app_constants.dart';
+import 'package:spiral_journal/core/app_constants.dart';
 import 'package:spiral_journal/services/analytics_service.dart';
 import 'dart:io' show Platform;
 import 'package:device_info_plus/device_info_plus.dart';

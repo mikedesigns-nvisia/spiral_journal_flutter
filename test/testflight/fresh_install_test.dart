@@ -3,7 +3,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:spiral_journal/main.dart';
 import 'package:spiral_journal/services/core_library_service.dart';
-import 'package:spiral_journal/services/journal_service.dart';
 import 'package:spiral_journal/services/settings_service.dart';
 import 'package:spiral_journal/repositories/journal_repository_impl.dart';
 import 'package:spiral_journal/utils/sample_data_generator.dart';

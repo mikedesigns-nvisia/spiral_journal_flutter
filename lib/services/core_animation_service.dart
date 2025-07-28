@@ -133,7 +133,7 @@ class CoreAnimationService {
             decoration: BoxDecoration(
               boxShadow: _accessibilityService.reducedMotionMode ? null : [
                 BoxShadow(
-                  color: color.withOpacity(0.3 * controller.value),
+                  color: color.withValues(alpha: 0.3 * controller.value),
                   blurRadius: 8 * controller.value,
                   spreadRadius: 2 * controller.value,
                 ),
@@ -179,7 +179,7 @@ class CoreAnimationService {
               decoration: BoxDecoration(
                 boxShadow: _accessibilityService.reducedMotionMode ? null : [
                   BoxShadow(
-                    color: celebrationColor.withOpacity(0.5 * controller.value),
+                    color: celebrationColor.withValues(alpha: 0.5 * controller.value),
                     blurRadius: 20 * controller.value,
                     spreadRadius: 5 * controller.value,
                   ),
@@ -240,7 +240,7 @@ class CoreAnimationService {
               decoration: BoxDecoration(
                 boxShadow: _accessibilityService.reducedMotionMode ? null : [
                   BoxShadow(
-                    color: pulseColor.withOpacity(0.3 * controller.value),
+                    color: pulseColor.withValues(alpha: 0.3 * controller.value),
                     blurRadius: 6 * controller.value,
                     spreadRadius: 1 * controller.value,
                   ),
@@ -282,7 +282,7 @@ class CoreAnimationService {
               end: Alignment.centerRight,
               colors: [
                 Colors.transparent,
-                (shimmerColor ?? Colors.white).withOpacity(0.3),
+                (shimmerColor ?? Colors.white).withValues(alpha: 0.3),
                 Colors.transparent,
               ],
               stops: [
@@ -330,12 +330,12 @@ class CoreAnimationService {
     bool enableScale = true,
   }) {
     return _MicroInteractionWidget(
-      child: child,
       onTap: onTap,
       interactionType: interactionType,
       enableHover: enableHover,
       enableScale: enableScale,
       animationService: this,
+      child: child,
     );
   }
 
@@ -396,7 +396,7 @@ class CoreAnimationService {
         return Container(
           height: height,
           decoration: BoxDecoration(
-            color: color.withOpacity(0.2),
+            color: color.withValues(alpha: 0.2),
             borderRadius: BorderRadius.circular(height / 2),
           ),
           child: Stack(
@@ -408,14 +408,14 @@ class CoreAnimationService {
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: [
-                        color.withOpacity(0.8),
+                        color.withValues(alpha: 0.8),
                         color,
                       ],
                     ),
                     borderRadius: BorderRadius.circular(height / 2),
                     boxShadow: _accessibilityService.reducedMotionMode ? null : [
                       BoxShadow(
-                        color: color.withOpacity(0.3),
+                        color: color.withValues(alpha: 0.3),
                         blurRadius: 4,
                         offset: const Offset(0, 1),
                       ),
@@ -557,7 +557,7 @@ class _MicroInteractionWidgetState extends State<_MicroInteractionWidget>
                 decoration: BoxDecoration(
                   boxShadow: AccessibilityService().reducedMotionMode ? null : [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.1 * _elevationAnimation.value / 4),
+                      color: Colors.black.withValues(alpha: 0.1 * _elevationAnimation.value / 4),
                       blurRadius: _elevationAnimation.value * 2,
                       offset: Offset(0, _elevationAnimation.value / 2),
                     ),
@@ -588,7 +588,7 @@ class CelebrationParticlesPainter extends CustomPainter {
     if (progress <= 0) return;
 
     final paint = Paint()
-      ..color = color.withOpacity(0.6 * (1 - progress))
+      ..color = color.withValues(alpha: 0.6 * (1 - progress))
       ..style = PaintingStyle.fill;
 
     // Draw celebration particles

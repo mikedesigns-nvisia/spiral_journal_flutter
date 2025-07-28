@@ -91,7 +91,7 @@ class PostAnalysisDisplay extends StatelessWidget {
               Container(
                 padding: EdgeInsets.all(DesignTokens.spaceM),
                 decoration: BoxDecoration(
-                  color: DesignTokens.accentYellow.withOpacity(0.15),
+                  color: DesignTokens.accentYellow.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(DesignTokens.radiusM),
                 ),
                 child: Icon(
@@ -115,10 +115,10 @@ class PostAnalysisDisplay extends StatelessWidget {
           Container(
             padding: EdgeInsets.all(DesignTokens.spaceL),
             decoration: BoxDecoration(
-              color: DesignTokens.accentYellow.withOpacity(0.1),
+              color: DesignTokens.accentYellow.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(DesignTokens.radiusL),
               border: Border.all(
-                color: DesignTokens.accentYellow.withOpacity(0.3),
+                color: DesignTokens.accentYellow.withValues(alpha: 0.3),
                 width: 1,
               ),
             ),
@@ -147,7 +147,7 @@ class PostAnalysisDisplay extends StatelessWidget {
               Container(
                 padding: EdgeInsets.all(DesignTokens.spaceM),
                 decoration: BoxDecoration(
-                  color: DesignTokens.accentBlue.withOpacity(0.15),
+                  color: DesignTokens.accentBlue.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(DesignTokens.radiusM),
                 ),
                 child: Icon(
@@ -171,7 +171,7 @@ class PostAnalysisDisplay extends StatelessWidget {
                   vertical: DesignTokens.spaceS,
                 ),
                 decoration: BoxDecoration(
-                  color: DesignTokens.accentBlue.withOpacity(0.2),
+                  color: DesignTokens.accentBlue.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(DesignTokens.radiusM),
                 ),
                 child: ResponsiveText(
@@ -194,10 +194,10 @@ class PostAnalysisDisplay extends StatelessWidget {
                   vertical: DesignTokens.spaceS,
                 ),
                 decoration: BoxDecoration(
-                  color: DesignTokens.accentBlue.withOpacity(0.15),
+                  color: DesignTokens.accentBlue.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(DesignTokens.radiusM),
                   border: Border.all(
-                    color: DesignTokens.accentBlue.withOpacity(0.3),
+                    color: DesignTokens.accentBlue.withValues(alpha: 0.3),
                     width: 1,
                   ),
                 ),
@@ -227,7 +227,7 @@ class PostAnalysisDisplay extends StatelessWidget {
               Container(
                 padding: EdgeInsets.all(DesignTokens.spaceM),
                 decoration: BoxDecoration(
-                  color: DesignTokens.accentGreen.withOpacity(0.15),
+                  color: DesignTokens.accentGreen.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(DesignTokens.radiusM),
                 ),
                 child: Icon(
@@ -252,7 +252,7 @@ class PostAnalysisDisplay extends StatelessWidget {
           Container(
             padding: EdgeInsets.all(DesignTokens.spaceL),
             decoration: BoxDecoration(
-              color: DesignTokens.getBackgroundSecondary(context).withOpacity(0.5),
+              color: DesignTokens.getBackgroundSecondary(context).withValues(alpha: 0.5),
               borderRadius: BorderRadius.circular(DesignTokens.radiusM),
             ),
             child: ResponsiveText(
@@ -293,7 +293,7 @@ class PostAnalysisDisplay extends StatelessWidget {
                   ],
                 ),
               );
-            }).toList(),
+            }),
           ],
         ],
       ),
@@ -312,7 +312,7 @@ class PostAnalysisDisplay extends StatelessWidget {
               Container(
                 padding: EdgeInsets.all(DesignTokens.spaceM),
                 decoration: BoxDecoration(
-                  color: DesignTokens.successColor.withOpacity(0.15),
+                  color: DesignTokens.successColor.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(DesignTokens.radiusM),
                 ),
                 child: Icon(
@@ -343,10 +343,10 @@ class PostAnalysisDisplay extends StatelessWidget {
                   vertical: DesignTokens.spaceS,
                 ),
                 decoration: BoxDecoration(
-                  color: DesignTokens.successColor.withOpacity(0.15),
+                  color: DesignTokens.successColor.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(DesignTokens.radiusM),
                   border: Border.all(
-                    color: DesignTokens.successColor.withOpacity(0.3),
+                    color: DesignTokens.successColor.withValues(alpha: 0.3),
                     width: 1,
                   ),
                 ),
@@ -387,7 +387,7 @@ class PostAnalysisDisplay extends StatelessWidget {
               Container(
                 padding: EdgeInsets.all(DesignTokens.spaceM),
                 decoration: BoxDecoration(
-                  color: DesignTokens.getPrimaryColor(context).withOpacity(0.15),
+                  color: DesignTokens.getPrimaryColor(context).withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(DesignTokens.radiusM),
                 ),
                 child: Icon(
@@ -466,7 +466,7 @@ class PostAnalysisDisplay extends StatelessWidget {
                 ],
               ),
             );
-          }).toList(),
+          }),
         ],
       ),
     );
@@ -484,7 +484,7 @@ class PostAnalysisDisplay extends StatelessWidget {
               Container(
                 padding: EdgeInsets.all(DesignTokens.spaceM),
                 decoration: BoxDecoration(
-                  color: DesignTokens.accentBlue.withOpacity(0.15),
+                  color: DesignTokens.accentBlue.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(DesignTokens.radiusM),
                 ),
                 child: Icon(
@@ -511,13 +511,13 @@ class PostAnalysisDisplay extends StatelessWidget {
               padding: EdgeInsets.all(DesignTokens.spaceL),
               decoration: BoxDecoration(
                 color: pattern.isGrowth 
-                    ? DesignTokens.successColor.withOpacity(0.1)
-                    : DesignTokens.warningColor.withOpacity(0.1),
+                    ? DesignTokens.successColor.withValues(alpha: 0.1)
+                    : DesignTokens.warningColor.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(DesignTokens.radiusM),
                 border: Border.all(
                   color: pattern.isGrowth 
-                      ? DesignTokens.successColor.withOpacity(0.3)
-                      : DesignTokens.warningColor.withOpacity(0.3),
+                      ? DesignTokens.successColor.withValues(alpha: 0.3)
+                      : DesignTokens.warningColor.withValues(alpha: 0.3),
                   width: 1,
                 ),
               ),
@@ -533,8 +533,8 @@ class PostAnalysisDisplay extends StatelessWidget {
                         ),
                         decoration: BoxDecoration(
                           color: pattern.isGrowth 
-                              ? DesignTokens.successColor.withOpacity(0.2)
-                              : DesignTokens.warningColor.withOpacity(0.2),
+                              ? DesignTokens.successColor.withValues(alpha: 0.2)
+                              : DesignTokens.warningColor.withValues(alpha: 0.2),
                           borderRadius: BorderRadius.circular(DesignTokens.radiusS),
                         ),
                         child: ResponsiveText(
@@ -574,7 +574,7 @@ class PostAnalysisDisplay extends StatelessWidget {
                 ],
               ),
             );
-          }).toList(),
+          }),
         ],
       ),
     );

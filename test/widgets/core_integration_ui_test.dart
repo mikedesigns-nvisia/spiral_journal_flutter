@@ -30,7 +30,7 @@ void main() {
     });
 
     tearDown(() async {
-      await coreProvider.dispose();
+      coreProvider.dispose();
       navigationService.dispose();
       await testHelper.tearDown();
     });
@@ -193,7 +193,7 @@ void main() {
         // Verify loading indicators are shown
         expect(find.byType(CircularProgressIndicator), findsOneWidget);
         
-        await loadingProvider.dispose();
+        loadingProvider.dispose();
       });
 
       testWidgets('should display error state correctly', (WidgetTester tester) async {
@@ -447,7 +447,7 @@ void main() {
           expect(indicator.strokeWidth, equals(4.0)); // Consistent stroke width
         }
         
-        await loadingProvider.dispose();
+        loadingProvider.dispose();
       });
     });
 
@@ -642,7 +642,7 @@ void main() {
               ChangeNotifierProvider<CoreProvider>.value(value: coreProvider),
             ],
             child: MediaQuery(
-              data: const MediaQueryData(textScaleFactor: 1.5),
+              data: const MediaQueryData(textScaler: TextScaler.linear(1.5)),
               child: const YourCoresCard(),
             ),
           ),

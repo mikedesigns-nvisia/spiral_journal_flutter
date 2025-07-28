@@ -1,10 +1,7 @@
 import 'dart:io';
-import 'package:flutter/foundation.dart';
 import 'lib/services/journal_service.dart';
 import 'lib/services/claude_ai_service.dart';
-import 'lib/services/ai_service_manager.dart';
 import 'lib/models/journal_entry.dart';
-import 'lib/models/core.dart';
 import 'lib/database/database_helper.dart';
 import 'lib/config/api_key_setup.dart';
 

@@ -166,7 +166,7 @@ class _LoadingStateWidgetState extends State<LoadingStateWidget>
             width: widget.size,
             height: widget.size,
             decoration: BoxDecoration(
-              color: color.withOpacity(opacity),
+              color: color.withValues(alpha: opacity),
               shape: BoxShape.circle,
             ),
           ),
@@ -218,7 +218,7 @@ class _LoadingStateWidgetState extends State<LoadingStateWidget>
                 width: 6,
                 height: 6,
                 decoration: BoxDecoration(
-                  color: color.withOpacity(opacity),
+                  color: color.withValues(alpha: opacity),
                   shape: BoxShape.circle,
                 ),
               ),
@@ -240,7 +240,7 @@ class _LoadingStateWidgetState extends State<LoadingStateWidget>
             height: widget.size,
             decoration: BoxDecoration(
               border: Border.all(
-                color: color.withOpacity(0.3),
+                color: color.withValues(alpha: 0.3),
                 width: 3,
               ),
               borderRadius: BorderRadius.circular(widget.size / 2),
@@ -296,7 +296,7 @@ class LoadingOverlay extends StatelessWidget {
         child,
         if (isLoading)
           Container(
-            color: backgroundColor ?? Colors.black.withOpacity(0.5),
+            color: backgroundColor ?? Colors.black.withValues(alpha: 0.5),
             child: Center(
               child: Card(
                 child: Padding(
@@ -451,7 +451,7 @@ class _ShimmerLoadingState extends State<ShimmerLoading>
 
     final theme = Theme.of(context);
     final baseColor = widget.baseColor ?? theme.colorScheme.surface;
-    final highlightColor = widget.highlightColor ?? theme.colorScheme.onSurface.withOpacity(0.1);
+    final highlightColor = widget.highlightColor ?? theme.colorScheme.onSurface.withValues(alpha: 0.1);
 
     return AnimatedBuilder(
       animation: _animation,

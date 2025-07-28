@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
-import '../../lib/services/settings_service.dart';
-import '../../lib/services/journal_service.dart';
-import '../../lib/services/theme_service.dart';
-import '../../lib/main.dart';
+import 'package:spiral_journal/services/settings_service.dart';
+import 'package:spiral_journal/services/journal_service.dart';
+import 'package:spiral_journal/services/theme_service.dart';
 
 /// Test utility class for managing service lifecycle in tests
 class TestServiceManager {

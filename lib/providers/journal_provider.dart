@@ -237,7 +237,9 @@ class JournalProvider with ChangeNotifier {
 
   Future<void> setMoodFilter(List<String> moods) async {
     if (_selectedMoods.length == moods.length && 
-        _selectedMoods.every((mood) => moods.contains(mood))) return;
+        _selectedMoods.every((mood) => moods.contains(mood))) {
+      return;
+    }
     
     _selectedMoods = List.from(moods);
     _currentPage = 0;
@@ -248,7 +250,9 @@ class JournalProvider with ChangeNotifier {
 
   Future<void> setAIMoodFilter(List<String> aiMoods) async {
     if (_selectedAIMoods.length == aiMoods.length && 
-        _selectedAIMoods.every((mood) => aiMoods.contains(mood))) return;
+        _selectedAIMoods.every((mood) => aiMoods.contains(mood))) {
+      return;
+    }
     
     _selectedAIMoods = List.from(aiMoods);
     _currentPage = 0;
@@ -291,7 +295,9 @@ class JournalProvider with ChangeNotifier {
 
   Future<void> setThemeFilter(List<String> themes) async {
     if (_selectedThemes.length == themes.length && 
-        _selectedThemes.every((theme) => themes.contains(theme))) return;
+        _selectedThemes.every((theme) => themes.contains(theme))) {
+      return;
+    }
     
     _selectedThemes = List.from(themes);
     _currentPage = 0;

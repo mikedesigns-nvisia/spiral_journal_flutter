@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import '../design_system/design_tokens.dart';
 import '../design_system/component_library.dart';
 import '../design_system/responsive_layout.dart';
@@ -149,7 +148,7 @@ class _SelfAwarenessEvolutionCardState extends State<SelfAwarenessEvolutionCard>
             builder: (context, child) {
               return Transform.scale(
                 scale: _pulseAnimation.value,
-                child: Container(
+                child: SizedBox(
                   width: iPhoneDetector.getAdaptiveValue(context, compact: 120, regular: 140, large: 160),
                   height: iPhoneDetector.getAdaptiveValue(context, compact: 120, regular: 140, large: 160),
                   child: Stack(
@@ -161,8 +160,8 @@ class _SelfAwarenessEvolutionCardState extends State<SelfAwarenessEvolutionCard>
                           shape: BoxShape.circle,
                           gradient: RadialGradient(
                             colors: [
-                              DesignTokens.accentGreen.withOpacity(0.1),
-                              DesignTokens.accentGreen.withOpacity(0.05),
+                              DesignTokens.accentGreen.withValues(alpha: 0.1),
+                              DesignTokens.accentGreen.withValues(alpha: 0.05),
                             ],
                           ),
                         ),
@@ -177,7 +176,7 @@ class _SelfAwarenessEvolutionCardState extends State<SelfAwarenessEvolutionCard>
                             height: iPhoneDetector.getAdaptiveValue(context, compact: 100, regular: 120, large: 140),
                             child: CircularProgressIndicator(
                               value: _progressAnimation.value,
-                              backgroundColor: DesignTokens.accentGreen.withOpacity(0.2),
+                              backgroundColor: DesignTokens.accentGreen.withValues(alpha: 0.2),
                               valueColor: AlwaysStoppedAnimation<Color>(DesignTokens.accentGreen),
                               strokeWidth: iPhoneDetector.getAdaptiveValue(context, compact: 8, regular: 10, large: 12),
                             ),
@@ -255,10 +254,10 @@ class _SelfAwarenessEvolutionCardState extends State<SelfAwarenessEvolutionCard>
     return Container(
       padding: EdgeInsets.all(DesignTokens.spaceM),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(DesignTokens.radiusM),
         border: Border.all(
-          color: color.withOpacity(0.3),
+          color: color.withValues(alpha: 0.3),
         ),
       ),
       child: Column(
@@ -309,7 +308,7 @@ class _SelfAwarenessEvolutionCardState extends State<SelfAwarenessEvolutionCard>
         ...skills.map((skill) => Padding(
           padding: EdgeInsets.only(bottom: DesignTokens.spaceM),
           child: _buildSkillBar(skill),
-        )).toList(),
+        )),
       ],
     );
   }
@@ -338,7 +337,7 @@ class _SelfAwarenessEvolutionCardState extends State<SelfAwarenessEvolutionCard>
         Container(
           height: 6,
           decoration: BoxDecoration(
-            color: skill.color.withOpacity(0.2),
+            color: skill.color.withValues(alpha: 0.2),
             borderRadius: BorderRadius.circular(3),
           ),
           child: FractionallySizedBox(
@@ -365,7 +364,7 @@ class _SelfAwarenessEvolutionCardState extends State<SelfAwarenessEvolutionCard>
           style: HeadingSystem.getHeadlineSmall(context),
         ),
         AdaptiveSpacing.vertical(baseSize: DesignTokens.spaceL),
-        Container(
+        SizedBox(
           height: 100,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
@@ -448,10 +447,10 @@ class _SelfAwarenessEvolutionCardState extends State<SelfAwarenessEvolutionCard>
           child: Container(
             padding: EdgeInsets.all(DesignTokens.spaceM),
             decoration: BoxDecoration(
-              color: DesignTokens.accentYellow.withOpacity(0.1),
+              color: DesignTokens.accentYellow.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(DesignTokens.radiusM),
               border: Border.all(
-                color: DesignTokens.accentYellow.withOpacity(0.3),
+                color: DesignTokens.accentYellow.withValues(alpha: 0.3),
               ),
             ),
             child: Row(
@@ -473,7 +472,7 @@ class _SelfAwarenessEvolutionCardState extends State<SelfAwarenessEvolutionCard>
               ],
             ),
           ),
-        )).toList(),
+        )),
       ],
     );
   }

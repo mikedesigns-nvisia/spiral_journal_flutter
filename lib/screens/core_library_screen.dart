@@ -301,13 +301,13 @@ class _CoreLibraryScreenState extends State<CoreLibraryScreen> with TickerProvid
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            AppTheme.getPrimaryColor(context).withOpacity(0.1),
-            AppTheme.getPrimaryColor(context).withOpacity(0.05),
+            AppTheme.getPrimaryColor(context).withValues(alpha: 0.1),
+            AppTheme.getPrimaryColor(context).withValues(alpha: 0.05),
           ],
         ),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: AppTheme.getPrimaryColor(context).withOpacity(0.2),
+          color: AppTheme.getPrimaryColor(context).withValues(alpha: 0.2),
           width: 1,
         ),
       ),
@@ -352,13 +352,13 @@ class _CoreLibraryScreenState extends State<CoreLibraryScreen> with TickerProvid
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            AppTheme.getPrimaryColor(context).withOpacity(0.1),
-            AppTheme.getPrimaryColor(context).withOpacity(0.05),
+            AppTheme.getPrimaryColor(context).withValues(alpha: 0.1),
+            AppTheme.getPrimaryColor(context).withValues(alpha: 0.05),
           ],
         ),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: AppTheme.getPrimaryColor(context).withOpacity(0.2),
+          color: AppTheme.getPrimaryColor(context).withValues(alpha: 0.2),
           width: 1,
         ),
       ),
@@ -475,13 +475,13 @@ class _CoreLibraryScreenState extends State<CoreLibraryScreen> with TickerProvid
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: isHighlighted 
-                ? color.withOpacity(0.6)
-                : color.withOpacity(0.3),
+                ? color.withValues(alpha: 0.6)
+                : color.withValues(alpha: 0.3),
             width: isHighlighted ? 2 : 1,
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(isHighlighted ? 0.1 : 0.05),
+              color: Colors.black.withValues(alpha: isHighlighted ? 0.1 : 0.05),
               blurRadius: isHighlighted ? 12 : 8,
               offset: Offset(0, isHighlighted ? 4 : 2),
             ),
@@ -496,7 +496,7 @@ class _CoreLibraryScreenState extends State<CoreLibraryScreen> with TickerProvid
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                 decoration: BoxDecoration(
-                  color: AppTheme.accentGreen.withOpacity(0.2),
+                  color: AppTheme.accentGreen.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
@@ -529,7 +529,7 @@ class _CoreLibraryScreenState extends State<CoreLibraryScreen> with TickerProvid
                           height: 70,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            color: color.withOpacity(0.1),
+                            color: color.withValues(alpha: 0.1),
                           ),
                         ),
                         // Progress circle with animated progress
@@ -952,7 +952,7 @@ class CircularProgressPainter extends CustomPainter {
 
     // Draw background track
     final trackPaint = Paint()
-      ..color = color.withOpacity(0.15)
+      ..color = color.withValues(alpha: 0.15)
       ..strokeWidth = strokeWidth
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round;
@@ -963,7 +963,7 @@ class CircularProgressPainter extends CustomPainter {
     final progressPaint = Paint()
       ..shader = LinearGradient(
         colors: [
-          color.withOpacity(0.7),
+          color.withValues(alpha: 0.7),
           color,
         ],
         begin: Alignment.topCenter,
@@ -1030,7 +1030,7 @@ class _CoreDetailSheetState extends State<CoreDetailSheet> {
             width: 40,
             height: 4,
             decoration: BoxDecoration(
-              color: AppTheme.getTextSecondary(context).withOpacity(0.3),
+              color: AppTheme.getTextSecondary(context).withValues(alpha: 0.3),
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -1043,7 +1043,7 @@ class _CoreDetailSheetState extends State<CoreDetailSheet> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: color.withOpacity(0.1),
+                    color: color.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Icon(
@@ -1165,7 +1165,7 @@ class _CoreDetailSheetState extends State<CoreDetailSheet> {
                     const SizedBox(height: 8),
                     LinearProgressIndicator(
                       value: widget.core.currentLevel,
-                      backgroundColor: color.withOpacity(0.2),
+                      backgroundColor: color.withValues(alpha: 0.2),
                       valueColor: AlwaysStoppedAnimation<Color>(color),
                     ),
                     const SizedBox(height: 8),
@@ -1242,7 +1242,7 @@ class _CoreDetailSheetState extends State<CoreDetailSheet> {
             color: AppTheme.getBackgroundSecondary(context),
             borderRadius: BorderRadius.circular(12),
             border: milestone.isAchieved
-                ? Border.all(color: color.withOpacity(0.3), width: 1)
+                ? Border.all(color: color.withValues(alpha: 0.3), width: 1)
                 : null,
           ),
           child: Row(
@@ -1352,7 +1352,7 @@ class _CoreDetailSheetState extends State<CoreDetailSheet> {
                   color: AppTheme.getBackgroundSecondary(context),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: _getCoreColor(core.color).withOpacity(0.2),
+                    color: _getCoreColor(core.color).withValues(alpha: 0.2),
                     width: 1,
                   ),
                 ),
@@ -1379,7 +1379,7 @@ class _CoreDetailSheetState extends State<CoreDetailSheet> {
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                             decoration: BoxDecoration(
-                              color: AppTheme.getTextSecondary(context).withOpacity(0.1),
+                              color: AppTheme.getTextSecondary(context).withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(4),
                             ),
                             child: Text(
@@ -1407,7 +1407,7 @@ class _CoreDetailSheetState extends State<CoreDetailSheet> {
                       Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: _getCoreColor(core.color).withOpacity(0.1),
+                          color: _getCoreColor(core.color).withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Row(

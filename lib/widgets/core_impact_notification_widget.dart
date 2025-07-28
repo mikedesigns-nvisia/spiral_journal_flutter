@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import '../services/core_impact_notification_service.dart';
 import '../services/accessibility_service.dart';
 import '../design_system/design_tokens.dart';
-import '../models/core.dart';
 
 /// Widget that displays core impact notifications with animations
 class CoreImpactNotificationWidget extends StatefulWidget {
@@ -244,20 +243,20 @@ class _CoreImpactNotificationWidgetState extends State<CoreImpactNotificationWid
               : Colors.white,
           borderRadius: BorderRadius.circular(DesignTokens.borderRadius3),
           border: Border.all(
-            color: _getNotificationColor().withOpacity(
+            color: _getNotificationColor().withValues(alpha: 
               _accessibilityService.highContrastMode ? 0.8 : 0.3,
             ),
             width: _accessibilityService.highContrastMode ? 3 : 2,
           ),
           boxShadow: [
             BoxShadow(
-              color: _getNotificationColor().withOpacity(0.2),
+              color: _getNotificationColor().withValues(alpha: 0.2),
               blurRadius: 12,
               offset: const Offset(0, 4),
               spreadRadius: 2,
             ),
             BoxShadow(
-              color: Colors.black.withOpacity(0.1),
+              color: Colors.black.withValues(alpha: 0.1),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),
@@ -333,10 +332,10 @@ class _CoreImpactNotificationWidgetState extends State<CoreImpactNotificationWid
       width: 48,
       height: 48,
       decoration: BoxDecoration(
-        color: _getNotificationColor().withOpacity(0.1),
+        color: _getNotificationColor().withValues(alpha: 0.1),
         shape: BoxShape.circle,
         border: Border.all(
-          color: _getNotificationColor().withOpacity(0.3),
+          color: _getNotificationColor().withValues(alpha: 0.3),
           width: 2,
         ),
       ),
@@ -357,10 +356,10 @@ class _CoreImpactNotificationWidgetState extends State<CoreImpactNotificationWid
       margin: const EdgeInsets.only(top: DesignTokens.spacing2),
       padding: const EdgeInsets.all(DesignTokens.spacing2),
       decoration: BoxDecoration(
-        color: DesignTokens.successColor.withOpacity(0.05),
+        color: DesignTokens.successColor.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(DesignTokens.borderRadius2),
         border: Border.all(
-          color: DesignTokens.successColor.withOpacity(0.2),
+          color: DesignTokens.successColor.withValues(alpha: 0.2),
           width: 1,
         ),
       ),
@@ -429,7 +428,7 @@ class _CoreImpactNotificationWidgetState extends State<CoreImpactNotificationWid
           width: 24,
           height: 24,
           decoration: BoxDecoration(
-            color: DesignTokens.textSecondaryColor.withOpacity(0.1),
+            color: DesignTokens.textSecondaryColor.withValues(alpha: 0.1),
             shape: BoxShape.circle,
           ),
           child: Icon(
@@ -578,7 +577,7 @@ class CelebrationPainter extends CustomPainter {
     if (progress <= 0) return;
 
     final paint = Paint()
-      ..color = color.withOpacity(0.3 * (1 - progress))
+      ..color = color.withValues(alpha: 0.3 * (1 - progress))
       ..style = PaintingStyle.fill;
 
     // Draw celebration particles
@@ -595,7 +594,7 @@ class CelebrationPainter extends CustomPainter {
     // Draw celebration rays
     paint.style = PaintingStyle.stroke;
     paint.strokeWidth = 2;
-    paint.color = color.withOpacity(0.5 * (1 - progress));
+    paint.color = color.withValues(alpha: 0.5 * (1 - progress));
 
     final center = Offset(size.width / 2, size.height / 2);
     

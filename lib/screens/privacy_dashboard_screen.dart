@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../design_system/design_tokens.dart';
@@ -10,7 +9,6 @@ import '../repositories/journal_repository.dart';
 import '../services/core_library_service.dart';
 import '../database/database_helper.dart';
 import '../widgets/loading_state_widget.dart' as loading_widget;
-import '../theme/app_theme.dart';
 
 /// Privacy Dashboard Screen for Spiral Journal
 /// 
@@ -317,7 +315,7 @@ class _PrivacyDashboardScreenState extends State<PrivacyDashboardScreen> {
       child: Row(
         children: [
           CircleAvatar(
-            backgroundColor: DesignTokens.primaryOrange.withOpacity(0.1),
+            backgroundColor: DesignTokens.primaryOrange.withValues(alpha: 0.1),
             child: Icon(icon, color: DesignTokens.getPrimaryColor(context)),
           ),
           SizedBox(width: DesignTokens.spaceM),

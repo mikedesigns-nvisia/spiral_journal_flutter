@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:spiral_journal/design_system/design_tokens.dart';
-import 'package:spiral_journal/design_system/component_library.dart';
 import 'package:spiral_journal/design_system/responsive_layout.dart';
 import 'package:spiral_journal/widgets/mood_selector.dart';
 import 'package:spiral_journal/widgets/journal_input.dart';
@@ -9,7 +8,6 @@ import 'package:spiral_journal/providers/journal_provider.dart';
 import 'package:spiral_journal/providers/core_provider_refactored.dart';
 import 'package:spiral_journal/models/journal_entry.dart';
 import 'package:spiral_journal/services/ai_service_manager.dart';
-import 'package:spiral_journal/services/journal_service.dart';
 import 'package:spiral_journal/theme/app_theme.dart';
 import 'package:intl/intl.dart';
 

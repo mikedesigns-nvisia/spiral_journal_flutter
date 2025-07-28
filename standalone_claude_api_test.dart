@@ -309,7 +309,7 @@ Keep it personal, supportive, and focused on their emotional journey.
   }
   
   // Test Results Summary
-  print('\n' + '=' * 60);
+  print('\n${'=' * 60}');
   print('📈 TEST RESULTS SUMMARY');
   print('=' * 60);
   print('Tests Passed: $testsPassed / $totalTests');

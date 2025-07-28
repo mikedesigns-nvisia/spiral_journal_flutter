@@ -3,7 +3,6 @@ import '../design_system/design_tokens.dart';
 import '../design_system/component_library.dart';
 import '../design_system/responsive_layout.dart';
 import '../design_system/heading_system.dart';
-import '../services/emotional_mirror_service.dart';
 import '../models/core.dart';
 import '../utils/iphone_detector.dart';
 
@@ -115,7 +114,7 @@ class _PatternRecognitionDashboardCardState extends State<PatternRecognitionDash
                   vertical: DesignTokens.spaceM,
                 ),
                 decoration: BoxDecoration(
-                  color: isSelected ? patternColor : patternColor.withOpacity(0.1),
+                  color: isSelected ? patternColor : patternColor.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(DesignTokens.radiusL),
                   border: Border.all(
                     color: patternColor,
@@ -187,7 +186,7 @@ class _PatternRecognitionDashboardCardState extends State<PatternRecognitionDash
       },
       child: Container(
         decoration: BoxDecoration(
-          color: isSelected ? patternColor.withOpacity(0.2) : DesignTokens.getBackgroundSecondary(context),
+          color: isSelected ? patternColor.withValues(alpha: 0.2) : DesignTokens.getBackgroundSecondary(context),
           borderRadius: BorderRadius.circular(DesignTokens.radiusM),
           border: Border.all(
             color: isSelected ? patternColor : DesignTokens.getBackgroundTertiary(context),
@@ -195,7 +194,7 @@ class _PatternRecognitionDashboardCardState extends State<PatternRecognitionDash
           ),
           boxShadow: isSelected ? [
             BoxShadow(
-              color: patternColor.withOpacity(0.2),
+              color: patternColor.withValues(alpha: 0.2),
               blurRadius: 8,
               spreadRadius: 2,
             ),
@@ -212,7 +211,7 @@ class _PatternRecognitionDashboardCardState extends State<PatternRecognitionDash
                   Container(
                     padding: EdgeInsets.all(DesignTokens.spaceS),
                     decoration: BoxDecoration(
-                      color: patternColor.withOpacity(0.2),
+                      color: patternColor.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(DesignTokens.radiusS),
                     ),
                     child: Icon(
@@ -257,7 +256,7 @@ class _PatternRecognitionDashboardCardState extends State<PatternRecognitionDash
                   vertical: DesignTokens.spaceXS,
                 ),
                 decoration: BoxDecoration(
-                  color: patternColor.withOpacity(0.1),
+                  color: patternColor.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(DesignTokens.radiusS),
                 ),
                 child: ResponsiveText(
@@ -279,7 +278,7 @@ class _PatternRecognitionDashboardCardState extends State<PatternRecognitionDash
       width: 40,
       height: 6,
       decoration: BoxDecoration(
-        color: color.withOpacity(0.2),
+        color: color.withValues(alpha: 0.2),
         borderRadius: BorderRadius.circular(3),
       ),
       child: FractionallySizedBox(
@@ -306,10 +305,10 @@ class _PatternRecognitionDashboardCardState extends State<PatternRecognitionDash
     return Container(
       padding: EdgeInsets.all(DesignTokens.spaceL),
       decoration: BoxDecoration(
-        color: patternColor.withOpacity(0.05),
+        color: patternColor.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(DesignTokens.radiusM),
         border: Border.all(
-          color: patternColor.withOpacity(0.2),
+          color: patternColor.withValues(alpha: 0.2),
         ),
       ),
       child: Column(
@@ -349,7 +348,7 @@ class _PatternRecognitionDashboardCardState extends State<PatternRecognitionDash
                             vertical: DesignTokens.spaceXS,
                           ),
                           decoration: BoxDecoration(
-                            color: patternColor.withOpacity(0.2),
+                            color: patternColor.withValues(alpha: 0.2),
                             borderRadius: BorderRadius.circular(DesignTokens.radiusS),
                           ),
                           child: ResponsiveText(
@@ -410,7 +409,7 @@ class _PatternRecognitionDashboardCardState extends State<PatternRecognitionDash
   }
 
   Widget _buildEmptyState() {
-    return Container(
+    return SizedBox(
       height: 200,
       child: Center(
         child: Column(

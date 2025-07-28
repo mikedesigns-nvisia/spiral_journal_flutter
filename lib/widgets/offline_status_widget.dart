@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/core_provider_refactored.dart';
 import '../services/core_offline_support_service.dart';
-import '../models/core_error.dart';
 
 /// Widget that displays offline status and provides recovery options
 class OfflineStatusWidget extends StatelessWidget {
@@ -177,7 +176,7 @@ class OfflineStatusWidget extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceVariant,
+        color: theme.colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(8),
       ),
       child: Column(

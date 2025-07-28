@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/semantics.dart';
@@ -165,8 +164,8 @@ class AccessibilityService {
         onPrimary: theme.colorScheme.onPrimary,
         secondary: theme.colorScheme.secondary,
         onSecondary: theme.colorScheme.onSecondary,
-        background: theme.colorScheme.background,
-        onBackground: theme.colorScheme.onBackground,
+        background: theme.colorScheme.surface,
+        onBackground: theme.colorScheme.onSurface,
         surface: theme.colorScheme.surface,
         onSurface: theme.colorScheme.onSurface,
         error: theme.colorScheme.error,
@@ -260,7 +259,7 @@ class AccessibilityService {
         ? '${content.substring(0, 100)}...' 
         : content;
     
-    return '${dateText}${moodText}Entry: $contentPreview';
+    return '$dateText${moodText}Entry: $contentPreview';
   }
 
   /// Get semantic label for mood selector

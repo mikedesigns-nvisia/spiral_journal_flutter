@@ -4,7 +4,6 @@ import 'package:spiral_journal/services/core_cache_manager.dart';
 import 'package:spiral_journal/services/core_memory_optimizer.dart';
 import 'package:spiral_journal/services/core_background_sync_service.dart';
 import 'package:spiral_journal/models/core.dart';
-import 'package:spiral_journal/models/journal_entry.dart';
 import '../utils/test_setup_helper.dart';
 
 void main() {
@@ -143,7 +142,7 @@ void main() {
         await cacheManager.getCachedCore(cores[1].id); // Hit
         await cacheManager.getCachedCore('non_existent'); // Miss
         
-        final stats = await cacheManager.getCacheStatistics();
+        final stats = cacheManager.getCacheStatistics();
         
         expect(stats['totalCores'], equals(5));
         expect(stats['cacheHits'], equals(2));
@@ -162,7 +161,7 @@ void main() {
       });
 
       tearDown(() async {
-        await memoryOptimizer.dispose();
+        memoryOptimizer.dispose();
       });
 
       test('should optimize core list memory usage', () async {
@@ -301,7 +300,7 @@ void main() {
       });
 
       tearDown(() async {
-        await syncService.dispose();
+        syncService.dispose();
       });
 
       test('should queue updates efficiently', () async {
@@ -379,7 +378,7 @@ void main() {
         // Conflict resolution should be fast (< 50ms)
         expect(conflictDuration.inMilliseconds, lessThan(50));
         
-        final stats = await syncService.getSyncStatistics();
+        final stats = syncService.getSyncStatistics();
         expect(stats['conflictsResolved'], greaterThan(0));
       });
 
@@ -407,7 +406,7 @@ void main() {
         // Should implement some delay for failed retries
         expect(backoffDelay.inMilliseconds, greaterThan(10));
         
-        final stats = await syncService.getSyncStatistics();
+        final stats = syncService.getSyncStatistics();
         expect(stats['failedSyncs'], greaterThan(0));
         expect(stats['retryAttempts'], greaterThan(0));
       });
@@ -431,7 +430,7 @@ void main() {
         // Network optimization should be efficient
         expect(networkDuration.inMilliseconds, lessThan(150));
         
-        final stats = await syncService.getSyncStatistics();
+        final stats = syncService.getSyncStatistics();
         expect(stats['batchedRequests'], greaterThan(0));
         expect(stats['networkOptimizations'], greaterThan(0));
       });
@@ -504,9 +503,9 @@ void main() {
           expect(loadTestDuration.inSeconds, lessThan(2));
           
           // Verify system stability
-          final cacheStats = await cacheManager.getCacheStatistics();
+          final cacheStats = cacheManager.getCacheStatistics();
           final memoryStats = memoryOptimizer.getMemoryStatistics();
-          final syncStats = await syncService.getSyncStatistics();
+          final syncStats = syncService.getSyncStatistics();
           
           expect(cacheStats['totalCores'], greaterThan(0));
           expect(memoryStats['memoryOptimized'], isTrue);
@@ -514,8 +513,8 @@ void main() {
           
         } finally {
           await cacheManager.dispose();
-          await memoryOptimizer.dispose();
-          await syncService.dispose();
+          memoryOptimizer.dispose();
+          syncService.dispose();
         }
       });
 
@@ -547,7 +546,7 @@ void main() {
           expect(stats['memoryOptimized'], isTrue);
           
         } finally {
-          await memoryOptimizer.dispose();
+          memoryOptimizer.dispose();
         }
       });
     });

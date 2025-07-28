@@ -5,7 +5,6 @@ import 'package:spiral_journal/database/database_helper.dart';
 import 'package:spiral_journal/database/journal_dao.dart';
 import 'package:spiral_journal/database/core_dao.dart';
 import 'package:spiral_journal/models/journal_entry.dart';
-import 'package:spiral_journal/models/core.dart';
 
 void main() {
   group('Database Functionality Tests', () {

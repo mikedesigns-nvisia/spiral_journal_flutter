@@ -41,46 +41,89 @@ class AppConstants {
   AppConstants._();
 
   // ============================================================================
-  // UI Constants
+  // SPACING CONSTANTS
   // ============================================================================
   
-  /// Default padding used throughout the application
-  static const double defaultPadding = 16.0;
+  /// Fine-grained spacing scale
+  static const double spacing4 = 4.0;
+  static const double spacing8 = 8.0;
+  static const double spacing12 = 12.0;
+  static const double spacing16 = 16.0;
+  static const double spacing20 = 20.0;
+  static const double spacing24 = 24.0;
+  static const double spacing32 = 32.0;
+  static const double spacing40 = 40.0;
+  static const double spacing48 = 48.0;
   
-  /// Large padding for major sections
-  static const double largePadding = 24.0;
+  /// Semantic spacing aliases
+  static const double defaultPadding = spacing16;
+  static const double smallPadding = spacing8;
+  static const double largePadding = spacing24;
+  static const double extraLargePadding = spacing32;
+
+  // ============================================================================
+  // BORDER RADIUS CONSTANTS
+  // ============================================================================
   
-  /// Extra large padding for major sections
-  static const double extraLargePadding = 32.0;
+  static const double radiusSmall = 8.0;
+  static const double radiusMedium = 12.0;
+  static const double radiusLarge = 16.0;
+  static const double radiusXLarge = 24.0;
   
-  /// Small padding for compact layouts
-  static const double smallPadding = 8.0;
+  /// Semantic radius aliases
+  static const double cardBorderRadius = radiusLarge;
+  static const double buttonBorderRadius = radiusSmall;
+  static const double chipBorderRadius = radiusXLarge;
+  static const double borderRadius = radiusMedium; // Legacy alias
   
-  /// Standard card border radius
-  static const double cardBorderRadius = 16.0;
+  // ============================================================================
+  // ANIMATION CONSTANTS
+  // ============================================================================
   
-  /// Standard button border radius
-  static const double buttonBorderRadius = 8.0;
+  static const int animationFast = 200;
+  static const int animationNormal = 300;
+  static const int animationSlow = 500;
   
-  /// Standard border radius for form elements
-  static const double borderRadius = 12.0;
+  /// Semantic animation aliases
+  static const int animationDurationMs = animationNormal;
+  static const Duration animationDuration = Duration(milliseconds: animationNormal);
+  static const Duration pageTransitionDuration = Duration(milliseconds: animationSlow);
   
-  /// Default icon size for UI elements
-  static const double defaultIconSize = 24.0;
+  // ============================================================================
+  // SIZE CONSTANTS
+  // ============================================================================
   
-  /// Large icon size for prominent elements
-  static const double largeIconSize = 64.0;
+  static const double iconSizeSmall = 20.0;
+  static const double iconSizeMedium = 24.0;
+  static const double iconSizeLarge = 32.0;
+  static const double iconSizeXLarge = 48.0;
   
-  /// Standard animation duration in milliseconds
-  static const int animationDurationMs = 300;
+  /// Legacy aliases
+  static const double defaultIconSize = iconSizeMedium;
+  static const double largeIconSize = iconSizeXLarge;
   
-  /// Preview text length for journal entries
-  static const int previewTextLength = 100;
+  /// Accessibility minimum touch target
+  static const double minTouchTarget = 48.0;
   
-  /// Horizontal padding for buttons
+  // ============================================================================
+  // ELEVATION CONSTANTS
+  // ============================================================================
+  
+  static const double elevationLow = 2.0;
+  static const double elevationMedium = 4.0;
+  static const double elevationHigh = 8.0;
+  
+  // ============================================================================
+  // TEXT & CONTENT CONSTANTS
+  // ============================================================================
+  
+  static const int maxJournalLength = 10000;
+  static const int maxTitleLength = 100;
+  static const int snippetLength = 150;
+  static const int previewTextLength = 100; // Legacy alias
+  
+  /// Button padding
   static const double buttonHorizontalPadding = 32.0;
-  
-  /// Vertical padding for buttons
   static const double buttonVerticalPadding = 16.0;
 
   // ============================================================================

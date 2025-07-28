@@ -6,7 +6,6 @@ import 'package:spiral_journal/widgets/base_card.dart';
 import 'package:spiral_journal/theme/app_theme.dart';
 import 'package:spiral_journal/providers/emotional_mirror_provider.dart';
 import 'package:spiral_journal/providers/journal_provider.dart';
-import 'package:spiral_journal/models/emotional_mirror_data.dart';
 import 'package:spiral_journal/models/emotional_state.dart';
 import 'package:spiral_journal/widgets/primary_emotional_state_widget.dart';
 
@@ -134,7 +133,7 @@ class MindReflectionCard extends StatelessWidget {
                 if (index < 2) SizedBox(height: DesignTokens.spaceL), // Only show spacing between first 3 insights
               ],
             );
-          }).take(3).toList(),
+          }).take(3),
         ],
       );
     }
@@ -200,7 +199,7 @@ class MindReflectionCard extends StatelessWidget {
               if (index < insights.length - 1) SizedBox(height: DesignTokens.spaceXL),
             ],
           );
-        }).toList(),
+        }),
       ],
     );
   }

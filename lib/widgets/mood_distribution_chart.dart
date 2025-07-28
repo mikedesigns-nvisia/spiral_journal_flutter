@@ -33,7 +33,7 @@ class MoodDistributionChart extends StatelessWidget {
       chartId: 'mood_distribution_${moods.length}',
       chartBuilder: () => ComponentLibrary.gradientCard(
         gradient: DesignTokens.getCardGradient(context),
-        child: Container(
+        child: SizedBox(
           height: height,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -46,7 +46,7 @@ class MoodDistributionChart extends StatelessWidget {
                       Container(
                         padding: EdgeInsets.all(DesignTokens.spaceS),
                         decoration: BoxDecoration(
-                          color: DesignTokens.accentYellow.withOpacity(0.15),
+                          color: DesignTokens.accentYellow.withValues(alpha: 0.15),
                           borderRadius: BorderRadius.circular(DesignTokens.radiusM),
                         ),
                         child: Icon(
@@ -95,7 +95,7 @@ class MoodDistributionChart extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: AppTheme.getPrimaryColor(context).withOpacity(0.1),
+        color: AppTheme.getPrimaryColor(context).withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Text(
@@ -173,7 +173,7 @@ class MoodDistributionChart extends StatelessWidget {
               ],
             ),
           );
-        }).toList(),
+        }),
         if (sortedMoods.length > 6)
           Padding(
             padding: const EdgeInsets.only(top: 8),
@@ -192,7 +192,7 @@ class MoodDistributionChart extends StatelessWidget {
   Widget _buildEmptyState(BuildContext context) {
     return ComponentLibrary.gradientCard(
       gradient: DesignTokens.getCardGradient(context),
-      child: Container(
+      child: SizedBox(
         height: height,
         child: Center(
           child: Column(
@@ -201,7 +201,7 @@ class MoodDistributionChart extends StatelessWidget {
               Container(
                 padding: EdgeInsets.all(DesignTokens.spaceL),
                 decoration: BoxDecoration(
-                  color: DesignTokens.accentYellow.withOpacity(0.1),
+                  color: DesignTokens.accentYellow.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
@@ -320,9 +320,9 @@ class _PieChartPainter extends CustomPainter {
       final gradient = RadialGradient(
         center: Alignment.center,
         colors: [
-          baseColor.withOpacity(0.9),
+          baseColor.withValues(alpha: 0.9),
           baseColor,
-          baseColor.withOpacity(0.85),
+          baseColor.withValues(alpha: 0.85),
         ],
         stops: const [0.3, 0.7, 1.0],
       );
@@ -342,7 +342,7 @@ class _PieChartPainter extends CustomPainter {
 
       // Add highlight effect on outer edge
       final highlightPaint = Paint()
-        ..color = baseColor.withOpacity(0.4)
+        ..color = baseColor.withValues(alpha: 0.4)
         ..style = PaintingStyle.stroke
         ..strokeWidth = 2;
 
@@ -356,7 +356,7 @@ class _PieChartPainter extends CustomPainter {
 
       // Draw subtle border between slices using design tokens
       final borderPaint = Paint()
-        ..color = DesignTokens.getBackgroundPrimary(context).withOpacity(0.8)
+        ..color = DesignTokens.getBackgroundPrimary(context).withValues(alpha: 0.8)
         ..style = PaintingStyle.stroke
         ..strokeWidth = 1.5;
 
@@ -446,7 +446,7 @@ class _PieChartPainter extends CustomPainter {
 
   void _drawSparkles(Canvas canvas, Offset center, double radius) {
     final sparklePaint = Paint()
-      ..color = DesignTokens.primaryOrange.withOpacity(0.3)
+      ..color = DesignTokens.primaryOrange.withValues(alpha: 0.3)
       ..style = PaintingStyle.fill;
 
     // Add a few sparkle points around the chart
@@ -541,7 +541,7 @@ class MoodBarChart extends StatelessWidget {
                         child: Container(
                           height: 20,
                           decoration: BoxDecoration(
-                            color: AppTheme.getPrimaryColor(context).withOpacity(0.1),
+                            color: AppTheme.getPrimaryColor(context).withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: FractionallySizedBox(
