@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:spiral_journal/design_system/design_tokens.dart';
-import 'package:spiral_journal/design_system/heading_system.dart';
 
 /// Unified theme system that uses DesignTokens as the single source of truth
 /// and provides Flutter ThemeData configurations for the app.
@@ -36,7 +35,7 @@ class AppTheme {
         elevation: DesignTokens.appBarElevation,
         centerTitle: false,
         titleTextStyle: DesignTokens.getTextStyle(
-          fontSize: HeadingSystem.headlineMedium,
+          fontSize: 18.0,
           fontWeight: DesignTokens.fontWeightMedium,
           color: DesignTokens.primaryOrange,
         ),
@@ -109,84 +108,8 @@ class AppTheme {
         ),
       ),
       
-      // Text Theme - Using standardized heading system
-      textTheme: TextTheme(
-        displayLarge: DesignTokens.getTextStyle(
-          fontSize: HeadingSystem.displayLarge,
-          fontWeight: DesignTokens.fontWeightBold,
-          color: DesignTokens.primaryOrange,
-        ),
-        displayMedium: DesignTokens.getTextStyle(
-          fontSize: HeadingSystem.displayMedium,
-          fontWeight: DesignTokens.fontWeightSemiBold,
-          color: DesignTokens.primaryOrange,
-        ),
-        displaySmall: DesignTokens.getTextStyle(
-          fontSize: HeadingSystem.displaySmall,
-          fontWeight: DesignTokens.fontWeightSemiBold,
-          color: DesignTokens.primaryOrange,
-        ),
-        headlineLarge: DesignTokens.getTextStyle(
-          fontSize: HeadingSystem.headlineLarge,
-          fontWeight: DesignTokens.fontWeightSemiBold,
-          color: DesignTokens.textPrimary,
-        ),
-        headlineMedium: DesignTokens.getTextStyle(
-          fontSize: HeadingSystem.headlineMedium,
-          fontWeight: DesignTokens.fontWeightMedium,
-          color: DesignTokens.textPrimary,
-        ),
-        headlineSmall: DesignTokens.getTextStyle(
-          fontSize: HeadingSystem.headlineSmall,
-          fontWeight: DesignTokens.fontWeightMedium,
-          color: DesignTokens.textPrimary,
-        ),
-        titleLarge: DesignTokens.getTextStyle(
-          fontSize: HeadingSystem.titleLarge,
-          fontWeight: DesignTokens.fontWeightMedium,
-          color: DesignTokens.textPrimary,
-        ),
-        titleMedium: DesignTokens.getTextStyle(
-          fontSize: HeadingSystem.titleMedium,
-          fontWeight: DesignTokens.fontWeightMedium,
-          color: DesignTokens.textPrimary,
-        ),
-        titleSmall: DesignTokens.getTextStyle(
-          fontSize: HeadingSystem.titleSmall,
-          fontWeight: DesignTokens.fontWeightMedium,
-          color: DesignTokens.textSecondary,
-        ),
-        bodyLarge: DesignTokens.getTextStyle(
-          fontSize: HeadingSystem.bodyLarge,
-          fontWeight: DesignTokens.fontWeightRegular,
-          color: DesignTokens.textPrimary,
-        ),
-        bodyMedium: DesignTokens.getTextStyle(
-          fontSize: HeadingSystem.bodyMedium,
-          fontWeight: DesignTokens.fontWeightRegular,
-          color: DesignTokens.textSecondary,
-        ),
-        bodySmall: DesignTokens.getTextStyle(
-          fontSize: HeadingSystem.bodySmall,
-          fontWeight: DesignTokens.fontWeightRegular,
-          color: DesignTokens.textTertiary,
-        ),
-        labelLarge: DesignTokens.getTextStyle(
-          fontSize: HeadingSystem.labelLarge,
-          fontWeight: DesignTokens.fontWeightMedium,
-          color: DesignTokens.textPrimary,
-        ),
-        labelMedium: DesignTokens.getTextStyle(
-          fontSize: HeadingSystem.labelMedium,
-          fontWeight: DesignTokens.fontWeightMedium,
-          color: DesignTokens.textPrimary,
-        ),
-        labelSmall: DesignTokens.getTextStyle(
-          fontSize: HeadingSystem.labelSmall,
-          fontWeight: DesignTokens.fontWeightMedium,
-          color: DesignTokens.textSecondary,
-        ),
-      ),
+      // Text Theme - Using serif headings and Noto Sans JP body
+      textTheme: DesignTokens.textTheme(isDark: false),
       
       // Input Decoration Theme
       inputDecorationTheme: InputDecorationTheme(
@@ -245,7 +168,7 @@ class AppTheme {
         elevation: DesignTokens.appBarElevation,
         centerTitle: false,
         titleTextStyle: DesignTokens.getTextStyle(
-          fontSize: HeadingSystem.headlineMedium,
+          fontSize: 18.0,
           fontWeight: DesignTokens.fontWeightMedium,
           color: DesignTokens.darkPrimaryOrange,
         ),
@@ -318,84 +241,8 @@ class AppTheme {
         ),
       ),
       
-      // Text Theme - Using standardized heading system
-      textTheme: TextTheme(
-        displayLarge: DesignTokens.getTextStyle(
-          fontSize: HeadingSystem.displayLarge,
-          fontWeight: DesignTokens.fontWeightBold,
-          color: DesignTokens.darkPrimaryOrange,
-        ),
-        displayMedium: DesignTokens.getTextStyle(
-          fontSize: HeadingSystem.displayMedium,
-          fontWeight: DesignTokens.fontWeightSemiBold,
-          color: DesignTokens.darkPrimaryOrange,
-        ),
-        displaySmall: DesignTokens.getTextStyle(
-          fontSize: HeadingSystem.displaySmall,
-          fontWeight: DesignTokens.fontWeightSemiBold,
-          color: DesignTokens.darkPrimaryOrange,
-        ),
-        headlineLarge: DesignTokens.getTextStyle(
-          fontSize: HeadingSystem.headlineLarge,
-          fontWeight: DesignTokens.fontWeightSemiBold,
-          color: DesignTokens.darkTextPrimary,
-        ),
-        headlineMedium: DesignTokens.getTextStyle(
-          fontSize: HeadingSystem.headlineMedium,
-          fontWeight: DesignTokens.fontWeightMedium,
-          color: DesignTokens.darkTextPrimary,
-        ),
-        headlineSmall: DesignTokens.getTextStyle(
-          fontSize: HeadingSystem.headlineSmall,
-          fontWeight: DesignTokens.fontWeightMedium,
-          color: DesignTokens.darkTextPrimary,
-        ),
-        titleLarge: DesignTokens.getTextStyle(
-          fontSize: HeadingSystem.titleLarge,
-          fontWeight: DesignTokens.fontWeightMedium,
-          color: DesignTokens.darkTextPrimary,
-        ),
-        titleMedium: DesignTokens.getTextStyle(
-          fontSize: HeadingSystem.titleMedium,
-          fontWeight: DesignTokens.fontWeightMedium,
-          color: DesignTokens.darkTextPrimary,
-        ),
-        titleSmall: DesignTokens.getTextStyle(
-          fontSize: HeadingSystem.titleSmall,
-          fontWeight: DesignTokens.fontWeightMedium,
-          color: DesignTokens.darkTextSecondary,
-        ),
-        bodyLarge: DesignTokens.getTextStyle(
-          fontSize: HeadingSystem.bodyLarge,
-          fontWeight: DesignTokens.fontWeightRegular,
-          color: DesignTokens.darkTextPrimary,
-        ),
-        bodyMedium: DesignTokens.getTextStyle(
-          fontSize: HeadingSystem.bodyMedium,
-          fontWeight: DesignTokens.fontWeightRegular,
-          color: DesignTokens.darkTextSecondary,
-        ),
-        bodySmall: DesignTokens.getTextStyle(
-          fontSize: HeadingSystem.bodySmall,
-          fontWeight: DesignTokens.fontWeightRegular,
-          color: DesignTokens.darkTextTertiary,
-        ),
-        labelLarge: DesignTokens.getTextStyle(
-          fontSize: HeadingSystem.labelLarge,
-          fontWeight: DesignTokens.fontWeightMedium,
-          color: DesignTokens.darkTextPrimary,
-        ),
-        labelMedium: DesignTokens.getTextStyle(
-          fontSize: HeadingSystem.labelMedium,
-          fontWeight: DesignTokens.fontWeightMedium,
-          color: DesignTokens.darkTextPrimary,
-        ),
-        labelSmall: DesignTokens.getTextStyle(
-          fontSize: HeadingSystem.labelSmall,
-          fontWeight: DesignTokens.fontWeightMedium,
-          color: DesignTokens.darkTextSecondary,
-        ),
-      ),
+      // Text Theme - Using serif headings and Noto Sans JP body
+      textTheme: DesignTokens.textTheme(isDark: true),
       
       // Input Decoration Theme
       inputDecorationTheme: InputDecorationTheme(

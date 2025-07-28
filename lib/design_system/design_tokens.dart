@@ -531,6 +531,146 @@ class DesignTokens {
       );
     }
   }
+
+  /// Create Lora serif text style for headings
+  static TextStyle getSerifTextStyle({
+    required double fontSize,
+    required FontWeight fontWeight,
+    required Color color,
+    double? height,
+    double? letterSpacing,
+    TextDecoration? decoration,
+  }) {
+    try {
+      return GoogleFonts.lora(
+        fontSize: fontSize,
+        fontWeight: fontWeight,
+        color: color,
+        height: height,
+        letterSpacing: letterSpacing,
+        decoration: decoration,
+      );
+    } catch (e) {
+      debugPrint('Google Fonts failed in getSerifTextStyle, using serif fallback: $e');
+      return TextStyle(
+        fontSize: fontSize,
+        fontWeight: fontWeight,
+        color: color,
+        height: height,
+        letterSpacing: letterSpacing,
+        decoration: decoration,
+        fontFamily: 'serif', // Use serif fallback
+      );
+    }
+  }
+
+  /// Complete text theme with serif headings and Noto Sans JP body
+  static TextTheme textTheme({required bool isDark}) {
+    final baseColor = isDark ? darkTextPrimary : textPrimary;
+    
+    return TextTheme(
+      // Display styles - NOW USING SERIF (Lora)
+      displayLarge: getSerifTextStyle(
+        fontSize: 57,
+        fontWeight: FontWeight.w400,
+        color: baseColor,
+        letterSpacing: -0.25,
+        height: 1.12,
+      ),
+      displayMedium: getSerifTextStyle(
+        fontSize: 45,
+        fontWeight: FontWeight.w400,
+        color: baseColor,
+        height: 1.16,
+      ),
+      displaySmall: getSerifTextStyle(
+        fontSize: 36,
+        fontWeight: FontWeight.w400,
+        color: baseColor,
+        height: 1.22,
+      ),
+      
+      // Headlines - NOW USING SERIF (Lora)
+      headlineLarge: getSerifTextStyle(
+        fontSize: 32,
+        fontWeight: FontWeight.w400,
+        color: baseColor,
+        height: 1.25,
+      ),
+      headlineMedium: getSerifTextStyle(
+        fontSize: 28,
+        fontWeight: FontWeight.w400,
+        color: baseColor,
+        height: 1.29,
+      ),
+      headlineSmall: getSerifTextStyle(
+        fontSize: 24,
+        fontWeight: FontWeight.w400,
+        color: baseColor,
+        height: 1.33,
+      ),
+      
+      // Title styles - KEEP NOTO SANS JP
+      titleLarge: getTextStyle(
+        fontSize: 22,
+        fontWeight: FontWeight.w500,
+        color: baseColor,
+        height: 1.27,
+      ),
+      titleMedium: getTextStyle(
+        fontSize: 16,
+        fontWeight: FontWeight.w500,
+        color: baseColor,
+        height: 1.5,
+      ),
+      titleSmall: getTextStyle(
+        fontSize: 14,
+        fontWeight: FontWeight.w500,
+        color: baseColor,
+        height: 1.43,
+      ),
+      
+      // Body text - KEEP NOTO SANS JP
+      bodyLarge: getTextStyle(
+        fontSize: 16,
+        fontWeight: FontWeight.w400,
+        color: baseColor,
+        height: 1.5,
+      ),
+      bodyMedium: getTextStyle(
+        fontSize: 14,
+        fontWeight: FontWeight.w400,
+        color: baseColor,
+        height: 1.43,
+      ),
+      bodySmall: getTextStyle(
+        fontSize: 12,
+        fontWeight: FontWeight.w400,
+        color: baseColor,
+        height: 1.33,
+      ),
+      
+      // Labels - KEEP NOTO SANS JP
+      labelLarge: getTextStyle(
+        fontSize: 14,
+        fontWeight: FontWeight.w500,
+        color: baseColor,
+        height: 1.43,
+      ),
+      labelMedium: getTextStyle(
+        fontSize: 12,
+        fontWeight: FontWeight.w500,
+        color: baseColor,
+        height: 1.33,
+      ),
+      labelSmall: getTextStyle(
+        fontSize: 11,
+        fontWeight: FontWeight.w500,
+        color: baseColor,
+        height: 1.45,
+      ),
+    );
+  }
   
   /// Responsive value based on screen width
   static T getResponsiveValue<T>(
