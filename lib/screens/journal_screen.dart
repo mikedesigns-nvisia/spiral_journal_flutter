@@ -21,7 +21,9 @@ import 'package:spiral_journal/services/journal_service.dart';
 import 'package:spiral_journal/services/emotional_analyzer.dart';
 import 'package:spiral_journal/theme/app_theme.dart';
 import 'package:spiral_journal/widgets/post_analysis_display.dart';
+import 'package:spiral_journal/utils/ios_theme_enforcer.dart';
 import 'package:intl/intl.dart';
+import 'dart:io';
 
 class JournalScreen extends StatefulWidget {
   const JournalScreen({super.key});
@@ -711,9 +713,8 @@ class _JournalScreenState extends State<JournalScreen> {
     final now = DateTime.now();
     final dateFormatter = DateFormat('EEEE, MMMM d');
 
-    return GestureDetector(
-      onTap: () => FocusScope.of(context).unfocus(),
-      child: AdaptiveScaffold(
+    // Use iOS-specific keyboard dismissal and safe area handling
+    Widget body = AdaptiveScaffold(
         backgroundColor: DesignTokens.getBackgroundPrimary(context),
         padding: EdgeInsets.zero, // Remove default padding to avoid double padding
         body: Container(
@@ -852,7 +853,15 @@ class _JournalScreenState extends State<JournalScreen> {
           ),
         ),
       ),
+    );
+    
+    // Apply iOS-specific safe area and keyboard handling
+    return iOSThemeEnforcer.withSafeArea(
+      child: iOSThemeEnforcer.withKeyboardDismissal(
+        context: context,
+        child: body,
       ),
+      bottom: Platform.isIOS, // Only apply bottom safe area on iOS
     );
   }
 

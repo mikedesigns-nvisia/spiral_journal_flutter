@@ -57,7 +57,9 @@ void main() async {
   
   // Initialize critical services in parallel
   final themeServiceFuture = ThemeService().initialize();
-  final iOSThemeEnforcerFuture = iOSThemeEnforcer.initialize();
+  
+  // Initialize iOS theme enforcer synchronously
+  iOSThemeEnforcer.initialize();
   
   // Start the app UI while other services initialize in the background
   runApp(const SpiralJournalApp());
@@ -66,7 +68,6 @@ void main() async {
   await Future.wait([
     analyticsInitFuture,
     themeServiceFuture,
-    iOSThemeEnforcerFuture,
     _initializeBackgroundServices(),
   ]);
   
@@ -82,14 +83,22 @@ Future<void> _preloadGoogleFonts() async {
   try {
     debugPrint('Preloading Google Fonts...');
     
-    // Preload the Noto Sans JP font family
+    // Preload the Noto Sans JP font family and Lora serif font
     await GoogleFonts.pendingFonts([
+      // Noto Sans JP for body text and UI elements
       GoogleFonts.notoSansJp(),
       GoogleFonts.notoSansJp(fontWeight: FontWeight.w300),
       GoogleFonts.notoSansJp(fontWeight: FontWeight.w400),
       GoogleFonts.notoSansJp(fontWeight: FontWeight.w500),
       GoogleFonts.notoSansJp(fontWeight: FontWeight.w600),
       GoogleFonts.notoSansJp(fontWeight: FontWeight.w700),
+      // Lora serif for headings and display text
+      GoogleFonts.lora(),
+      GoogleFonts.lora(fontWeight: FontWeight.w300),
+      GoogleFonts.lora(fontWeight: FontWeight.w400),
+      GoogleFonts.lora(fontWeight: FontWeight.w500),
+      GoogleFonts.lora(fontWeight: FontWeight.w600),
+      GoogleFonts.lora(fontWeight: FontWeight.w700),
     ]);
     
     debugPrint('Google Fonts preloaded successfully');
@@ -203,19 +212,15 @@ class SpiralJournalApp extends StatelessWidget {
                 theme: AppTheme.lightTheme,
                 darkTheme: AppTheme.darkTheme,
                 themeMode: themeMode,
-                home: Builder(
-                  builder: (context) {
-                    // Apply iOS theme enforcement if needed
-                    if (iOSThemeEnforcer.needsEnforcement()) {
-                      // Update system UI overlay for iOS
-                      WidgetsBinding.instance.addPostFrameCallback((_) {
-                        iOSThemeEnforcer.updateSystemUIOverlay(context);
-                      });
-                      return const AuthWrapper().withiOSThemeEnforcement(context);
-                    }
-                    return const AuthWrapper();
-                  },
-                ),
+                builder: (context, child) {
+                  // Enforce iOS theme
+                  iOSThemeEnforcer.updateSystemUIOverlay(context);
+                  return iOSThemeEnforcer.enforceTheme(
+                    context,
+                    child ?? const SizedBox.shrink(),
+                  );
+                },
+                home: const AuthWrapper(),
                 navigatorKey: NavigationService.navigatorKey,
                 routes: {
                   '/main': (context) => iOSThemeEnforcer.needsEnforcement() 

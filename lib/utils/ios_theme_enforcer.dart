@@ -3,44 +3,111 @@ import 'package:flutter/services.dart';
 import 'dart:io';
 import 'package:spiral_journal/design_system/design_tokens.dart';
 
-/// iOS-specific theme enforcement utility to ensure proper theme application
-/// on iOS devices. This addresses issues where iOS might not inherit theme
-/// changes properly due to platform-specific rendering differences.
+/// iOS-specific theme enforcement utility
+/// 
+/// This class handles iOS-specific UI behaviors, system overlay styling,
+/// and ensures proper theme integration with iOS system elements.
 class iOSThemeEnforcer {
   static bool _isInitialized = false;
   
-  /// Initialize iOS-specific theme enforcement
-  static Future<void> initialize() async {
-    if (!Platform.isIOS || _isInitialized) return;
+  /// Check if the current platform is iOS
+  static bool get isiOS => Platform.isIOS;
+  
+  /// Initialize iOS-specific system UI configuration
+  /// 
+  /// Call this during app initialization to set up proper iOS system UI
+  /// overlay styles and ensure consistent theme behavior.
+  static void initialize() {
+    if (!isiOS || _isInitialized) return;
     
     try {
-      // Force iOS to respect Flutter's theme system
-      await _enforceSystemUIOverlay();
+      // Set iOS-specific system UI overlay style
+      SystemChrome.setSystemUIOverlayStyle(
+        const SystemUiOverlayStyle(
+          statusBarBrightness: Brightness.light, // Light status bar background
+          statusBarIconBrightness: Brightness.dark, // Dark status bar icons
+          systemNavigationBarColor: Colors.transparent,
+          systemNavigationBarIconBrightness: Brightness.dark,
+        ),
+      );
+      
+      // Ensure system chrome is visible
+      SystemChrome.setEnabledSystemUIMode(
+        SystemUiMode.edgeToEdge,
+        overlays: [SystemUiOverlay.top, SystemUiOverlay.bottom],
+      );
+      
       _isInitialized = true;
     } catch (e) {
       debugPrint('iOS Theme Enforcer initialization failed: $e');
     }
   }
   
-  /// Enforce proper system UI overlay for iOS
-  static Future<void> _enforceSystemUIOverlay() async {
-    // This ensures iOS respects Flutter's theme for system UI elements
-    SystemChrome.setSystemUIOverlayStyle(
-      const SystemUiOverlayStyle(
-        statusBarBrightness: Brightness.light,
-        statusBarIconBrightness: Brightness.dark,
+  /// Enforce iOS theme styling for the given widget
+  /// 
+  /// Wraps the child widget with iOS-specific system UI overlay style
+  /// annotations to ensure proper integration with iOS system elements.
+  static Widget enforceTheme(BuildContext context, Widget child) {
+    if (!isiOS) return child;
+    
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    // Force iOS to respect our theme
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle(
+        statusBarBrightness: isDark ? Brightness.dark : Brightness.light,
+        statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
         systemNavigationBarColor: Colors.transparent,
-        systemNavigationBarIconBrightness: Brightness.dark,
+        systemNavigationBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
+        systemNavigationBarDividerColor: Colors.transparent,
+      ),
+      child: Theme(
+        data: _getiOSEnforcedTheme(context),
+        child: child,
       ),
     );
   }
   
-  /// Apply iOS-specific theme overrides to a widget tree
-  static Widget enforceTheme(BuildContext context, Widget child) {
-    if (!Platform.isIOS) return child;
+  /// Create iOS-specific safe area handling for screens
+  /// 
+  /// Returns a SafeArea widget configured appropriately for iOS devices,
+  /// with special handling for different iPhone models and their safe areas.
+  static Widget withSafeArea({
+    required Widget child,
+    bool top = true,
+    bool bottom = true,
+    bool left = true,
+    bool right = true,
+  }) {
+    if (!isiOS) return child;
     
-    return Theme(
-      data: _getiOSEnforcedTheme(context),
+    return SafeArea(
+      top: top,
+      bottom: bottom, // Always apply bottom safe area on iOS for home indicator
+      left: left,
+      right: right,
+      child: child,
+    );
+  }
+  
+  /// Handle iOS keyboard dismissal behavior
+  /// 
+  /// Wraps the child with a GestureDetector that dismisses the keyboard
+  /// when tapping outside of text input fields, following iOS conventions.
+  static Widget withKeyboardDismissal({
+    required BuildContext context,
+    required Widget child,
+  }) {
+    if (!isiOS) return child;
+    
+    return GestureDetector(
+      onTap: () {
+        // Dismiss keyboard when tapping outside text fields
+        final currentFocus = FocusScope.of(context);
+        if (!currentFocus.hasPrimaryFocus && currentFocus.focusedChild != null) {
+          currentFocus.unfocus();
+        }
+      },
       child: child,
     );
   }

@@ -142,10 +142,6 @@
 	</dict>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
-	<key>UIBackgroundModes</key>
-	<array>
-		<string>background-app-refresh</string>
-	</array>
 	<!-- Background Task Identifiers for BGTaskScheduler -->
 	<key>BGTaskSchedulerPermittedIdentifiers</key>
 	<array>
