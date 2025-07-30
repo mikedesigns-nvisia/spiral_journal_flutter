@@ -106,3 +106,42 @@ class DatabaseOperationException implements Exception {
     return 'DatabaseOperationException: $message';
   }
 }
+
+/// Exception for database migration operations
+class DatabaseMigrationException implements Exception {
+  final String message;
+  final int? fromVersion;
+  final int? toVersion;
+  final dynamic originalError;
+
+  const DatabaseMigrationException(
+    this.message, {
+    this.fromVersion,
+    this.toVersion,
+    this.originalError,
+  });
+
+  @override
+  String toString() {
+    if (fromVersion != null && toVersion != null) {
+      return 'DatabaseMigrationException migrating from v$fromVersion to v$toVersion: $message';
+    }
+    return 'DatabaseMigrationException: $message';
+  }
+}
+
+/// General database exception
+class AppDatabaseException implements Exception {
+  final String message;
+  final dynamic originalError;
+
+  const AppDatabaseException(
+    this.message, {
+    this.originalError,
+  });
+
+  @override
+  String toString() {
+    return 'AppDatabaseException: $message';
+  }
+}

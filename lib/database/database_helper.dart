@@ -514,4 +514,9 @@ class DatabaseHelper {
     await db.close();
     _database = null;
   }
+
+  /// Close database connection for backup/restore operations
+  Future<void> closeDatabase() async {
+    await close();
+  }
 }

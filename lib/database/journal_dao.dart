@@ -7,6 +7,7 @@ import '../constants/validation_constants.dart';
 import '../models/journal_entry.dart';
 import '../utils/database_exceptions.dart';
 import 'database_helper.dart';
+import 'database_migrator.dart';
 
 /// Data Access Object for journal entry database operations.
 /// 
@@ -54,10 +55,39 @@ import 'database_helper.dart';
 /// - Database constraint validation before operations
 class JournalDao {
   final DatabaseHelper _dbHelper = DatabaseHelper();
+  final DatabaseMigrator _migrator = DatabaseMigrator();
   final Uuid _uuid = const Uuid();
+  bool _migrationsChecked = false;
+
+  /// Ensure database migrations are up to date
+  /// This method is called automatically before any database operations
+  Future<void> _ensureMigrationsComplete() async {
+    if (_migrationsChecked) return;
+    
+    try {
+      final db = await _dbHelper.database;
+      
+      // Check if migrations are needed
+      if (await _migrator.hasPendingMigrations()) {
+        debugPrint('Running pending database migrations...');
+        await _migrator.runPendingMigrations(db);
+        debugPrint('Database migrations completed successfully');
+      }
+      
+      _migrationsChecked = true;
+    } catch (e) {
+      throw AppDatabaseException('Failed to ensure migrations are complete: $e');
+    }
+  }
+
+  /// Get migration status and history
+  Future<Map<String, dynamic>> getMigrationInfo() async {
+    return await _migrator.getMigrationHistory();
+  }
 
   // Create a new journal entry with transaction safety
   Future<String> insertJournalEntry(JournalEntry entry) async {
+    await _ensureMigrationsComplete();
     return await _executeInTransaction<String>((txn) async {
       return await _insertJournalEntryInTransaction(txn, entry);
     });
@@ -105,6 +135,7 @@ class JournalDao {
 
   // Get all journal entries
   Future<List<JournalEntry>> getAllJournalEntries() async {
+    await _ensureMigrationsComplete();
     try {
       final db = await _dbHelper.database;
       final List<Map<String, dynamic>> maps = await db.query(
@@ -214,6 +245,7 @@ class JournalDao {
 
   // Update a journal entry with transaction safety
   Future<void> updateJournalEntry(JournalEntry entry) async {
+    await _ensureMigrationsComplete();
     await _executeInTransaction<void>((txn) async {
       await _updateJournalEntryInTransaction(txn, entry);
     });
@@ -258,6 +290,7 @@ class JournalDao {
 
   // Delete a journal entry with transaction safety
   Future<void> deleteJournalEntry(String id) async {
+    await _ensureMigrationsComplete();
     await _executeInTransaction<void>((txn) async {
       await _deleteJournalEntryInTransaction(txn, id);
     });
@@ -595,6 +628,7 @@ class JournalDao {
     JournalEntry entry,
     Map<String, double> coreUpdates,
   ) async {
+    await _ensureMigrationsComplete();
     return await _executeInTransaction<String>((txn) async {
       // Insert the journal entry
       final entryId = await _insertJournalEntryInTransaction(txn, entry);
@@ -611,6 +645,7 @@ class JournalDao {
     JournalEntry entry,
     Map<String, double> coreUpdates,
   ) async {
+    await _ensureMigrationsComplete();
     await _executeInTransaction<void>((txn) async {
       // Update the journal entry
       await _updateJournalEntryInTransaction(txn, entry);
@@ -672,6 +707,7 @@ class JournalDao {
 
   // Batch operations with transaction safety
   Future<List<String>> insertMultipleJournalEntries(List<JournalEntry> entries) async {
+    await _ensureMigrationsComplete();
     return await _executeInTransaction<List<String>>((txn) async {
       final entryIds = <String>[];
       
@@ -685,6 +721,7 @@ class JournalDao {
   }
 
   Future<void> updateMultipleJournalEntries(List<JournalEntry> entries) async {
+    await _ensureMigrationsComplete();
     await _executeInTransaction<void>((txn) async {
       for (final entry in entries) {
         await _updateJournalEntryInTransaction(txn, entry);
@@ -693,6 +730,7 @@ class JournalDao {
   }
 
   Future<void> deleteMultipleJournalEntries(List<String> ids) async {
+    await _ensureMigrationsComplete();
     await _executeInTransaction<void>((txn) async {
       for (final id in ids) {
         await _deleteJournalEntryInTransaction(txn, id);
@@ -710,6 +748,7 @@ class JournalDao {
 
   // Clear all journal entries (for data management)
   Future<void> clearAllJournalEntries() async {
+    await _ensureMigrationsComplete();
     await _executeInTransaction<void>((txn) async {
       await txn.delete('journal_entries');
     });
