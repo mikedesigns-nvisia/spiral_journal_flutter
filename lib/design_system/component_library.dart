@@ -155,7 +155,7 @@ class ComponentLibrary {
             decoration: hasBorder ? BoxDecoration(
               borderRadius: BorderRadius.circular(ComponentTokens.cardDefaultRadius),
               border: Border.all(
-                color: DesignTokens.getBackgroundTertiary(context),
+                color: DesignTokens.getSubtleBorderColor(context),
                 width: ComponentTokens.cardBorderWidth,
               ),
             ) : null,

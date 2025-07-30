@@ -15,31 +15,31 @@ class DesignTokens {
   static const Color primaryLight = Color(0xFFFDB876);
   static const Color primaryDark = Color(0xFF6A3B01);
   
-  /// Light theme background colors - warm creams
-  static const Color backgroundPrimary = Color(0xFFFFF8F5);
-  static const Color backgroundSecondary = Color(0xFFFAEBE0);
-  static const Color backgroundTertiary = Color(0xFFF2DFD1);
+  /// Light theme background colors - warm creams with better contrast
+  static const Color backgroundPrimary = Color(0xFFFFFBF7);
+  static const Color backgroundSecondary = Color(0xFFF5E6D8);
+  static const Color backgroundTertiary = Color(0xFFE8D4C1);
   
-  /// Light theme text colors
-  static const Color textPrimary = Color(0xFF211A14);
-  static const Color textSecondary = Color(0xFF51443A);
-  static const Color textTertiary = Color(0xFF837469);
+  /// Light theme text colors - darker for better contrast
+  static const Color textPrimary = Color(0xFF1A1410);
+  static const Color textSecondary = Color(0xFF3D322A);
+  static const Color textTertiary = Color(0xFF65574D);
   
-  /// Dark theme primary colors - muted oranges
-  static const Color darkPrimaryOrange = Color(0xFFB8763A);
-  static const Color darkPrimaryLight = Color(0xFF8B5A2B);
-  static const Color darkPrimaryDark = Color(0xFFD4A574);
+  /// Dark theme primary colors - Enhanced for better contrast
+  static const Color darkPrimaryOrange = Color(0xFFFF9E52);  // Brighter orange for better contrast
+  static const Color darkPrimaryLight = Color(0xFFFFB366);   // Lighter orange
+  static const Color darkPrimaryDark = Color(0xFFE8833D);    // Darker orange
   
-  /// Dark theme background colors
-  static const Color darkBackgroundPrimary = Color(0xFF121212);
-  static const Color darkBackgroundSecondary = Color(0xFF1E1E1E);
-  static const Color darkBackgroundTertiary = Color(0xFF2C2C2C);
-  static const Color darkSurface = Color(0xFF383838);
+  /// Dark theme background colors - Enhanced contrast ratios
+  static const Color darkBackgroundPrimary = Color(0xFF000000);  // Pure black for maximum contrast
+  static const Color darkBackgroundSecondary = Color(0xFF121212); // Very dark gray
+  static const Color darkBackgroundTertiary = Color(0xFF1E1E1E);  // Dark gray with subtle borders
+  static const Color darkSurface = Color(0xFF2C2C2C);             // Medium dark for surfaces
   
-  /// Dark theme text colors
-  static const Color darkTextPrimary = Color(0xFFE8E3E0);
-  static const Color darkTextSecondary = Color(0xFFB8B3B0);
-  static const Color darkTextTertiary = Color(0xFFD8D3D0);
+  /// Dark theme text colors - Updated for WCAG AA compliance
+  static const Color darkTextPrimary = Color(0xFFFFFFFF);    // White for maximum contrast
+  static const Color darkTextSecondary = Color(0xFFE0E0E0);  // Light gray for 4.5:1 contrast
+  static const Color darkTextTertiary = Color(0xFFBDBDBD);   // Medium gray for 4.5:1 contrast
   
   /// Semantic mood colors (theme-agnostic)
   static const Color moodHappy = Color(0xFFE78B1B);
@@ -87,7 +87,7 @@ class DesignTokens {
   static const Color aiContentBackground = Color(0xFFF8FAFC); // Light blue-gray
   static const Color aiContentBorder = Color(0xFFE2E8F0); // Slate border
   static const Color darkAiContentBackground = Color(0xFF1E293B); // Dark slate
-  static const Color darkAiContentBorder = Color(0xFF334155); // Dark slate border
+  static const Color darkAiContentBorder = Color(0xFF64748B); // Brighter dark slate border for contrast
   
   // ============================================================================
   // TYPOGRAPHY SYSTEM
@@ -170,9 +170,9 @@ class DesignTokens {
   /// Border radius following golden ratio progression
   static const double radiusXXS = 2.0;   // 4 ÷ φ² ≈ 1.5 → 2px
   static const double radiusXS = 3.0;    // 4 ÷ φ ≈ 2.5 → 3px
-  static const double radiusS = 4.0;     // Base unit
-  static const double radiusM = 6.0;     // 4 × φ ≈ 6.5 → 6px
-  static const double radiusL = 10.0;    // 4 × φ² ≈ 10.5 → 10px
+  static const double radiusS = 8.0;     // Base unit - smoother corners
+  static const double radiusM = 12.0;    // Medium radius - more rounded
+  static const double radiusL = 16.0;    // Large radius - smooth curves
   static const double radiusXL = 16.0;   // 4 × φ³ ≈ 17 → 16px
   static const double radiusXXL = 26.0;  // 4 × φ⁴ ≈ 27.5 → 26px
   static const double radiusRound = 50.0; // Maintained for circular elements
@@ -493,6 +493,13 @@ class DesignTokens {
     return Theme.of(context).brightness == Brightness.dark 
         ? darkAiContentBorder 
         : aiContentBorder;
+  }
+  
+  /// Get theme-aware subtle border color for cards
+  static Color getSubtleBorderColor(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark 
+        ? const Color(0xFF404040) // Subtle gray border for dark mode
+        : const Color(0xFFE0E0E0); // Light gray border for light mode
   }
   
   /// Apply opacity to color consistently

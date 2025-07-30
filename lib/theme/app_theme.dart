@@ -183,7 +183,7 @@ class AppTheme {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(DesignTokens.cardRadius),
           side: BorderSide(
-            color: DesignTokens.darkBackgroundTertiary, 
+            color: const Color(0xFF404040), // Subtle border for dark mode contrast
             width: ComponentTokens.cardBorderWidth,
           ),
         ),
@@ -250,11 +250,17 @@ class AppTheme {
         fillColor: DesignTokens.darkBackgroundTertiary,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(DesignTokens.inputRadius),
-          borderSide: BorderSide(color: DesignTokens.darkSurface),
+          borderSide: BorderSide(
+            color: const Color(0xFF505050), // Better contrast for input borders
+            width: 1.5,
+          ),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(DesignTokens.inputRadius),
-          borderSide: BorderSide(color: DesignTokens.darkSurface),
+          borderSide: BorderSide(
+            color: const Color(0xFF505050), // Better contrast for input borders
+            width: 1.5,
+          ),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(DesignTokens.inputRadius),
@@ -363,6 +369,7 @@ class AppTheme {
   static Color get accentYellow => DesignTokens.accentYellow;
   static Color get accentGreen => DesignTokens.accentGreen;
   static Color get accentRed => DesignTokens.accentRed;
+  static Color get accentOrange => DesignTokens.warningColor;
   
   /// Status colors
   static Color get warningColor => DesignTokens.warningColor;

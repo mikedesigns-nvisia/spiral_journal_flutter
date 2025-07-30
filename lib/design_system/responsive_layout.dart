@@ -439,9 +439,36 @@ class AdaptiveBottomNavigation extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    
+    // Use different background colors for light and dark modes
+    final navBackgroundColor = isDarkMode 
+        ? DesignTokens.darkBackgroundPrimary 
+        : Colors.white;
+    
+    // Use better contrast colors for unselected items in light mode
+    final unselectedColor = isDarkMode
+        ? DesignTokens.darkTextTertiary
+        : DesignTokens.textSecondary; // Darker color for better contrast
+    
     return Container(
       decoration: BoxDecoration(
-        color: backgroundColor ?? DesignTokens.getBackgroundPrimary(context),
+        color: backgroundColor ?? navBackgroundColor,
+        border: Border(
+          top: BorderSide(
+            color: isDarkMode 
+                ? DesignTokens.darkBackgroundTertiary
+                : DesignTokens.backgroundTertiary.withOpacity(0.5),
+            width: 1,
+          ),
+        ),
+        boxShadow: !isDarkMode ? [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: Offset(0, -2),
+          ),
+        ] : null,
       ),
       child: SafeArea(
         child: BottomNavigationBar(
@@ -451,7 +478,7 @@ class AdaptiveBottomNavigation extends StatelessWidget {
           type: BottomNavigationBarType.fixed,
           backgroundColor: Colors.transparent,
           selectedItemColor: selectedItemColor ?? DesignTokens.getPrimaryColor(context),
-          unselectedItemColor: unselectedItemColor ?? DesignTokens.getTextTertiary(context),
+          unselectedItemColor: unselectedItemColor ?? unselectedColor,
           selectedLabelStyle: DesignTokens.getTextStyle(
             fontSize: iPhoneDetector.getAdaptiveFontSize(context, base: 12),
             fontWeight: DesignTokens.fontWeightMedium,
@@ -460,9 +487,9 @@ class AdaptiveBottomNavigation extends StatelessWidget {
           unselectedLabelStyle: DesignTokens.getTextStyle(
             fontSize: iPhoneDetector.getAdaptiveFontSize(context, base: 12),
             fontWeight: DesignTokens.fontWeightRegular,
-            color: unselectedItemColor ?? DesignTokens.getTextTertiary(context),
+            color: unselectedItemColor ?? unselectedColor,
           ),
-          elevation: 0,
+          elevation: 0, // We're handling elevation with boxShadow
         ),
       ),
     );
