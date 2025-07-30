@@ -320,7 +320,15 @@ class ClaudeAIProvider implements AIServiceInterface {
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
       if (data['content'] != null && data['content'].isNotEmpty) {
-        return data['content'][0]['text'];
+        // Extract token usage information for optimization tracking
+        final responseText = data['content'][0]['text'];
+        final usage = data['usage'] as Map<String, dynamic>?;
+        
+        if (kDebugMode && usage != null) {
+          debugPrint('🔢 Token usage - Input: ${usage['input_tokens']}, Output: ${usage['output_tokens']}');
+        }
+        
+        return responseText;
       } else {
         throw FormatException('Invalid response structure from Claude API');
       }
@@ -365,7 +373,7 @@ class ClaudeAIProvider implements AIServiceInterface {
     } else if (model.contains('claude-3-5-sonnet')) {
       return 8000; // High token limit for detailed analysis
     } else if (model.contains('claude-3-haiku')) {
-      return 4096; // Haiku model maximum output tokens
+      return 500; // Optimized for cost efficiency - reduced from 4096
     } else {
       return 4000; // Fallback models get reasonable limit
     }

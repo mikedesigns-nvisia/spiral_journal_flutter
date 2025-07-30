@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/user_preferences.dart';
 import 'theme_service.dart';
+import 'core_background_sync_service.dart';
 
 /// Comprehensive settings management service for application preferences.
 /// 
@@ -426,6 +427,83 @@ class SettingsService extends ChangeNotifier {
     } catch (e) {
       debugPrint('SettingsService resetOnboardingStatus error: $e');
       rethrow;
+    }
+  }
+
+  /// Trigger manual backup to iCloud
+  Future<bool> triggerManualBackup() async {
+    await _ensureInitialized();
+    
+    try {
+      final syncService = CoreBackgroundSyncService();
+      final result = await syncService.performManualBackup();
+      
+      if (result) {
+        debugPrint('SettingsService: Manual backup completed successfully');
+      } else {
+        debugPrint('SettingsService: Manual backup failed');
+      }
+      
+      return result;
+    } catch (e) {
+      debugPrint('SettingsService triggerManualBackup error: $e');
+      return false;
+    }
+  }
+
+  /// Restore from iCloud backup
+  Future<bool> restoreFromBackup() async {
+    await _ensureInitialized();
+    
+    try {
+      final syncService = CoreBackgroundSyncService();
+      final result = await syncService.restoreFromBackup();
+      
+      if (result) {
+        debugPrint('SettingsService: Restore from backup completed successfully');
+      } else {
+        debugPrint('SettingsService: Restore from backup failed');
+      }
+      
+      return result;
+    } catch (e) {
+      debugPrint('SettingsService restoreFromBackup error: $e');
+      return false;
+    }
+  }
+
+  /// Check if backup is available
+  Future<bool> isBackupAvailable() async {
+    await _ensureInitialized();
+    
+    try {
+      final syncService = CoreBackgroundSyncService();
+      return await syncService.hasBackupAvailable();
+    } catch (e) {
+      debugPrint('SettingsService isBackupAvailable error: $e');
+      return false;
+    }
+  }
+
+  /// Get backup status information
+  Future<Map<String, dynamic>?> getBackupStatus() async {
+    await _ensureInitialized();
+    
+    try {
+      final syncService = CoreBackgroundSyncService();
+      final statistics = syncService.getBackupStatistics();
+      final metadata = await syncService.getBackupMetadata();
+      
+      return {
+        'lastBackup': statistics.lastSuccessfulBackup?.toIso8601String(),
+        'nextBackup': statistics.nextBackupEstimate.toIso8601String(),
+        'isActive': statistics.isActive,
+        'hasBackup': await syncService.hasBackupAvailable(),
+        'metadata': metadata,
+      };
+    } catch (e) {
+      debugPrint('SettingsService getBackupStatus error: $e');
+      return null;
     }
   }
 

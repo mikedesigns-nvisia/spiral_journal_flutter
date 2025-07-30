@@ -1,467 +1,333 @@
 import 'dart:async';
-import 'dart:math';
+import 'dart:io';
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
-import '../models/core.dart';
-import 'core_library_service.dart';
-import 'core_cache_manager.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:sqflite/sqflite.dart';
+import '../database/database_helper.dart';
 
-/// Background synchronization service for core updates with conflict resolution
+/// Simple iCloud backup service for SQLite database
 class CoreBackgroundSyncService {
   static final CoreBackgroundSyncService _instance = CoreBackgroundSyncService._internal();
   factory CoreBackgroundSyncService() => _instance;
   CoreBackgroundSyncService._internal();
 
-  final CoreLibraryService _coreLibraryService = CoreLibraryService();
-  final CoreCacheManager _cacheManager = CoreCacheManager();
-
-  // Sync configuration
-  static const Duration _syncInterval = Duration(minutes: 5);
-  static const Duration _maxBackoffDelay = Duration(minutes: 30);
-  static const int _maxRetryAttempts = 5;
-  static const int _maxQueueSize = 100;
-
-  // Sync state
-  Timer? _syncTimer;
+  final DatabaseHelper _databaseHelper = DatabaseHelper();
+  
+  // Backup configuration
+  static const Duration _backupInterval = Duration(hours: 24);
+  static const String _backupFileName = 'spiral_journal_backup.db';
+  static const String _backupMetadataFileName = 'backup_metadata.json';
+  
+  // Backup state
+  Timer? _backupTimer;
   bool _isInitialized = false;
-  bool _isSyncing = false;
-  DateTime? _lastSuccessfulSync;
-  int _consecutiveFailures = 0;
+  bool _isBackingUp = false;
+  DateTime? _lastSuccessfulBackup;
+  
+  final StreamController<BackupEvent> _backupEventController = StreamController<BackupEvent>.broadcast();
 
-  // Update queue for offline operations
-  final List<QueuedUpdate> _updateQueue = [];
-  final StreamController<SyncEvent> _syncEventController = StreamController<SyncEvent>.broadcast();
-
-  // Conflict resolution
-  final Map<String, List<EmotionalCore>> _conflictBuffer = {};
-
-  /// Initialize the background sync service
+  /// Initialize the backup service
   Future<void> initialize() async {
     if (_isInitialized) return;
 
     try {
-      await _cacheManager.initialize();
-      _startPeriodicSync();
+      await _databaseHelper.database;
+      _startPeriodicBackup();
       _isInitialized = true;
       
-      debugPrint('CoreBackgroundSyncService: Initialized successfully');
+      debugPrint('CoreBackgroundSyncService: Initialized as backup service');
       
-      // Process any queued updates from previous session
-      await _processQueuedUpdates();
-      
-      _broadcastSyncEvent(SyncEvent(
-        type: SyncEventType.initialized,
+      _broadcastBackupEvent(BackupEvent(
+        type: BackupEventType.initialized,
         timestamp: DateTime.now(),
-        data: {'queueSize': _updateQueue.length},
       ));
     } catch (e) {
       debugPrint('CoreBackgroundSyncService: Initialization failed: $e');
-      _broadcastSyncEvent(SyncEvent(
-        type: SyncEventType.error,
+      _broadcastBackupEvent(BackupEvent(
+        type: BackupEventType.error,
         timestamp: DateTime.now(),
         error: e.toString(),
       ));
     }
   }
 
-  /// Get sync event stream
-  Stream<SyncEvent> get syncEventStream => _syncEventController.stream;
+  /// Get backup event stream
+  Stream<BackupEvent> get backupEventStream => _backupEventController.stream;
 
-  /// Queue an update for background synchronization
-  Future<void> queueUpdate(QueuedUpdate update) async {
-    try {
-      // Check queue size limit
-      if (_updateQueue.length >= _maxQueueSize) {
-        // Remove oldest updates to make room
-        _updateQueue.removeRange(0, _updateQueue.length - _maxQueueSize + 1);
-        debugPrint('CoreBackgroundSyncService: Queue size limit reached, removed old updates');
-      }
-
-      _updateQueue.add(update);
-      
-      debugPrint('CoreBackgroundSyncService: Queued update for core ${update.coreId}');
-      
-      _broadcastSyncEvent(SyncEvent(
-        type: SyncEventType.updateQueued,
-        timestamp: DateTime.now(),
-        data: {
-          'coreId': update.coreId,
-          'queueSize': _updateQueue.length,
-        },
-      ));
-
-      // Try to process immediately if online
-      if (!_isSyncing) {
-        await _processQueuedUpdates();
-      }
-    } catch (e) {
-      debugPrint('CoreBackgroundSyncService: Error queuing update: $e');
-    }
-  }
-
-  /// Force a sync operation
-  Future<bool> forceSync() async {
-    if (_isSyncing) {
-      debugPrint('CoreBackgroundSyncService: Sync already in progress');
+  /// Perform manual backup to iCloud Documents
+  Future<bool> performManualBackup() async {
+    if (_isBackingUp) {
+      debugPrint('CoreBackgroundSyncService: Backup already in progress');
       return false;
     }
 
-    return await _performSync(isManual: true);
+    return await _performBackup(isManual: true);
   }
 
-  /// Check if sync is currently active
-  bool get isSyncing => _isSyncing;
+  /// Restore database from iCloud backup
+  Future<bool> restoreFromBackup() async {
+    if (_isBackingUp) {
+      debugPrint('CoreBackgroundSyncService: Cannot restore during backup');
+      return false;
+    }
 
-  /// Get last successful sync time
-  DateTime? get lastSuccessfulSync => _lastSuccessfulSync;
+    return await _performRestore();
+  }
 
-  /// Get current queue size
-  int get queueSize => _updateQueue.length;
+  /// Check if backup is currently active
+  bool get isBackingUp => _isBackingUp;
 
-  /// Get sync statistics
-  SyncStatistics getSyncStatistics() {
-    return SyncStatistics(
-      lastSuccessfulSync: _lastSuccessfulSync,
-      consecutiveFailures: _consecutiveFailures,
-      queueSize: _updateQueue.length,
-      isActive: _isSyncing,
-      nextSyncEstimate: _getNextSyncEstimate(),
+  /// Get last successful backup time
+  DateTime? get lastSuccessfulBackup => _lastSuccessfulBackup;
+
+  /// Get backup statistics
+  BackupStatistics getBackupStatistics() {
+    return BackupStatistics(
+      lastSuccessfulBackup: _lastSuccessfulBackup,
+      isActive: _isBackingUp,
+      nextBackupEstimate: _getNextBackupEstimate(),
     );
   }
 
   // Private methods
 
-  void _startPeriodicSync() {
-    _syncTimer?.cancel();
+  void _startPeriodicBackup() {
+    _backupTimer?.cancel();
     
-    final interval = _calculateSyncInterval();
-    _syncTimer = Timer.periodic(interval, (_) async {
-      if (!_isSyncing) {
-        await _performSync();
+    _backupTimer = Timer.periodic(_backupInterval, (_) async {
+      if (!_isBackingUp) {
+        await _performBackup();
       }
     });
     
-    debugPrint('CoreBackgroundSyncService: Started periodic sync with ${interval.inMinutes}min interval');
+    debugPrint('CoreBackgroundSyncService: Started daily backup with ${_backupInterval.inHours}h interval');
   }
 
-  Duration _calculateSyncInterval() {
-    // Use exponential backoff for failed syncs
-    if (_consecutiveFailures > 0) {
-      final backoffMultiplier = min(pow(2, _consecutiveFailures), 16).toInt();
-      final backoffInterval = Duration(minutes: _syncInterval.inMinutes * backoffMultiplier);
-      return backoffInterval.compareTo(_maxBackoffDelay) > 0 ? _maxBackoffDelay : backoffInterval;
-    }
-    
-    return _syncInterval;
+  DateTime _getNextBackupEstimate() {
+    final lastAttempt = _lastSuccessfulBackup ?? DateTime.now();
+    return lastAttempt.add(_backupInterval);
   }
 
-  DateTime _getNextSyncEstimate() {
-    final interval = _calculateSyncInterval();
-    final lastAttempt = _lastSuccessfulSync ?? DateTime.now();
-    return lastAttempt.add(interval);
-  }
+  Future<bool> _performBackup({bool isManual = false}) async {
+    if (_isBackingUp) return false;
 
-  Future<bool> _performSync({bool isManual = false}) async {
-    if (_isSyncing) return false;
-
-    _isSyncing = true;
+    _isBackingUp = true;
     
     try {
-      debugPrint('CoreBackgroundSyncService: Starting sync (manual: $isManual)');
+      debugPrint('CoreBackgroundSyncService: Starting backup (manual: $isManual)');
       
-      _broadcastSyncEvent(SyncEvent(
-        type: SyncEventType.syncStarted,
+      _broadcastBackupEvent(BackupEvent(
+        type: BackupEventType.backupStarted,
         timestamp: DateTime.now(),
-        data: {'isManual': isManual, 'queueSize': _updateQueue.length},
+        data: {'isManual': isManual},
       ));
 
-      // Process queued updates first
-      await _processQueuedUpdates();
+      // Get iCloud Documents directory
+      final documentsDir = await getApplicationDocumentsDirectory();
+      final backupFile = File('${documentsDir.path}/$_backupFileName');
+      final metadataFile = File('${documentsDir.path}/$_backupMetadataFileName');
 
-      // Check for remote updates
-      final hasRemoteUpdates = await _coreLibraryService.hasUpdates();
-      if (hasRemoteUpdates) {
-        await _syncRemoteUpdates();
+      // Get current database file
+      final db = await _databaseHelper.database;
+      final dbPath = db.path;
+      final sourceFile = File(dbPath);
+
+      if (!await sourceFile.exists()) {
+        throw Exception('Database file not found');
       }
 
-      // Resolve any conflicts
-      await _resolveConflicts();
+      // Copy database to iCloud Documents
+      await sourceFile.copy(backupFile.path);
 
-      _lastSuccessfulSync = DateTime.now();
-      _consecutiveFailures = 0;
-      
-      // Restart timer with normal interval
-      if (!isManual) {
-        _startPeriodicSync();
-      }
+      // Create backup metadata
+      final metadata = {
+        'created': DateTime.now().toIso8601String(),
+        'size': await sourceFile.length(),
+        'version': '1.1.0',
+        'isManual': isManual,
+      };
 
-      debugPrint('CoreBackgroundSyncService: Sync completed successfully');
+      await metadataFile.writeAsString(jsonEncode(metadata));
+
+      _lastSuccessfulBackup = DateTime.now();
       
-      _broadcastSyncEvent(SyncEvent(
-        type: SyncEventType.syncCompleted,
+      debugPrint('CoreBackgroundSyncService: Backup completed successfully');
+      
+      _broadcastBackupEvent(BackupEvent(
+        type: BackupEventType.backupCompleted,
         timestamp: DateTime.now(),
-        data: {'duration': DateTime.now().difference(_lastSuccessfulSync!).inMilliseconds},
+        data: {
+          'backupSize': await sourceFile.length(),
+          'duration': DateTime.now().difference(_lastSuccessfulBackup!).inMilliseconds,
+        },
       ));
 
       return true;
     } catch (e) {
-      _consecutiveFailures++;
+      debugPrint('CoreBackgroundSyncService: Backup failed: $e');
       
-      debugPrint('CoreBackgroundSyncService: Sync failed (attempt $_consecutiveFailures): $e');
-      
-      _broadcastSyncEvent(SyncEvent(
-        type: SyncEventType.syncFailed,
+      _broadcastBackupEvent(BackupEvent(
+        type: BackupEventType.backupFailed,
         timestamp: DateTime.now(),
         error: e.toString(),
-        data: {'consecutiveFailures': _consecutiveFailures},
       ));
-
-      // Restart timer with backoff
-      _startPeriodicSync();
       
       return false;
     } finally {
-      _isSyncing = false;
+      _isBackingUp = false;
     }
   }
 
-  Future<void> _processQueuedUpdates() async {
-    if (_updateQueue.isEmpty) return;
-
-    final updates = List<QueuedUpdate>.from(_updateQueue);
-    _updateQueue.clear();
-
-    debugPrint('CoreBackgroundSyncService: Processing ${updates.length} queued updates');
-
-    for (final update in updates) {
-      try {
-        await _processUpdate(update);
-      } catch (e) {
-        debugPrint('CoreBackgroundSyncService: Failed to process update for ${update.coreId}: $e');
-        
-        // Re-queue failed updates with retry limit
-        if (update.retryCount < _maxRetryAttempts) {
-          final retriedUpdate = update.copyWith(
-            retryCount: update.retryCount + 1,
-            lastAttempt: DateTime.now(),
-          );
-          _updateQueue.add(retriedUpdate);
-        } else {
-          debugPrint('CoreBackgroundSyncService: Max retries exceeded for update ${update.id}');
-          
-          _broadcastSyncEvent(SyncEvent(
-            type: SyncEventType.updateFailed,
-            timestamp: DateTime.now(),
-            error: 'Max retries exceeded',
-            data: {'updateId': update.id, 'coreId': update.coreId},
-          ));
-        }
-      }
-    }
-  }
-
-  Future<void> _processUpdate(QueuedUpdate update) async {
-    switch (update.type) {
-      case UpdateType.coreUpdate:
-        await _coreLibraryService.updateCore(update.core!);
-        break;
-      case UpdateType.batchUpdate:
-        if (update.cores != null) {
-          for (final core in update.cores!) {
-            await _coreLibraryService.updateCore(core);
-          }
-        }
-        break;
-      case UpdateType.contextUpdate:
-        // Handle context updates if needed
-        break;
-    }
-
-    debugPrint('CoreBackgroundSyncService: Successfully processed ${update.type} for ${update.coreId}');
-  }
-
-  Future<void> _syncRemoteUpdates() async {
+  Future<bool> _performRestore() async {
     try {
-      final remoteCores = await _coreLibraryService.getAllCores();
+      debugPrint('CoreBackgroundSyncService: Starting restore from backup');
       
-      // Update cache with fresh data
-      for (final core in remoteCores) {
-        await _cacheManager.cacheCore(core);
+      _broadcastBackupEvent(BackupEvent(
+        type: BackupEventType.restoreStarted,
+        timestamp: DateTime.now(),
+      ));
+
+      // Get iCloud Documents directory
+      final documentsDir = await getApplicationDocumentsDirectory();
+      final backupFile = File('${documentsDir.path}/$_backupFileName');
+      final metadataFile = File('${documentsDir.path}/$_backupMetadataFileName');
+
+      if (!await backupFile.exists()) {
+        throw Exception('No backup file found in iCloud Documents');
       }
+
+      // Read backup metadata
+      Map<String, dynamic>? metadata;
+      if (await metadataFile.exists()) {
+        final metadataJson = await metadataFile.readAsString();
+        metadata = jsonDecode(metadataJson);
+      }
+
+      // Close current database connection
+      await _databaseHelper.closeDatabase();
+
+      // Get current database path
+      final db = await _databaseHelper.database;
+      final dbPath = db.path;
       
-      debugPrint('CoreBackgroundSyncService: Synced ${remoteCores.length} remote updates');
-    } catch (e) {
-      debugPrint('CoreBackgroundSyncService: Failed to sync remote updates: $e');
-      rethrow;
-    }
-  }
+      // Backup current database first
+      final currentBackup = File('${dbPath}.restore_backup');
+      if (await File(dbPath).exists()) {
+        await File(dbPath).copy(currentBackup.path);
+      }
 
-  Future<void> _resolveConflicts() async {
-    if (_conflictBuffer.isEmpty) return;
-
-    debugPrint('CoreBackgroundSyncService: Resolving ${_conflictBuffer.length} conflicts');
-
-    for (final entry in _conflictBuffer.entries) {
-      final coreId = entry.key;
-      final conflictingCores = entry.value;
-      
       try {
-        final resolvedCore = await _resolveConflict(coreId, conflictingCores);
-        if (resolvedCore != null) {
-          await _coreLibraryService.updateCore(resolvedCore);
-          await _cacheManager.cacheCore(resolvedCore);
-          
-          debugPrint('CoreBackgroundSyncService: Resolved conflict for core $coreId');
-        }
+        // Restore from backup
+        await backupFile.copy(dbPath);
+        
+        // Verify restored database
+        await _databaseHelper.database;
+        
+        debugPrint('CoreBackgroundSyncService: Restore completed successfully');
+        
+        _broadcastBackupEvent(BackupEvent(
+          type: BackupEventType.restoreCompleted,
+          timestamp: DateTime.now(),
+          data: metadata ?? {},
+        ));
+
+        return true;
       } catch (e) {
-        debugPrint('CoreBackgroundSyncService: Failed to resolve conflict for core $coreId: $e');
+        // Restore original database on failure
+        if (await currentBackup.exists()) {
+          await currentBackup.copy(dbPath);
+        }
+        rethrow;
+      } finally {
+        // Clean up temporary backup
+        if (await currentBackup.exists()) {
+          await currentBackup.delete();
+        }
       }
+    } catch (e) {
+      debugPrint('CoreBackgroundSyncService: Restore failed: $e');
+      
+      _broadcastBackupEvent(BackupEvent(
+        type: BackupEventType.restoreFailed,
+        timestamp: DateTime.now(),
+        error: e.toString(),
+      ));
+      
+      return false;
     }
-    
-    _conflictBuffer.clear();
   }
 
-  Future<EmotionalCore?> _resolveConflict(String coreId, List<EmotionalCore> conflictingCores) async {
-    if (conflictingCores.isEmpty) return null;
-    if (conflictingCores.length == 1) return conflictingCores.first;
+  void _broadcastBackupEvent(BackupEvent event) {
+    _backupEventController.add(event);
+  }
 
-    // Conflict resolution strategy: Latest timestamp wins
-    conflictingCores.sort((a, b) => b.lastUpdated.compareTo(a.lastUpdated));
-    final latestCore = conflictingCores.first;
-
-    // Merge insights from all versions
-    final allInsights = <CoreInsight>[];
-    for (final core in conflictingCores) {
-      allInsights.addAll(core.recentInsights);
+  /// Check if backup file exists in iCloud Documents
+  Future<bool> hasBackupAvailable() async {
+    try {
+      final documentsDir = await getApplicationDocumentsDirectory();
+      final backupFile = File('${documentsDir.path}/$_backupFileName');
+      return await backupFile.exists();
+    } catch (e) {
+      debugPrint('CoreBackgroundSyncService: Error checking backup availability: $e');
+      return false;
     }
-    
-    // Remove duplicates and sort by relevance
-    final uniqueInsights = <String, CoreInsight>{};
-    for (final insight in allInsights) {
-      final existing = uniqueInsights[insight.id];
-      if (existing == null || insight.relevanceScore > existing.relevanceScore) {
-        uniqueInsights[insight.id] = insight;
+  }
+
+  /// Get backup metadata if available
+  Future<Map<String, dynamic>?> getBackupMetadata() async {
+    try {
+      final documentsDir = await getApplicationDocumentsDirectory();
+      final metadataFile = File('${documentsDir.path}/$_backupMetadataFileName');
+      
+      if (!await metadataFile.exists()) {
+        return null;
       }
+      
+      final metadataJson = await metadataFile.readAsString();
+      return jsonDecode(metadataJson);
+    } catch (e) {
+      debugPrint('CoreBackgroundSyncService: Error reading backup metadata: $e');
+      return null;
     }
-    
-    final mergedInsights = uniqueInsights.values.toList()
-      ..sort((a, b) => b.relevanceScore.compareTo(a.relevanceScore));
-
-    return latestCore.copyWith(
-      recentInsights: mergedInsights.take(5).toList(),
-    );
   }
 
-  void _broadcastSyncEvent(SyncEvent event) {
-    _syncEventController.add(event);
-  }
-
-  /// Add a conflict to the buffer for resolution
-  void addConflict(String coreId, List<EmotionalCore> conflictingCores) {
-    _conflictBuffer[coreId] = conflictingCores;
-    
-    _broadcastSyncEvent(SyncEvent(
-      type: SyncEventType.conflictDetected,
-      timestamp: DateTime.now(),
-      data: {
-        'coreId': coreId,
-        'conflictCount': conflictingCores.length,
-      },
-    ));
-  }
-
-  /// Stop the background sync service
+  /// Stop the backup service
   void stop() {
-    _syncTimer?.cancel();
-    _syncTimer = null;
+    _backupTimer?.cancel();
+    _backupTimer = null;
     _isInitialized = false;
     
-    debugPrint('CoreBackgroundSyncService: Stopped');
+    debugPrint('CoreBackgroundSyncService: Stopped backup service');
   }
 
   /// Dispose resources
   void dispose() {
     stop();
-    _syncEventController.close();
+    _backupEventController.close();
   }
 }
 
-/// Queued update for offline operations
-class QueuedUpdate {
-  final String id;
-  final String coreId;
-  final UpdateType type;
-  final EmotionalCore? core;
-  final List<EmotionalCore>? cores;
-  final Map<String, dynamic>? metadata;
-  final DateTime createdAt;
-  final DateTime? lastAttempt;
-  final int retryCount;
-
-  QueuedUpdate({
-    required this.id,
-    required this.coreId,
-    required this.type,
-    this.core,
-    this.cores,
-    this.metadata,
-    DateTime? createdAt,
-    this.lastAttempt,
-    this.retryCount = 0,
-  }) : createdAt = createdAt ?? DateTime.now();
-
-  QueuedUpdate copyWith({
-    String? id,
-    String? coreId,
-    UpdateType? type,
-    EmotionalCore? core,
-    List<EmotionalCore>? cores,
-    Map<String, dynamic>? metadata,
-    DateTime? createdAt,
-    DateTime? lastAttempt,
-    int? retryCount,
-  }) {
-    return QueuedUpdate(
-      id: id ?? this.id,
-      coreId: coreId ?? this.coreId,
-      type: type ?? this.type,
-      core: core ?? this.core,
-      cores: cores ?? this.cores,
-      metadata: metadata ?? this.metadata,
-      createdAt: createdAt ?? this.createdAt,
-      lastAttempt: lastAttempt ?? this.lastAttempt,
-      retryCount: retryCount ?? this.retryCount,
-    );
-  }
-}
-
-/// Types of updates that can be queued
-enum UpdateType {
-  coreUpdate,
-  batchUpdate,
-  contextUpdate,
-}
-
-/// Sync event types
-enum SyncEventType {
+/// Backup event types
+enum BackupEventType {
   initialized,
-  syncStarted,
-  syncCompleted,
-  syncFailed,
-  updateQueued,
-  updateFailed,
-  conflictDetected,
-  conflictResolved,
+  backupStarted,
+  backupCompleted,
+  backupFailed,
+  restoreStarted,
+  restoreCompleted,
+  restoreFailed,
   error,
 }
 
-/// Sync event model
-class SyncEvent {
-  final SyncEventType type;
+/// Backup event model
+class BackupEvent {
+  final BackupEventType type;
   final DateTime timestamp;
   final String? error;
   final Map<String, dynamic> data;
 
-  SyncEvent({
+  BackupEvent({
     required this.type,
     required this.timestamp,
     this.error,
@@ -469,19 +335,15 @@ class SyncEvent {
   });
 }
 
-/// Sync statistics
-class SyncStatistics {
-  final DateTime? lastSuccessfulSync;
-  final int consecutiveFailures;
-  final int queueSize;
+/// Backup statistics
+class BackupStatistics {
+  final DateTime? lastSuccessfulBackup;
   final bool isActive;
-  final DateTime nextSyncEstimate;
+  final DateTime nextBackupEstimate;
 
-  SyncStatistics({
-    this.lastSuccessfulSync,
-    required this.consecutiveFailures,
-    required this.queueSize,
+  BackupStatistics({
+    this.lastSuccessfulBackup,
     required this.isActive,
-    required this.nextSyncEstimate,
+    required this.nextBackupEstimate,
   });
 }

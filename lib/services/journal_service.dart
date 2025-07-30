@@ -7,6 +7,7 @@ import '../database/journal_dao.dart';
 import '../database/core_dao.dart';
 import 'ai_service_manager.dart';
 import 'background_ai_processor.dart';
+import 'offline_queue_service.dart';
 
 /// Central service for managing journal entries and emotional core operations.
 /// 
@@ -52,6 +53,7 @@ class JournalService {
   final CoreDao _coreDao = CoreDao();
   final AIServiceManager _aiManager = AIServiceManager();
   final BackgroundAIProcessor _aiProcessor = BackgroundAIProcessor();
+  final OfflineQueueService _offlineQueue = OfflineQueueService();
 
   // Initialize the service (call this on app startup)
   Future<void> initialize() async {
@@ -61,6 +63,7 @@ class JournalService {
         aiServiceManager: _aiManager,
         journalService: this,
       );
+      await _offlineQueue.initialize();
     } catch (e) {
       debugPrint('JournalService initialize error: $e');
       rethrow;
@@ -103,7 +106,23 @@ class JournalService {
       }
     } catch (e) {
       debugPrint('JournalService createJournalEntry error: $e');
-      rethrow;
+      
+      // If journal entry creation fails, queue it for offline processing
+      try {
+        final entry = JournalEntry.create(
+          content: content,
+          moods: moods,
+        ).copyWith(status: status);
+        
+        await _offlineQueue.queueJournalSave(entry);
+        debugPrint('JournalService: Queued journal entry for offline processing');
+        
+        // Return a temporary ID to indicate it's been queued
+        return 'queued_${DateTime.now().millisecondsSinceEpoch}';
+      } catch (queueError) {
+        debugPrint('JournalService: Failed to queue entry for offline processing: $queueError');
+        rethrow;
+      }
     }
   }
 
