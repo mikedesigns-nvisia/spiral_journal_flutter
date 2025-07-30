@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:spiral_journal/design_system/design_tokens.dart';
 import 'package:spiral_journal/design_system/component_library.dart';
 import 'package:spiral_journal/design_system/heading_system.dart';
+import 'package:spiral_journal/widgets/celebration_particles.dart';
+import 'package:spiral_journal/widgets/animated_button.dart';
 
 class JournalInput extends StatefulWidget {
   final TextEditingController controller;
@@ -30,6 +32,7 @@ class _JournalInputState extends State<JournalInput> {
   Timer? _autoSaveTimer;
   String _lastSavedContent = '';
   bool _hasUnsavedChanges = false;
+  bool _showCelebration = false;
 
   @override
   void initState() {
@@ -82,7 +85,7 @@ class _JournalInputState extends State<JournalInput> {
           color: DesignTokens.getBackgroundSecondary(context),
           borderRadius: BorderRadius.circular(DesignTokens.cardRadius),
           border: Border.all(
-            color: DesignTokens.getBackgroundTertiary(context),
+            color: DesignTokens.getSubtleBorderColor(context),
             width: 1,
           ),
           boxShadow: [
@@ -270,38 +273,54 @@ class _JournalInputState extends State<JournalInput> {
   Widget _buildSaveButton(BuildContext context) {
     final hasContent = widget.controller.text.trim().isNotEmpty;
     
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 200),
-      child: IconButton(
-        onPressed: hasContent && !widget.isSaving ? widget.onSave : null,
-        icon: widget.isSaving 
-            ? SizedBox(
-                width: DesignTokens.iconSizeM,
-                height: DesignTokens.iconSizeM,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  valueColor: AlwaysStoppedAnimation<Color>(
-                    Colors.white,
+    return CelebrationParticles(
+      isActive: _showCelebration,
+      child: AnimatedButton(
+        onPressed: hasContent && !widget.isSaving ? _handleSave : null,
+        child: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: hasContent 
+                ? DesignTokens.getPrimaryColor(context)
+                : DesignTokens.getTextTertiary(context),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: widget.isSaving 
+              ? SizedBox(
+                  width: DesignTokens.iconSizeM,
+                  height: DesignTokens.iconSizeM,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      Colors.white,
+                    ),
                   ),
+                )
+              : Icon(
+                  Icons.save_rounded,
+                  size: DesignTokens.iconSizeM,
+                  color: Colors.white,
                 ),
-              )
-            : Icon(
-                Icons.save_rounded,
-                size: DesignTokens.iconSizeM,
-                color: Colors.white,
-              ),
-        style: IconButton.styleFrom(
-          foregroundColor: Colors.white,
-          backgroundColor: hasContent 
-              ? DesignTokens.getPrimaryColor(context)
-              : DesignTokens.getTextTertiary(context),
-          padding: EdgeInsets.all(DesignTokens.spaceM),
-          minimumSize: Size(DesignTokens.buttonHeight, DesignTokens.buttonHeight),
-          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
         ),
-        tooltip: hasContent ? 'Save entry' : 'Write something to save',
       ),
     );
+  }
+
+  void _handleSave() {
+    setState(() {
+      _showCelebration = true;
+    });
+    
+    // Reset celebration after animation
+    Future.delayed(const Duration(milliseconds: 500), () {
+      if (mounted) {
+        setState(() {
+          _showCelebration = false;
+        });
+      }
+    });
+    
+    widget.onSave();
   }
 
 }

@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../services/core_impact_notification_service.dart';
@@ -231,7 +233,7 @@ class _CoreImpactNotificationWidgetState extends State<CoreImpactNotificationWid
           minHeight: _accessibilityService.getMinimumTouchTargetSize(),
         ),
         margin: EdgeInsets.symmetric(
-          horizontal: DesignTokens.spacing3,
+          horizontal: DesignTokens.spaceXS,
           vertical: _accessibilityService.getAccessibleSpacing(),
         ),
         padding: EdgeInsets.all(
@@ -241,7 +243,7 @@ class _CoreImpactNotificationWidgetState extends State<CoreImpactNotificationWid
           color: _accessibilityService.highContrastMode 
               ? (_accessibilityService.getAccessibleColors(context).surface)
               : Colors.white,
-          borderRadius: BorderRadius.circular(DesignTokens.borderRadius3),
+          borderRadius: BorderRadius.circular(DesignTokens.radiusXS),
           border: Border.all(
             color: _getNotificationColor().withValues(alpha: 
               _accessibilityService.highContrastMode ? 0.8 : 0.3,
@@ -286,7 +288,7 @@ class _CoreImpactNotificationWidgetState extends State<CoreImpactNotificationWid
         // Icon
         _buildNotificationIcon(),
         
-        const SizedBox(width: DesignTokens.spacing3),
+        const SizedBox(width: DesignTokens.spaceXS),
         
         // Content
         Expanded(
@@ -303,13 +305,13 @@ class _CoreImpactNotificationWidgetState extends State<CoreImpactNotificationWid
                 ),
               ),
               
-              const SizedBox(height: DesignTokens.spacing1),
+              const SizedBox(height: DesignTokens.spaceXXS),
               
               // Message
               Text(
                 widget.notification.message,
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: DesignTokens.textSecondaryColor,
+                  color: DesignTokens.textSecondary,
                 ),
               ),
               
@@ -353,11 +355,11 @@ class _CoreImpactNotificationWidgetState extends State<CoreImpactNotificationWid
     if (milestoneDescription == null) return const SizedBox.shrink();
     
     return Container(
-      margin: const EdgeInsets.only(top: DesignTokens.spacing2),
-      padding: const EdgeInsets.all(DesignTokens.spacing2),
+      margin: const EdgeInsets.only(top: DesignTokens.spaceS),
+      padding: const EdgeInsets.all(DesignTokens.spaceS),
       decoration: BoxDecoration(
         color: DesignTokens.successColor.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(DesignTokens.borderRadius2),
+        borderRadius: BorderRadius.circular(DesignTokens.radiusXXS),
         border: Border.all(
           color: DesignTokens.successColor.withValues(alpha: 0.2),
           width: 1,
@@ -378,7 +380,7 @@ class _CoreImpactNotificationWidgetState extends State<CoreImpactNotificationWid
     final isPositive = impact > 0;
     
     return Container(
-      margin: const EdgeInsets.only(top: DesignTokens.spacing2),
+      margin: const EdgeInsets.only(top: DesignTokens.spaceS),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -388,7 +390,7 @@ class _CoreImpactNotificationWidgetState extends State<CoreImpactNotificationWid
             color: isPositive ? DesignTokens.successColor : DesignTokens.warningColor,
           ),
           
-          const SizedBox(width: DesignTokens.spacing1),
+          const SizedBox(width: DesignTokens.spaceXXS),
           
           Text(
             '${isPositive ? '+' : ''}${(impact * 100).toStringAsFixed(0)}%',
@@ -428,13 +430,13 @@ class _CoreImpactNotificationWidgetState extends State<CoreImpactNotificationWid
           width: 24,
           height: 24,
           decoration: BoxDecoration(
-            color: DesignTokens.textSecondaryColor.withValues(alpha: 0.1),
+            color: DesignTokens.textSecondary.withValues(alpha: 0.1),
             shape: BoxShape.circle,
           ),
           child: Icon(
             Icons.close,
             size: 16,
-            color: DesignTokens.textSecondaryColor,
+            color: DesignTokens.textSecondary,
           ),
         ),
       ),
@@ -446,13 +448,13 @@ class _CoreImpactNotificationWidgetState extends State<CoreImpactNotificationWid
       case CoreImpactNotificationType.milestoneAchieved:
         return DesignTokens.successColor;
       case CoreImpactNotificationType.significantGrowth:
-        return DesignTokens.primaryColor;
+        return DesignTokens.primaryOrange;
       case CoreImpactNotificationType.levelIncrease:
         return DesignTokens.successColor;
       case CoreImpactNotificationType.levelDecrease:
         return DesignTokens.warningColor;
       case CoreImpactNotificationType.trendChange:
-        return DesignTokens.primaryColor;
+        return DesignTokens.primaryOrange;
       case CoreImpactNotificationType.multiCoreImpact:
         return Colors.purple;
     }
@@ -504,27 +506,33 @@ class _CoreImpactNotificationOverlayState extends State<CoreImpactNotificationOv
   }
 
   void _handleNewNotification(CoreImpactNotification notification) {
-    setState(() {
-      _visibleNotifications.add(notification);
-      
-      // Limit visible notifications
-      if (_visibleNotifications.length > widget.maxVisibleNotifications) {
-        _visibleNotifications.removeAt(0);
-      }
-    });
+    if (mounted) {
+      setState(() {
+        _visibleNotifications.add(notification);
+        
+        // Limit visible notifications
+        if (_visibleNotifications.length > widget.maxVisibleNotifications) {
+          _visibleNotifications.removeAt(0);
+        }
+      });
+    }
 
     // Auto-dismiss after duration (if not requiring user action)
     if (!notification.requiresUserAction) {
       Timer(notification.displayDuration, () {
-        _dismissNotification(notification.id);
+        if (mounted) {
+          _dismissNotification(notification.id);
+        }
       });
     }
   }
 
   void _dismissNotification(String notificationId) {
-    setState(() {
-      _visibleNotifications.removeWhere((n) => n.id == notificationId);
-    });
+    if (mounted) {
+      setState(() {
+        _visibleNotifications.removeWhere((n) => n.id == notificationId);
+      });
+    }
   }
 
   @override
@@ -622,6 +630,3 @@ class CelebrationPainter extends CustomPainter {
     return progress != oldDelegate.progress || color != oldDelegate.color;
   }
 }
-
-import 'dart:async';
-import 'dart:math' as math;

@@ -9,6 +9,11 @@ import '../services/settings_service.dart';
 class OnboardingController extends ChangeNotifier {
   static const String _onboardingCompletedKey = 'onboarding_completed';
   static const String _quickSetupConfigKey = 'quick_setup_config';
+  
+  // Progressive Feature Disclosure Keys
+  static const String _shownFeaturesKey = 'shown_features';
+  static const String _featureUsageCountKey = 'feature_usage_count';
+  static const String _lastFeatureShownKey = 'last_feature_shown';
 
   final ThemeService _themeService;
   final SettingsService _settingsService;
@@ -18,14 +23,24 @@ class OnboardingController extends ChangeNotifier {
   bool _isLoading = false;
   QuickSetupConfig _quickSetupConfig = const QuickSetupConfig();
   final List<OnboardingSlide> _slides = OnboardingSlide.getAllSlides();
+  
+  // Progressive Feature Disclosure State
+  Set<String> _shownFeatures = <String>{};
+  Map<String, int> _featureUsageCount = <String, int>{};
+  String? _currentDisclosureFeature;
+  bool _isShowingFeatureDisclosure = false;
 
   OnboardingController({
     required ThemeService themeService,
     required SettingsService settingsService,
     // PIN auth service parameter removed - using biometrics-only authentication
   })  : _themeService = themeService,
-        _settingsService = settingsService;
+        _settingsService = settingsService {
         // PIN auth service assignment removed - using biometrics-only authentication
+        
+        // Initialize feature disclosure state
+        loadFeatureDisclosureState();
+      }
 
   // Getters
   int get currentSlideIndex => _currentSlideIndex;
@@ -37,6 +52,12 @@ class OnboardingController extends ChangeNotifier {
   bool get isLastSlide => _currentSlideIndex == _slides.length - 1;
   int get totalSlides => _slides.length;
   double get progress => (_currentSlideIndex + 1) / _slides.length;
+  
+  // Progressive Feature Disclosure Getters
+  Set<String> get shownFeatures => Set.from(_shownFeatures);
+  String? get currentDisclosureFeature => _currentDisclosureFeature;
+  bool get isShowingFeatureDisclosure => _isShowingFeatureDisclosure;
+  Map<String, int> get featureUsageCount => Map.from(_featureUsageCount);
 
   /// Check if onboarding has been completed
   static Future<bool> hasCompletedOnboarding() async {
@@ -147,6 +168,244 @@ class OnboardingController extends ChangeNotifier {
   }
 
   // PIN setup removed - using biometrics-only authentication
+
+  // Progressive Feature Disclosure Methods
+  
+  /// Load shown features from SharedPreferences
+  Future<void> loadFeatureDisclosureState() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      
+      // Load shown features
+      final shownFeaturesJson = prefs.getStringList(_shownFeaturesKey) ?? [];
+      _shownFeatures = shownFeaturesJson.toSet();
+      
+      // Load feature usage count
+      final usageCountKeys = prefs.getKeys().where((key) => key.startsWith('${_featureUsageCountKey}_'));
+      _featureUsageCount.clear();
+      for (String key in usageCountKeys) {
+        String featureName = key.replaceFirst('${_featureUsageCountKey}_', '');
+        _featureUsageCount[featureName] = prefs.getInt(key) ?? 0;
+      }
+      
+      notifyListeners();
+    } catch (e) {
+      debugPrint('OnboardingController loadFeatureDisclosureState error: $e');
+    }
+  }
+  
+  /// Check if a feature has been shown to the user
+  bool hasFeatureBeenShown(String featureName) {
+    return _shownFeatures.contains(featureName);
+  }
+  
+  /// Mark a feature as shown and save to SharedPreferences
+  Future<void> markFeatureAsShown(String featureName) async {
+    try {
+      if (!_shownFeatures.contains(featureName)) {
+        _shownFeatures.add(featureName);
+        
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setStringList(_shownFeaturesKey, _shownFeatures.toList());
+        await prefs.setString(_lastFeatureShownKey, featureName);
+        
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint('OnboardingController markFeatureAsShown error: $e');
+    }
+  }
+  
+  /// Increment usage count for a feature
+  Future<void> incrementFeatureUsage(String featureName) async {
+    try {
+      _featureUsageCount[featureName] = (_featureUsageCount[featureName] ?? 0) + 1;
+      
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt('${_featureUsageCountKey}_$featureName', _featureUsageCount[featureName]!);
+      
+      // Check if we should unlock new features based on usage
+      await _checkForFeatureUnlocks(featureName);
+      
+      notifyListeners();
+    } catch (e) {
+      debugPrint('OnboardingController incrementFeatureUsage error: $e');
+    }
+  }
+  
+  /// Get usage count for a specific feature
+  int getFeatureUsageCount(String featureName) {
+    return _featureUsageCount[featureName] ?? 0;
+  }
+  
+  /// Show feature disclosure overlay
+  void showFeatureDisclosure(String featureName) {
+    if (!hasFeatureBeenShown(featureName)) {
+      _currentDisclosureFeature = featureName;
+      _isShowingFeatureDisclosure = true;
+      notifyListeners();
+    }
+  }
+  
+  /// Handle "Got it" button press for feature disclosure
+  Future<void> onFeatureDisclosureGotIt() async {
+    if (_currentDisclosureFeature != null) {
+      await markFeatureAsShown(_currentDisclosureFeature!);
+      _currentDisclosureFeature = null;
+      _isShowingFeatureDisclosure = false;
+      notifyListeners();
+    }
+  }
+  
+  /// Dismiss feature disclosure without marking as shown
+  void dismissFeatureDisclosure() {
+    _currentDisclosureFeature = null;
+    _isShowingFeatureDisclosure = false;
+    notifyListeners();
+  }
+  
+  /// Check for feature unlocks based on usage patterns
+  Future<void> _checkForFeatureUnlocks(String triggeredFeature) async {
+    try {
+      // Define feature unlock rules based on usage patterns
+      final unlockRules = {
+        'advanced_journaling': () => getFeatureUsageCount('basic_journal') >= 5,
+        'emotional_insights': () => getFeatureUsageCount('basic_journal') >= 3,
+        'export_functionality': () => getFeatureUsageCount('basic_journal') >= 10,
+        'voice_journaling': () => getFeatureUsageCount('basic_journal') >= 7,
+        'template_insights': () => getFeatureUsageCount('emotional_insights') >= 3,
+        'batch_processing': () => getFeatureUsageCount('advanced_journaling') >= 5,
+      };
+      
+      for (String featureName in unlockRules.keys) {
+        if (!hasFeatureBeenShown(featureName) && unlockRules[featureName]!()) {
+          // Schedule feature disclosure for next appropriate moment
+          await _scheduleFeatureDisclosure(featureName);
+        }
+      }
+    } catch (e) {
+      debugPrint('OnboardingController _checkForFeatureUnlocks error: $e');
+    }
+  }
+  
+  /// Schedule a feature to be disclosed at the right moment
+  Future<void> _scheduleFeatureDisclosure(String featureName) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      List<String> scheduledFeatures = prefs.getStringList('scheduled_features') ?? [];
+      
+      if (!scheduledFeatures.contains(featureName)) {
+        scheduledFeatures.add(featureName);
+        await prefs.setStringList('scheduled_features', scheduledFeatures);
+      }
+    } catch (e) {
+      debugPrint('OnboardingController _scheduleFeatureDisclosure error: $e');
+    }
+  }
+  
+  /// Get next scheduled feature to show
+  Future<String?> getNextScheduledFeature() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      List<String> scheduledFeatures = prefs.getStringList('scheduled_features') ?? [];
+      
+      // Return first unshown scheduled feature
+      for (String feature in scheduledFeatures) {
+        if (!hasFeatureBeenShown(feature)) {
+          return feature;
+        }
+      }
+      
+      return null;
+    } catch (e) {
+      debugPrint('OnboardingController getNextScheduledFeature error: $e');
+      return null;
+    }
+  }
+  
+  /// Remove a feature from scheduled list after showing
+  Future<void> removeFromScheduled(String featureName) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      List<String> scheduledFeatures = prefs.getStringList('scheduled_features') ?? [];
+      scheduledFeatures.remove(featureName);
+      await prefs.setStringList('scheduled_features', scheduledFeatures);
+    } catch (e) {
+      debugPrint('OnboardingController removeFromScheduled error: $e');
+    }
+  }
+  
+  /// Reset all feature disclosure data (for testing)
+  Future<void> resetFeatureDisclosureData() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      
+      // Remove all feature-related keys
+      await prefs.remove(_shownFeaturesKey);
+      await prefs.remove(_lastFeatureShownKey);
+      await prefs.remove('scheduled_features');
+      
+      // Remove all usage count keys
+      final usageCountKeys = prefs.getKeys().where((key) => key.startsWith('${_featureUsageCountKey}_'));
+      for (String key in usageCountKeys) {
+        await prefs.remove(key);
+      }
+      
+      // Reset local state
+      _shownFeatures.clear();
+      _featureUsageCount.clear();
+      _currentDisclosureFeature = null;
+      _isShowingFeatureDisclosure = false;
+      
+      notifyListeners();
+    } catch (e) {
+      debugPrint('OnboardingController resetFeatureDisclosureData error: $e');
+    }
+  }
+  
+  /// Check if user should see a feature based on usage pattern
+  Future<bool> shouldShowFeature(String featureName) async {
+    // Don't show if already shown
+    if (hasFeatureBeenShown(featureName)) {
+      return false;
+    }
+    
+    // Check if feature is scheduled to be shown
+    final scheduledFeatures = await _getScheduledFeatures();
+    return scheduledFeatures.contains(featureName);
+  }
+  
+  /// Get scheduled features list
+  Future<List<String>> _getScheduledFeatures() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getStringList('scheduled_features') ?? [];
+    } catch (e) {
+      debugPrint('OnboardingController _getScheduledFeatures error: $e');
+      return [];
+    }
+  }
+  
+  /// Show next available feature if any
+  Future<void> showNextAvailableFeature() async {
+    final nextFeature = await getNextScheduledFeature();
+    if (nextFeature != null && !isShowingFeatureDisclosure) {
+      showFeatureDisclosure(nextFeature);
+      await removeFromScheduled(nextFeature);
+    }
+  }
+  
+  /// Get feature disclosure analytics data
+  Map<String, dynamic> getFeatureDisclosureAnalytics() {
+    return {
+      'total_features_shown': _shownFeatures.length,
+      'features_shown': _shownFeatures.toList(),
+      'total_usage_events': _featureUsageCount.values.fold(0, (sum, count) => sum + count),
+      'feature_usage_breakdown': Map.from(_featureUsageCount),
+      'currently_showing_disclosure': _isShowingFeatureDisclosure,
+      'current_disclosure_feature': _currentDisclosureFeature,
+    };
+  }
 
   /// Save quick setup configuration to preferences
   Future<void> _saveQuickSetupConfig() async {

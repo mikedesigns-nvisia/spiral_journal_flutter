@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../design_system/design_tokens.dart';
+import 'skeleton_loader.dart';
+import 'animated_button.dart';
 
 /// Comprehensive loading state widget with various loading indicators
 class LoadingStateWidget extends StatefulWidget {
@@ -119,6 +121,12 @@ class _LoadingStateWidgetState extends State<LoadingStateWidget>
 
       case LoadingType.spinner:
         return _buildSpinnerIndicator(color);
+      
+      case LoadingType.skeleton:
+        return SkeletonLoader(
+          width: widget.size,
+          height: widget.size,
+        );
     }
   }
 
@@ -268,6 +276,7 @@ enum LoadingType {
   wave,
   typing,
   spinner,
+  skeleton,
 }
 
 /// Full-screen loading overlay
@@ -346,20 +355,26 @@ class _LoadingButtonState extends State<LoadingButton> {
   Widget build(BuildContext context) {
     final isLoading = widget.isLoading || _isLoading;
     
-    return ElevatedButton(
+    return AnimatedButton(
       onPressed: isLoading ? null : _handlePress,
-      style: widget.style,
-      child: isLoading
-          ? SizedBox(
-              height: 20,
-              width: 20,
-              child: LoadingStateWidget(
-                type: widget.loadingType,
-                size: 20,
-                color: Colors.white,
-              ),
-            )
-          : widget.child,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: isLoading ? Colors.grey : Theme.of(context).primaryColor,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: isLoading
+            ? SizedBox(
+                height: 20,
+                width: 20,
+                child: LoadingStateWidget(
+                  type: widget.loadingType,
+                  size: 20,
+                  color: Colors.white,
+                ),
+              )
+            : widget.child,
+      ),
     );
   }
 

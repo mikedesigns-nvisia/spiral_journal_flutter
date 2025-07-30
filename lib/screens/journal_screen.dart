@@ -73,11 +73,13 @@ class _JournalScreenState extends State<JournalScreen> {
       final draftMoods = prefs.getStringList('journal_draft_moods') ?? [];
       
       if (draftContent != null && draftContent.isNotEmpty) {
-        setState(() {
-          _draftContent = draftContent;
-          _selectedMoods.clear();
-          _selectedMoods.addAll(draftMoods);
-        });
+        if (mounted) {
+          setState(() {
+            _draftContent = draftContent;
+            _selectedMoods.clear();
+            _selectedMoods.addAll(draftMoods);
+          });
+        }
         
         // Show recovery dialog
         if (mounted) {
@@ -101,9 +103,11 @@ class _JournalScreenState extends State<JournalScreen> {
         await prefs.remove('journal_draft_moods');
       }
       
-      setState(() {
-        _draftContent = content;
-      });
+      if (mounted) {
+        setState(() {
+          _draftContent = content;
+        });
+      }
     } catch (e) {
       debugPrint('Error saving draft content: $e');
     }
@@ -115,9 +119,11 @@ class _JournalScreenState extends State<JournalScreen> {
       await prefs.remove('journal_draft_content');
       await prefs.remove('journal_draft_moods');
       
-      setState(() {
-        _draftContent = null;
-      });
+      if (mounted) {
+        setState(() {
+          _draftContent = null;
+        });
+      }
     } catch (e) {
       debugPrint('Error clearing draft content: $e');
     }
@@ -235,11 +241,13 @@ class _JournalScreenState extends State<JournalScreen> {
       
       // Save the analysis result and entry for display
       // Note: You may want to implement proper JSON serialization
-      setState(() {
-        _hasAnalyzedEntryToday = true;
-        _todaysAnalyzedEntry = entry;
-        _todaysAnalysisResult = analysisResult;
-      });
+      if (mounted) {
+        setState(() {
+          _hasAnalyzedEntryToday = true;
+          _todaysAnalyzedEntry = entry;
+          _todaysAnalysisResult = analysisResult;
+        });
+      }
     } catch (e) {
       debugPrint('Error saving analysis state: $e');
     }
@@ -387,10 +395,12 @@ class _JournalScreenState extends State<JournalScreen> {
         await journalProvider.refresh();
 
         // Clear the form after successful save
-        setState(() {
-          _journalController.clear();
-          _selectedMoods.clear();
-        });
+        if (mounted) {
+          setState(() {
+            _journalController.clear();
+            _selectedMoods.clear();
+          });
+        }
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -705,11 +715,7 @@ class _JournalScreenState extends State<JournalScreen> {
     Widget body = AdaptiveScaffold(
         backgroundColor: DesignTokens.getBackgroundPrimary(context),
         padding: EdgeInsets.zero, // Remove default padding to avoid double padding
-        body: Container(
-        decoration: BoxDecoration(
-          gradient: DesignTokens.getPrimaryGradient(context),
-        ),
-        child: SingleChildScrollView(
+        body: SingleChildScrollView(
           padding: const EdgeInsets.all(AppConstants.largePadding),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -799,10 +805,12 @@ class _JournalScreenState extends State<JournalScreen> {
                       MoodSelector(
                         selectedMoods: _selectedMoods,
                         onMoodChanged: (moods) {
-                          setState(() {
-                            _selectedMoods.clear();
-                            _selectedMoods.addAll(moods);
-                          });
+                          if (mounted) {
+                            setState(() {
+                              _selectedMoods.clear();
+                              _selectedMoods.addAll(moods);
+                            });
+                          }
                         },
                       ),
                       
@@ -840,7 +848,6 @@ class _JournalScreenState extends State<JournalScreen> {
             ],
           ),
         ),
-      ),
     );
     
     // Apply iOS-specific safe area and keyboard handling

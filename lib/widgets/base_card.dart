@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:spiral_journal/design_system/design_tokens.dart';
+import 'package:spiral_journal/widgets/animated_card.dart';
+import 'package:spiral_journal/widgets/animated_button.dart';
 
 /// Base card component that provides consistent styling and layout
-/// for all cards throughout the application
+/// for all cards throughout the application with smooth animations
 class BaseCard extends StatelessWidget {
   final Widget child;
   final EdgeInsets? padding;
@@ -13,6 +15,7 @@ class BaseCard extends StatelessWidget {
   final List<BoxShadow>? boxShadow;
   final Gradient? gradient;
   final Color? backgroundColor;
+  final VoidCallback? onTap;
 
   const BaseCard({
     super.key,
@@ -25,26 +28,29 @@ class BaseCard extends StatelessWidget {
     this.boxShadow,
     this.gradient,
     this.backgroundColor,
+    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    final effectiveBorderRadius = borderRadius ?? DesignTokens.cardRadius;
+    
+    return AnimatedCard(
+      onTap: onTap,
       margin: margin ?? EdgeInsets.all(DesignTokens.spaceS),
-      decoration: BoxDecoration(
-        gradient: gradient ?? DesignTokens.getCardGradient(context),
-        color: backgroundColor,
-        borderRadius: BorderRadius.circular(
-          borderRadius ?? DesignTokens.cardRadius,
-        ),
-        border: Border.all(
-          color: borderColor ?? DesignTokens.getBackgroundTertiary(context),
-          width: borderWidth ?? 1.0,
-        ),
-        boxShadow: boxShadow ?? DesignTokens.getShadow(context, 'xs'),
-      ),
-      child: Padding(
+      padding: EdgeInsets.zero, // We'll handle padding in the inner container
+      borderRadius: BorderRadius.circular(effectiveBorderRadius),
+      color: Colors.transparent, // Make the card transparent since we'll use gradient
+      child: Container(
         padding: padding ?? EdgeInsets.all(DesignTokens.cardPadding),
+        decoration: BoxDecoration(
+          gradient: gradient ?? DesignTokens.getCardGradient(context),
+          borderRadius: BorderRadius.circular(effectiveBorderRadius),
+          border: Border.all(
+            color: borderColor ?? DesignTokens.getSubtleBorderColor(context),
+            width: borderWidth ?? 1.0,
+          ),
+        ),
         child: child,
       ),
     );
@@ -159,7 +165,7 @@ class CardFooter extends StatelessWidget {
   }
 }
 
-/// Standardized CTA button component for consistent styling
+/// Standardized CTA button component for consistent styling with animations
 class StandardCTAButton extends StatelessWidget {
   final String text;
   final VoidCallback onPressed;
@@ -178,15 +184,11 @@ class StandardCTAButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return TextButton(
+    return AnimatedButton(
       onPressed: onPressed,
-      style: TextButton.styleFrom(
-        padding: padding ?? EdgeInsets.symmetric(
-          horizontal: DesignTokens.spaceM, 
-          vertical: DesignTokens.spaceS,
-        ),
-        minimumSize: Size.zero,
-        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      padding: padding ?? EdgeInsets.symmetric(
+        horizontal: DesignTokens.spaceM, 
+        vertical: DesignTokens.spaceS,
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -237,12 +239,13 @@ class CardContentContainer extends StatelessWidget {
         vertical: DesignTokens.spaceXL,
       ),
       decoration: BoxDecoration(
-        color: backgroundColor ?? DesignTokens.getBackgroundPrimary(context),
+        color: backgroundColor ?? DesignTokens.getBackgroundPrimary(context).withOpacity(0.5),
         borderRadius: BorderRadius.circular(
-          borderRadius ?? DesignTokens.radiusM,
+          borderRadius ?? DesignTokens.radiusL, // Use larger radius for smoother corners
         ),
         border: Border.all(
-          color: borderColor ?? DesignTokens.getBackgroundTertiary(context),
+          color: borderColor ?? DesignTokens.getSubtleBorderColor(context).withOpacity(0.3),
+          width: 1.0,
         ),
       ),
       child: child,
