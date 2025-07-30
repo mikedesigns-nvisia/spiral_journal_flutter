@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'dart:math' as math;
 import '../design_system/design_tokens.dart';
 import '../design_system/component_library.dart';
 import '../design_system/responsive_layout.dart';
@@ -16,17 +17,80 @@ class EmotionalMirrorScreen extends StatefulWidget {
   State<EmotionalMirrorScreen> createState() => _EmotionalMirrorScreenState();
 }
 
-class _EmotionalMirrorScreenState extends State<EmotionalMirrorScreen> {
-
+class _EmotionalMirrorScreenState extends State<EmotionalMirrorScreen>
+    with TickerProviderStateMixin {
+  late AnimationController _particleController;
+  late AnimationController _moodVisualizationController;
+  late PageController _insightPageController;
+  
+  final List<MoodParticle> _particles = [];
+  Offset? _touchPosition;
+  double _moodIntensity = 0.5;
+  
   @override
   void initState() {
     super.initState();
+    
+    // Initialize animation controllers
+    _particleController = AnimationController(
+      duration: const Duration(seconds: 3),
+      vsync: this,
+    )..repeat();
+    
+    _moodVisualizationController = AnimationController(
+      duration: const Duration(milliseconds: 800),
+      vsync: this,
+    );
+    
+    _insightPageController = PageController();
     
     // Initialize provider
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final provider = Provider.of<EmotionalMirrorProvider>(context, listen: false);
       provider.initialize();
     });
+  }
+  
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    
+    // Initialize particles only once when dependencies are ready
+    if (_particles.isEmpty) {
+      _initializeParticles();
+    }
+  }
+  
+  @override
+  void dispose() {
+    _particleController.dispose();
+    _moodVisualizationController.dispose();
+    _insightPageController.dispose();
+    super.dispose();
+  }
+  
+  void _initializeParticles() {
+    final random = math.Random();
+    // Use smaller bounds that will fit within the visualization container
+    const visualizationWidth = 280.0;
+    const visualizationHeight = 160.0;
+    
+    for (int i = 0; i < 20; i++) {
+      _particles.add(
+        MoodParticle(
+          position: Offset(
+            random.nextDouble() * visualizationWidth,
+            random.nextDouble() * visualizationHeight,
+          ),
+          velocity: Offset(
+            (random.nextDouble() - 0.5) * 2,
+            (random.nextDouble() - 0.5) * 2,
+          ),
+          color: _getHighContrastParticleColor(context, random.nextDouble()),
+          size: random.nextDouble() * 8 + 4,
+        ),
+      );
+    }
   }
 
   @override
@@ -149,10 +213,9 @@ class _EmotionalMirrorScreenState extends State<EmotionalMirrorScreen> {
   
 
   Widget _buildPrimaryEmotionalState(EmotionalMirrorProvider provider) {
-    // Create sample primary and secondary emotional states for demonstration
+    // Create sample primary emotional state for demonstration
     // In a real implementation, this would come from the provider
     final primaryState = _createSampleEmotionalState(provider, isPrimary: true);
-    final secondaryState = _createSampleEmotionalState(provider, isPrimary: false);
     
     if (primaryState == null) {
       return Container(); // Return empty if no state
@@ -545,8 +608,7 @@ class _EmotionalMirrorScreenState extends State<EmotionalMirrorScreen> {
   Widget _buildMetricsGrid(EmotionalMirrorProvider provider) {
     final overview = provider.mirrorData!.moodOverview;
     
-    return Container(
-      child: GridView.count(
+    return GridView.count(
         shrinkWrap: true,
         physics: NeverScrollableScrollPhysics(),
         crossAxisCount: 3,
@@ -576,8 +638,28 @@ class _EmotionalMirrorScreenState extends State<EmotionalMirrorScreen> {
             'Total logged',
           ),
         ],
-      ),
     );
+  }
+  
+  /// Get high contrast particle color for better dark mode visibility
+  Color _getHighContrastParticleColor(BuildContext context, double t) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    if (isDark) {
+      // Use brighter, more contrasting colors for dark mode
+      return Color.lerp(
+        const Color(0xFF64B5F6), // Light blue
+        const Color(0xFFFFD54F), // Bright yellow
+        t,
+      )!;
+    } else {
+      // Use original colors for light mode
+      return Color.lerp(
+        DesignTokens.accentBlue,
+        DesignTokens.accentYellow,
+        t,
+      )!;
+    }
   }
   
   Widget _buildMetricTile(String title, String value, Color color, IconData icon, String subtitle) {
@@ -641,22 +723,21 @@ class _EmotionalMirrorScreenState extends State<EmotionalMirrorScreen> {
               ),
               SizedBox(width: DesignTokens.spaceM),
               Text(
-                'Emotional Balance',
+                'Interactive Mood Visualization',
                 style: HeadingSystem.getHeadlineSmall(context),
               ),
             ],
           ),
           SizedBox(height: DesignTokens.spaceXL),
-          Container(
-            height: DesignTokens.spaceL,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(DesignTokens.radiusS),
-              gradient: LinearGradient(
-                colors: _getMoodBalanceColors(overview.moodBalance),
-              ),
+          _buildInteractiveMoodVisualization(overview),
+          SizedBox(height: DesignTokens.spaceL),
+          Text(
+            'Touch and drag to explore your emotional landscape',
+            style: HeadingSystem.getBodySmall(context).copyWith(
+              color: DesignTokens.getTextSecondary(context),
             ),
           ),
-          SizedBox(height: DesignTokens.spaceL),
+          SizedBox(height: DesignTokens.spaceM),
           Text(
             overview.description,
             style: HeadingSystem.getBodyMedium(context),
@@ -690,37 +771,17 @@ class _EmotionalMirrorScreenState extends State<EmotionalMirrorScreen> {
                 'Personal Insights',
                 style: HeadingSystem.getHeadlineSmall(context),
               ),
+              Spacer(),
+              Text(
+                'Swipe to explore',
+                style: HeadingSystem.getBodySmall(context).copyWith(
+                  color: DesignTokens.getTextSecondary(context),
+                ),
+              ),
             ],
           ),
           SizedBox(height: DesignTokens.spaceXL),
-          ...insights.take(3).map((insight) {
-            return Padding(
-              padding: EdgeInsets.only(bottom: DesignTokens.spaceL),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    width: 6,
-                    height: 6,
-                    margin: EdgeInsets.only(
-                      top: DesignTokens.spaceS,
-                      right: DesignTokens.spaceL,
-                    ),
-                    decoration: BoxDecoration(
-                      color: DesignTokens.getPrimaryColor(context),
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                  Expanded(
-                    child: Text(
-                      insight,
-                      style: HeadingSystem.getBodyMedium(context),
-                    ),
-                  ),
-                ],
-              ),
-            );
-          }),
+          _buildSwipeableInsightCards(insights),
         ],
       ),
     );
@@ -838,12 +899,6 @@ class _EmotionalMirrorScreenState extends State<EmotionalMirrorScreen> {
     return recommendations.take(3).toList();
   }
   
-  Color _getScoreColor(double score) {
-    if (score >= 0.8) return DesignTokens.accentGreen;
-    if (score >= 0.6) return DesignTokens.accentYellow;
-    if (score >= 0.4) return DesignTokens.accentBlue;
-    return DesignTokens.warningColor;
-  }
   
 
   Widget _buildOverviewContent(EmotionalMirrorProvider provider) {
@@ -882,8 +937,42 @@ class _EmotionalMirrorScreenState extends State<EmotionalMirrorScreen> {
             _buildMetricsGrid(provider),
             SizedBox(height: DesignTokens.spaceXL),
             
-            // Mood Balance Visualization
+            // Interactive Mood Balance Visualization
             _buildMoodBalanceCard(provider),
+            SizedBox(height: DesignTokens.spaceXL),
+            
+            // Real-time Mood Graph
+            ComponentLibrary.gradientCard(
+              gradient: DesignTokens.getCardGradient(context),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.show_chart_rounded,
+                        color: DesignTokens.accentBlue,
+                        size: DesignTokens.iconSizeL,
+                      ),
+                      SizedBox(width: DesignTokens.spaceM),
+                      Text(
+                        'Interactive Mood Trends',
+                        style: HeadingSystem.getHeadlineSmall(context),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: DesignTokens.spaceL),
+                  _buildRealTimeMoodGraph(provider),
+                  SizedBox(height: DesignTokens.spaceM),
+                  Text(
+                    'Drag to adjust mood intensity and see real-time changes',
+                    style: HeadingSystem.getBodySmall(context).copyWith(
+                      color: DesignTokens.getTextSecondary(context),
+                    ),
+                  ),
+                ],
+              ),
+            ),
             SizedBox(height: DesignTokens.spaceXL),
             
             // Personal Insights
@@ -975,15 +1064,6 @@ class _EmotionalMirrorScreenState extends State<EmotionalMirrorScreen> {
   }
 
   // Helper methods
-  List<Color> _getMoodBalanceColors(double balance) {
-    if (balance > 0.3) {
-      return [DesignTokens.successColor.withValues(alpha: 0.7), DesignTokens.successColor];
-    } else if (balance < -0.3) {
-      return [DesignTokens.errorColor.withValues(alpha: 0.7), DesignTokens.errorColor];
-    } else {
-      return [DesignTokens.accentBlue.withValues(alpha: 0.7), DesignTokens.accentYellow, DesignTokens.successColor.withValues(alpha: 0.7)];
-    }
-  }
 
   String _formatBalance(double balance) {
     if (balance > 0.3) return 'Positive';
@@ -1029,5 +1109,354 @@ class _EmotionalMirrorScreenState extends State<EmotionalMirrorScreen> {
     if (confidence >= 0.6) return DesignTokens.accentYellow;
     if (confidence >= 0.4) return DesignTokens.accentBlue;
     return DesignTokens.warningColor;
+  }
+  
+  Widget _buildInteractiveMoodVisualization(dynamic overview) {
+    return Container(
+      height: 200,
+      width: double.infinity,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(DesignTokens.radiusM),
+        color: DesignTokens.getBackgroundSecondary(context).withValues(alpha: 0.3),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(DesignTokens.radiusM),
+        child: GestureDetector(
+          onPanUpdate: (details) {
+            setState(() {
+              _touchPosition = details.localPosition;
+              _moodIntensity = (details.localPosition.dy / 200).clamp(0.0, 1.0);
+            });
+            _moodVisualizationController.forward();
+          },
+          onPanEnd: (details) {
+            _moodVisualizationController.reverse();
+          },
+          child: AnimatedBuilder(
+            animation: _particleController,
+            builder: (context, child) {
+              return CustomPaint(
+                painter: InteractiveMoodPainter(
+                  particles: _particles,
+                  touchPosition: _touchPosition,
+                  moodBalance: overview.moodBalance,
+                  animationValue: _particleController.value,
+                  moodIntensity: _moodIntensity,
+                  visualizationAnimation: _moodVisualizationController.value,
+                ),
+                size: Size.infinite,
+              );
+            },
+          ),
+        ),
+      ),
+    );
+  }
+  
+  Widget _buildSwipeableInsightCards(List<String> insights) {
+    return SizedBox(
+      height: 120,
+      child: PageView.builder(
+        controller: _insightPageController,
+        itemCount: insights.length,
+        itemBuilder: (context, index) {
+          return Container(
+            margin: EdgeInsets.symmetric(horizontal: DesignTokens.spaceS),
+            padding: EdgeInsets.all(DesignTokens.spaceM),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  DesignTokens.getPrimaryColor(context).withValues(alpha: 0.1),
+                  DesignTokens.accentBlue.withValues(alpha: 0.05),
+                ],
+              ),
+              borderRadius: BorderRadius.circular(DesignTokens.radiusL),
+              border: Border.all(
+                color: DesignTokens.getPrimaryColor(context).withValues(alpha: 0.2),
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 6,
+                      height: 6,
+                      decoration: BoxDecoration(
+                        color: DesignTokens.getPrimaryColor(context),
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    SizedBox(width: DesignTokens.spaceS),
+                    Text(
+                      'Insight ${index + 1} of ${insights.length}',
+                      style: HeadingSystem.getLabelSmall(context).copyWith(
+                        color: DesignTokens.getTextSecondary(context),
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(height: DesignTokens.spaceS),
+                Expanded(
+                  child: Text(
+                    insights[index],
+                    style: HeadingSystem.getBodyMedium(context),
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+  
+  Widget _buildRealTimeMoodGraph(EmotionalMirrorProvider provider) {
+    return SizedBox(
+      height: 180,
+      width: double.infinity,
+      child: GestureDetector(
+        onPanUpdate: (details) {
+          setState(() {
+            _moodIntensity = 1.0 - (details.localPosition.dy / 180).clamp(0.0, 1.0);
+          });
+        },
+        child: CustomPaint(
+          painter: InteractiveMoodGraphPainter(
+            moodData: _generateMoodData(),
+            touchPosition: _touchPosition,
+            moodIntensity: _moodIntensity,
+          ),
+          size: Size.infinite,
+        ),
+      ),
+    );
+  }
+  
+  List<double> _generateMoodData() {
+    final random = math.Random();
+    return List.generate(7, (index) => 0.3 + random.nextDouble() * 0.4);
+  }
+  
+  /// Get high contrast gradient color for charts and visualizations
+  Color _getHighContrastGradientColor(double t, {required bool isDark}) {
+    if (isDark) {
+      // Use brighter, more contrasting colors for dark mode
+      return Color.lerp(
+        const Color(0xFF42A5F5), // Bright blue
+        const Color(0xFFFFEE58), // Bright yellow
+        t,
+      )!;
+    } else {
+      // Use original colors for light mode
+      return Color.lerp(
+        DesignTokens.accentBlue,
+        DesignTokens.accentYellow,
+        t,
+      )!;
+    }
+  }
+}
+
+class MoodParticle {
+  Offset position;
+  Offset velocity;
+  Color color;
+  double size;
+  
+  MoodParticle({
+    required this.position,
+    required this.velocity,
+    required this.color,
+    required this.size,
+  });
+}
+
+class InteractiveMoodPainter extends CustomPainter {
+  final List<MoodParticle> particles;
+  final Offset? touchPosition;
+  final double moodBalance;
+  final double animationValue;
+  final double moodIntensity;
+  final double visualizationAnimation;
+  
+  InteractiveMoodPainter({
+    required this.particles,
+    this.touchPosition,
+    required this.moodBalance,
+    required this.animationValue,
+    required this.moodIntensity,
+    required this.visualizationAnimation,
+  });
+  
+  /// Get high contrast color for painter (assumes dark mode for now)
+  Color _getHighContrastGradientColorForPainter(double t) {
+    // Use brighter colors for better visibility in dark mode
+    return Color.lerp(
+      const Color(0xFF42A5F5), // Bright blue
+      const Color(0xFFFFEE58), // Bright yellow
+      t,
+    )!;
+  }
+  
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint();
+    
+    // Draw background gradient
+    final gradient = RadialGradient(
+      center: touchPosition != null 
+          ? Alignment(
+              (touchPosition!.dx / size.width) * 2 - 1,
+              (touchPosition!.dy / size.height) * 2 - 1,
+            )
+          : Alignment.center,
+      colors: [
+        _getHighContrastGradientColorForPainter(moodIntensity)
+            .withValues(alpha: 0.3 + visualizationAnimation * 0.2),
+        _getHighContrastGradientColorForPainter(moodIntensity)
+            .withValues(alpha: 0.1),
+      ],
+    );
+    
+    paint.shader = gradient.createShader(Rect.fromLTWH(0, 0, size.width, size.height));
+    canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), paint);
+    
+    // Draw animated particles
+    for (final particle in particles) {
+      paint.shader = null;
+      paint.color = particle.color.withValues(
+        alpha: 0.6 + math.sin(animationValue * 2 * math.pi + particle.position.dx) * 0.3,
+      );
+      
+      final animatedPosition = Offset(
+        particle.position.dx + math.sin(animationValue * 2 * math.pi) * 10,
+        particle.position.dy + math.cos(animationValue * 2 * math.pi) * 10,
+      );
+      
+      // Clamp particle position to stay within bounds
+      final clampedPosition = Offset(
+        animatedPosition.dx.clamp(particle.size, size.width - particle.size),
+        animatedPosition.dy.clamp(particle.size, size.height - particle.size),
+      );
+      
+      // Interactive particle movement based on touch
+      if (touchPosition != null) {
+        final distance = (clampedPosition - touchPosition!).distance;
+        if (distance < 100) {
+          final repulsion = (touchPosition! - clampedPosition) * (1.0 / (distance + 1));
+          final newPos = clampedPosition - repulsion * 20 * visualizationAnimation;
+          // Clamp the repulsed position as well
+          final finalPos = Offset(
+            newPos.dx.clamp(particle.size, size.width - particle.size),
+            newPos.dy.clamp(particle.size, size.height - particle.size),
+          );
+          canvas.drawCircle(finalPos, particle.size * (1 + visualizationAnimation), paint);
+        } else {
+          canvas.drawCircle(clampedPosition, particle.size, paint);
+        }
+      } else {
+        canvas.drawCircle(clampedPosition, particle.size, paint);
+      }
+    }
+    
+    // Draw mood intensity indicator
+    if (touchPosition != null) {
+      paint.color = Colors.white.withValues(alpha: 0.8);
+      paint.style = PaintingStyle.stroke;
+      paint.strokeWidth = 2;
+      canvas.drawCircle(touchPosition!, 30 + visualizationAnimation * 20, paint);
+      
+      paint.style = PaintingStyle.fill;
+      paint.color = _getHighContrastGradientColorForPainter(moodIntensity)
+          .withValues(alpha: 0.8);
+      canvas.drawCircle(touchPosition!, 8, paint);
+    }
+  }
+  
+  @override
+  bool shouldRepaint(InteractiveMoodPainter oldDelegate) {
+    return oldDelegate.animationValue != animationValue ||
+           oldDelegate.touchPosition != touchPosition ||
+           oldDelegate.visualizationAnimation != visualizationAnimation;
+  }
+}
+
+class InteractiveMoodGraphPainter extends CustomPainter {
+  final List<double> moodData;
+  final Offset? touchPosition;
+  final double moodIntensity;
+  
+  InteractiveMoodGraphPainter({
+    required this.moodData,
+    this.touchPosition,
+    required this.moodIntensity,
+  });
+  
+  /// Get high contrast color for painter
+  Color _getHighContrastGradientColorForPainter(double t) {
+    return Color.lerp(
+      const Color(0xFF42A5F5), // Bright blue
+      const Color(0xFFFFEE58), // Bright yellow
+      t,
+    )!;
+  }
+  
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = DesignTokens.accentBlue
+      ..strokeWidth = 3
+      ..style = PaintingStyle.stroke;
+    
+    final path = Path();
+    final stepWidth = size.width / (moodData.length - 1);
+    
+    for (int i = 0; i < moodData.length; i++) {
+      final x = i * stepWidth;
+      final y = size.height - (moodData[i] * size.height);
+      
+      if (i == 0) {
+        path.moveTo(x, y);
+      } else {
+        path.lineTo(x, y);
+      }
+      
+      // Draw data points
+      paint.style = PaintingStyle.fill;
+      canvas.drawCircle(Offset(x, y), 6, paint);
+      paint.style = PaintingStyle.stroke;
+    }
+    
+    canvas.drawPath(path, paint);
+    
+    // Draw interactive overlay if touched
+    if (touchPosition != null) {
+      paint.color = DesignTokens.accentYellow.withValues(alpha: 0.7);
+      paint.style = PaintingStyle.fill;
+      canvas.drawCircle(touchPosition!, 12, paint);
+      
+      // Draw intensity line
+      paint.color = _getHighContrastGradientColorForPainter(moodIntensity);
+      paint.strokeWidth = 2;
+      paint.style = PaintingStyle.stroke;
+      final intensityY = size.height - (moodIntensity * size.height);
+      canvas.drawLine(
+        Offset(0, intensityY),
+        Offset(size.width, intensityY),
+        paint,
+      );
+    }
+  }
+  
+  @override
+  bool shouldRepaint(InteractiveMoodGraphPainter oldDelegate) {
+    return oldDelegate.touchPosition != touchPosition ||
+           oldDelegate.moodIntensity != moodIntensity;
   }
 }

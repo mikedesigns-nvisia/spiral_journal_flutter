@@ -22,6 +22,7 @@ class _JournalHistoryScreenState extends State<JournalHistoryScreen> {
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   bool _showFilters = false;
+  bool _showScrollToTop = false;
   @override
   void initState() {
     super.initState();
@@ -59,11 +60,20 @@ class _JournalHistoryScreenState extends State<JournalHistoryScreen> {
   }
 
   void _onScroll() {
+    // Handle pagination
     if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent * 0.8) {
       final journalProvider = Provider.of<JournalProvider>(context, listen: false);
       if (journalProvider.hasMorePages && !journalProvider.isLoadingMore) {
         journalProvider.loadMoreEntries();
       }
+    }
+    
+    // Handle scroll-to-top button visibility
+    final shouldShow = _scrollController.position.pixels > 200;
+    if (shouldShow != _showScrollToTop) {
+      setState(() {
+        _showScrollToTop = shouldShow;
+      });
     }
   }
 
@@ -191,6 +201,7 @@ class _JournalHistoryScreenState extends State<JournalHistoryScreen> {
             padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -291,15 +302,17 @@ class _JournalHistoryScreenState extends State<JournalHistoryScreen> {
                       ),
                   ],
                 ),
-                const SizedBox(height: 12),
-                Text(
-                  entry.preview,
-                  style: Theme.of(context).textTheme.bodyMedium,
-                  maxLines: 3,
-                  overflow: TextOverflow.ellipsis,
+                const SizedBox(height: 8),
+                Flexible(
+                  child: Text(
+                    entry.preview,
+                    style: Theme.of(context).textTheme.bodyMedium,
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
                 if (isEditable) ...[
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 6),
                   Row(
                     children: [
                       Icon(
@@ -866,6 +879,15 @@ class _JournalHistoryScreenState extends State<JournalHistoryScreen> {
     AnimationUtils.mediumImpact();
   }
 
+  void _scrollToTop() {
+    _scrollController.animateTo(
+      0,
+      duration: const Duration(milliseconds: 500),
+      curve: Curves.easeInOut,
+    );
+    AnimationUtils.lightImpact();
+  }
+
   Widget _buildContent(JournalProvider journalProvider) {
     if (journalProvider.isLoading && journalProvider.entries.isEmpty) {
       return Center(
@@ -918,6 +940,8 @@ class _JournalHistoryScreenState extends State<JournalHistoryScreen> {
       controller: _scrollController,
       padding: const EdgeInsets.symmetric(horizontal: 24.0),
       itemCount: _getItemCount(journalProvider),
+      itemExtent: 120.0, // Fixed height for virtualization optimization
+      physics: const BouncingScrollPhysics(), // iOS-style bouncing scroll physics
       itemBuilder: (context, index) {
         return _buildListItem(context, journalProvider, index);
       },
@@ -1032,6 +1056,15 @@ class _JournalHistoryScreenState extends State<JournalHistoryScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.getBackgroundPrimary(context),
+      floatingActionButton: _showScrollToTop
+          ? FloatingActionButton(
+              onPressed: _scrollToTop,
+              mini: true,
+              backgroundColor: AppTheme.getPrimaryColor(context),
+              foregroundColor: Colors.white,
+              child: const Icon(Icons.keyboard_arrow_up),
+            )
+          : null,
       body: SafeArea(
         child: Column(
           children: [

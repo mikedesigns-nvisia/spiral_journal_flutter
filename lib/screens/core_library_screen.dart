@@ -109,9 +109,11 @@ class _CoreLibraryScreenState extends State<CoreLibraryScreen> with TickerProvid
       final highlightCoreIds = context.additionalData['highlightCoreIds'] as List<String>?;
       if (highlightCoreIds != null && highlightCoreIds.isNotEmpty) {
         // Store highlighted cores for visual emphasis
-        setState(() {
-          // This would be used in the UI to highlight specific cores
-        });
+        if (mounted) {
+          setState(() {
+            // This would be used in the UI to highlight specific cores
+          });
+        }
       }
     }
   }
@@ -490,6 +492,7 @@ class _CoreLibraryScreenState extends State<CoreLibraryScreen> with TickerProvid
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
           children: [
             // Recent update indicator
             if (hasRecentUpdate) ...[
@@ -507,7 +510,7 @@ class _CoreLibraryScreenState extends State<CoreLibraryScreen> with TickerProvid
                   ),
                 ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 6),
             ],
             // Progress Circle with animation
             AnimatedBuilder(
@@ -588,18 +591,20 @@ class _CoreLibraryScreenState extends State<CoreLibraryScreen> with TickerProvid
                 );
               },
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 8),
             // Core name
-            Text(
-              core.name,
-              style: HeadingSystem.getTitleSmall(context).copyWith(
-                fontWeight: FontWeight.w600,
+            Flexible(
+              child: Text(
+                core.name,
+                style: HeadingSystem.getTitleSmall(context).copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
-              textAlign: TextAlign.center,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 2),
             // Trend indicator
             Row(
               mainAxisSize: MainAxisSize.min,
