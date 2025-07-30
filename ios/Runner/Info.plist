@@ -91,7 +91,9 @@
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>This app does not use location services.</string>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>This app does not use the microphone.</string>
+	<string>Spiral Journal uses the microphone for voice-to-text transcription to help you create journal entries by speaking instead of typing. All speech processing happens on-device for privacy.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Spiral Journal uses speech recognition to convert your spoken words into text for journal entries. All speech processing happens on your device to protect your privacy.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>This app does not access your photo library.</string>
 	<key>NSSupportsAutomaticTermination</key>
