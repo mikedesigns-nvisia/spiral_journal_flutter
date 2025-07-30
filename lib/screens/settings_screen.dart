@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -15,6 +16,9 @@ import 'package:spiral_journal/services/accessibility_service.dart';
 import 'package:spiral_journal/services/journal_service.dart';
 import 'package:spiral_journal/services/core_library_service.dart';
 import 'package:spiral_journal/widgets/testflight_feedback_widget.dart';
+import 'package:spiral_journal/widgets/offline_queue_status_widget.dart';
+import 'package:spiral_journal/widgets/animated_card.dart';
+import 'package:spiral_journal/widgets/animated_button.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -41,24 +45,55 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _initializeSettings() async {
     try {
-      await _settingsService.initialize();
-      await _accessibilityService.initialize();
-      final preferences = await _settingsService.getPreferences();
-      final biometricAvailable = await _localAuth.canCheckBiometrics;
+      // Add timeout to prevent hanging
+      await _settingsService.initialize().timeout(
+        const Duration(seconds: 10),
+        onTimeout: () {
+          throw TimeoutException('Settings service initialization timed out', const Duration(seconds: 10));
+        },
+      );
       
-      setState(() {
-        _currentPreferences = preferences;
-        _biometricAvailable = biometricAvailable;
-        _isLoading = false;
-      });
+      await _accessibilityService.initialize().timeout(
+        const Duration(seconds: 5),
+        onTimeout: () {
+          throw TimeoutException('Accessibility service initialization timed out', const Duration(seconds: 5));
+        },
+      );
       
-      // Listen to settings changes
-      _settingsService.addListener(_onSettingsChanged);
+      final preferences = await _settingsService.getPreferences().timeout(
+        const Duration(seconds: 5),
+        onTimeout: () {
+          debugPrint('Settings service getPreferences timed out, using defaults');
+          return UserPreferences.defaults;
+        },
+      );
+      
+      final biometricAvailable = await _localAuth.canCheckBiometrics.timeout(
+        const Duration(seconds: 3),
+        onTimeout: () {
+          debugPrint('Biometric check timed out, assuming false');
+          return false;
+        },
+      );
+      
+      if (mounted) {
+        setState(() {
+          _currentPreferences = preferences;
+          _biometricAvailable = biometricAvailable;
+          _isLoading = false;
+        });
+        
+        // Listen to settings changes
+        _settingsService.addListener(_onSettingsChanged);
+      }
     } catch (e) {
       debugPrint('Settings initialization error: $e');
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _currentPreferences = UserPreferences.defaults;
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -206,6 +241,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       );
                     },
                   ),
+                  
+                  // Offline Queue Status
+                  const SizedBox(height: 8),
+                  const OfflineQueueStatusWidget(),
+                  const SizedBox(height: 8),
+                  
                   _buildActionItem(
                     Icons.privacy_tip,
                     'Privacy Dashboard',
@@ -217,6 +258,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     'Export Data',
                     'Export your journal entries and cores',
                     _exportData,
+                  ),
+                  _buildBackupStatusItem(),
+                  _buildActionItem(
+                    Icons.cloud_upload,
+                    'Backup to iCloud',
+                    'Create backup in iCloud Documents',
+                    _performBackup,
+                  ),
+                  _buildActionItem(
+                    Icons.cloud_download,
+                    'Restore from iCloud',
+                    'Restore data from iCloud backup',
+                    _restoreFromBackup,
                   ),
                   _buildActionItem(
                     Icons.refresh,
@@ -326,7 +380,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         HeadingSystem.sectionHeading(context, title),
-        Card(
+        AnimatedCard(
           child: Column(
             children: items,
           ),
@@ -413,6 +467,72 @@ class _SettingsScreenState extends State<SettingsScreen> {
       title: title,
       subtitle: subtitle,
       leadingIcon: icon,
+    );
+  }
+
+  Widget _buildBackupStatusItem() {
+    return FutureBuilder<Map<String, dynamic>?>(
+      future: _settingsService.getBackupStatus(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return HeadingSystem.listTile(
+            context: context,
+            title: 'iCloud Backup Status',
+            subtitle: 'Loading...',
+            leadingIcon: Icons.cloud_sync,
+          );
+        }
+
+        final status = snapshot.data;
+        String subtitle;
+        IconData icon;
+        Color? iconColor;
+
+        if (status == null) {
+          subtitle = 'Unable to check backup status';
+          icon = Icons.cloud_off;
+          iconColor = AppTheme.accentRed;
+        } else if (status['hasBackup'] == true) {
+          final lastBackup = status['lastBackup'];
+          if (lastBackup != null) {
+            final lastBackupDate = DateTime.parse(lastBackup);
+            final now = DateTime.now();
+            final difference = now.difference(lastBackupDate);
+            
+            if (difference.inDays > 0) {
+              subtitle = 'Last backup: ${difference.inDays} day${difference.inDays == 1 ? '' : 's'} ago';
+            } else if (difference.inHours > 0) {
+              subtitle = 'Last backup: ${difference.inHours} hour${difference.inHours == 1 ? '' : 's'} ago';
+            } else {
+              subtitle = 'Backup available • Last backup: recently';
+            }
+          } else {
+            subtitle = 'Backup available';
+          }
+          icon = Icons.cloud_done;
+          iconColor = AppTheme.accentGreen;
+        } else {
+          subtitle = 'No backup found • Tap "Backup to iCloud" to create one';
+          icon = Icons.cloud_queue;
+          iconColor = AppTheme.accentOrange;
+        }
+
+        return ListTile(
+          leading: Icon(
+            icon,
+            color: iconColor,
+            size: HeadingSystem.iconSizeM,
+          ),
+          title: Text(
+            'iCloud Backup Status',
+            style: HeadingSystem.getTitleMedium(context),
+          ),
+          subtitle: Text(
+            subtitle,
+            style: HeadingSystem.getBodyMedium(context),
+          ),
+        );
+      },
     );
   }
 
@@ -527,9 +647,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
   // Settings Methods
   Future<void> _togglePersonalizedInsights(bool enabled) async {
     try {
-      await _settingsService.setPersonalizedInsightsEnabled(enabled);
+      await _settingsService.setPersonalizedInsightsEnabled(enabled).timeout(
+        const Duration(seconds: 5),
+        onTimeout: () {
+          throw TimeoutException('Settings update timed out', const Duration(seconds: 5));
+        },
+      );
+      
+      // Verify the setting was actually saved
+      final currentPrefs = await _settingsService.getPreferences();
+      if (currentPrefs.personalizedInsightsEnabled != enabled) {
+        throw Exception('Setting was not persisted correctly');
+      }
       
       if (mounted) {
+        setState(() {
+          _currentPreferences = currentPrefs;
+        });
+        
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
@@ -542,10 +677,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
         );
       }
     } catch (e) {
+      debugPrint('Failed to toggle personalized insights: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to toggle personalized insights: $e'),
+            content: Text('Failed to save personalized insights setting: ${e.toString()}'),
             backgroundColor: AppTheme.accentRed,
           ),
         );
@@ -928,8 +1064,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
           : null,
       onTap: () async {
         try {
-          await _settingsService.setThemeMode(mode);
+          await _settingsService.setThemeMode(mode).timeout(
+            const Duration(seconds: 5),
+            onTimeout: () {
+              throw TimeoutException('Theme update timed out', const Duration(seconds: 5));
+            },
+          );
+          
+          // Verify the setting was actually saved
+          final currentPrefs = await _settingsService.getPreferences();
+          if (currentPrefs.themeMode != mode) {
+            throw Exception('Theme setting was not persisted correctly');
+          }
+          
           if (mounted) {
+            setState(() {
+              _currentPreferences = currentPrefs;
+            });
+            
             Navigator.of(context).pop();
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
@@ -939,10 +1091,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
             );
           }
         } catch (e) {
+          debugPrint('Failed to change theme: $e');
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text('Failed to change theme: $e'),
+                content: Text('Failed to save theme setting: ${e.toString()}'),
                 backgroundColor: AppTheme.accentRed,
               ),
             );
@@ -996,6 +1149,144 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Export failed: $e'),
+            backgroundColor: AppTheme.accentRed,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _performBackup() async {
+    try {
+      // Show loading dialog
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const AlertDialog(
+          content: Row(
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(width: 16),
+              Text('Creating backup...'),
+            ],
+          ),
+        ),
+      );
+
+      final success = await _settingsService.triggerManualBackup();
+
+      if (mounted) {
+        Navigator.of(context).pop(); // Close loading dialog
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              success ? 'Backup created successfully in iCloud Documents' : 'Backup failed',
+            ),
+            backgroundColor: success ? AppTheme.accentGreen : AppTheme.accentRed,
+          ),
+        );
+        
+        if (success) {
+          setState(() {}); // Refresh backup status
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.of(context).pop(); // Close loading dialog
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Backup failed: $e'),
+            backgroundColor: AppTheme.accentRed,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _restoreFromBackup() async {
+    final hasBackup = await _settingsService.isBackupAvailable();
+    
+    if (!hasBackup) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('No backup found in iCloud Documents'),
+          backgroundColor: AppTheme.accentRed,
+        ),
+      );
+      return;
+    }
+
+    // Show confirmation dialog
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Restore from Backup'),
+        content: const Text(
+          'This will replace all current data with the backup. This action cannot be undone. Continue?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Restore'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    try {
+      // Show loading dialog
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const AlertDialog(
+          content: Row(
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(width: 16),
+              Text('Restoring from backup...'),
+            ],
+          ),
+        ),
+      );
+
+      final success = await _settingsService.restoreFromBackup();
+
+      if (mounted) {
+        Navigator.of(context).pop(); // Close loading dialog
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              success ? 'Data restored successfully from backup' : 'Restore failed',
+            ),
+            backgroundColor: success ? AppTheme.accentGreen : AppTheme.accentRed,
+          ),
+        );
+        
+        if (success) {
+          // Refresh providers after restore
+          if (mounted) {
+            final journalProvider = Provider.of<JournalProvider>(context, listen: false);
+            final coreProvider = Provider.of<CoreProvider>(context, listen: false);
+            await journalProvider.refresh();
+            await coreProvider.refresh(); 
+            setState(() {}); // Refresh UI
+          }
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.of(context).pop(); // Close loading dialog
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Restore failed: $e'),
             backgroundColor: AppTheme.accentRed,
           ),
         );
