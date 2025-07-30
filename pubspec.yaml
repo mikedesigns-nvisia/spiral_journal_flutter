@@ -43,6 +43,14 @@ dependencies:
   file_picker: ^8.1.4
   device_info_plus: ^9.1.2
   
+  # Speech recognition and permissions
+  speech_to_text: ^7.0.0
+  permission_handler: ^11.3.1
+  audio_session: ^0.1.21
+  
+  # Network connectivity monitoring
+  connectivity_plus: ^6.0.5
+  
   # Local analytics and crash reporting (no external services)
 
 dev_dependencies:

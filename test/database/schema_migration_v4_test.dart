@@ -114,7 +114,7 @@ void main() {
         emotionalIntensity: 0.8,
         keyThemes: ['personal growth', 'reflection'],
         personalizedInsight: 'You seem to be in a positive mindset today.',
-        coreImpacts: {'optimism': 0.7, 'self-awareness': 0.6},
+        coreAdjustments: {'optimism': 0.7, 'self-awareness': 0.6},
         analyzedAt: DateTime.now(),
       );
 

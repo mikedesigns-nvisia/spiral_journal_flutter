@@ -510,5 +510,86 @@ void main() {
         expect(entryFinder, findsAtLeastNWidgets(1));
       }
     });
+
+    testWidgets('should handle batch processing workflow', (WidgetTester tester) async {
+      await tester.pumpWidget(createTestApp());
+      await tester.pumpAndSettle();
+
+      // Create multiple entries to test batch processing
+      final batchEntries = [
+        'Today I felt grateful for my friends and family',
+        'I overcame a challenging situation at work',
+        'I learned something new about myself',
+      ];
+
+      for (int i = 0; i < batchEntries.length; i++) {
+        final journalInput = find.byType(TextField);
+        
+        if (journalInput.evaluate().isNotEmpty) {
+          await tester.tap(journalInput.first);
+          await tester.pump();
+
+          await tester.enterText(journalInput.first, batchEntries[i]);
+          await tester.pump();
+
+          var saveButton = find.text('Save Entry');
+          if (saveButton.evaluate().isEmpty) {
+            saveButton = find.text('Save');
+          }
+          
+          if (saveButton.evaluate().isNotEmpty) {
+            await tester.tap(saveButton.first);
+            await tester.pumpAndSettle();
+          }
+
+          if (journalInput.evaluate().isNotEmpty) {
+            await tester.enterText(journalInput.first, '');
+            await tester.pump();
+          }
+        }
+      }
+
+      // Navigate to insights to trigger batch processing
+      await tester.tap(find.text('Insights'));
+      await tester.pumpAndSettle();
+
+      // Should show batch processing results
+      expect(find.byType(Card), findsWidgets, reason: 'Batch processed insights should be displayed as cards');
+    });
+
+    testWidgets('should handle offline queue processing', (WidgetTester tester) async {
+      await tester.pumpWidget(createTestApp());
+      await tester.pumpAndSettle();
+
+      // Create entries while potentially offline
+      const testEntry = 'Offline test entry for queue processing';
+      final journalInput = find.byType(TextField);
+      
+      if (journalInput.evaluate().isNotEmpty) {
+        await tester.tap(journalInput.first);
+        await tester.pump();
+
+        await tester.enterText(journalInput.first, testEntry);
+        await tester.pump();
+
+        var saveButton = find.text('Save Entry');
+        if (saveButton.evaluate().isEmpty) {
+          saveButton = find.text('Save');
+        }
+        
+        if (saveButton.evaluate().isNotEmpty) {
+          await tester.tap(saveButton.first);
+          await tester.pumpAndSettle();
+        }
+      }
+
+      // Navigate to history to verify entry was queued
+      await tester.tap(find.text('History'));
+      await tester.pumpAndSettle();
+
+      // Should show the queued entry
+      expect(find.textContaining('Offline test entry'), findsOneWidget, 
+             reason: 'Offline queued entry should be visible in history');
+    });
   });
 }
