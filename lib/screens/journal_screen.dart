@@ -478,7 +478,7 @@ class _JournalScreenState extends State<JournalScreen> {
         // Clear draft content after successful save
         await _clearDraftContent();
 
-        // Mark that user has processed an entry today
+        // Mark that user has processed an entry today and show immediate emotional state widget
         setState(() {
           _hasProcessedEntryToday = true;
         });
@@ -488,6 +488,16 @@ class _JournalScreenState extends State<JournalScreen> {
 
         // Refresh journal entries so they appear immediately in history
         await journalProvider.refresh();
+
+        // Get the saved entry to show in the emotional state widget
+        final todaysEntry = await journalService.getTodaysEntry();
+        if (mounted && todaysEntry != null) {
+          setState(() {
+            _hasAnalyzedEntryToday = true; // Show widget immediately
+            _todaysAnalyzedEntry = todaysEntry; // Use the saved entry
+            _todaysAnalysisResult = null; // Will be populated after analysis
+          });
+        }
 
         // Clear the form after successful save
         if (mounted) {
@@ -806,11 +816,13 @@ class _JournalScreenState extends State<JournalScreen> {
               const SizedBox(height: AppConstants.spacing24),
               
               // Conditional UI: Show post-analysis display or normal journal input
-              _hasAnalyzedEntryToday && _isAiEnabled && _todaysAnalyzedEntry != null && _todaysAnalysisResult != null
+              _hasAnalyzedEntryToday && _isAiEnabled
                 ? PostAnalysisDisplay(
-                    journalEntry: _todaysAnalyzedEntry!,
-                    analysisResult: _todaysAnalysisResult!,
-                    onViewAnalysis: () => _showDetailedAnalysisResults(_todaysAnalysisResult, Duration.zero),
+                    journalEntry: _todaysAnalyzedEntry,
+                    analysisResult: _todaysAnalysisResult,
+                    onViewAnalysis: _todaysAnalysisResult != null 
+                        ? () => _showDetailedAnalysisResults(_todaysAnalysisResult, Duration.zero)
+                        : null,
                   )
                 : Column(
                     crossAxisAlignment: CrossAxisAlignment.start,

@@ -141,6 +141,16 @@ class BatchAIAnalysisService {
 
   /// Analyze a single journal entry
   Future<void> _analyzeEntry(JournalEntry entry) async {
+    if (entry.content.trim().isEmpty) {
+      throw Exception('Cannot analyze entry with empty content');
+    }
+    
+    if (entry.moods.isEmpty) {
+      throw Exception('Cannot analyze entry with no moods selected');
+    }
+    
+    debugPrint('BatchAIAnalysisService: Starting analysis for entry ${entry.id}');
+    
     // Perform AI analysis
     final analysisResult = await _aiManager.performEmotionalAnalysis(entry);
     
@@ -214,7 +224,14 @@ class BatchAIAnalysisService {
   /// Force run batch analysis immediately (for testing/manual trigger)
   Future<void> runBatchNow() async {
     debugPrint('BatchAIAnalysisService: Manual batch trigger requested');
-    await _runBatchAnalysis();
+    
+    try {
+      await _runBatchAnalysis();
+      debugPrint('BatchAIAnalysisService: Manual batch trigger completed successfully');
+    } catch (e) {
+      debugPrint('BatchAIAnalysisService: Manual batch trigger failed: $e');
+      rethrow; // Let the calling widget handle the error display
+    }
   }
 
   /// Get batch analysis status

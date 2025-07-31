@@ -9,23 +9,23 @@ import 'package:spiral_journal/widgets/emotional_state_visualization.dart';
 
 /// Enhanced widget that displays AI analysis results using the new Claude response structure
 class PostAnalysisDisplay extends StatelessWidget {
-  final JournalEntry journalEntry;
+  final JournalEntry? journalEntry;
   final EmotionalAnalysisResult? analysisResult; // Legacy support
   final VoidCallback? onViewAnalysis;
 
   const PostAnalysisDisplay({
     super.key,
-    required this.journalEntry,
+    this.journalEntry,
     this.analysisResult, // Made optional for new structure
     this.onViewAnalysis,
   });
 
   @override
   Widget build(BuildContext context) {
-    final analysis = journalEntry.aiAnalysis;
+    final analysis = journalEntry?.aiAnalysis;
     
-    // If no analysis is available, show placeholder
-    if (analysis == null) {
+    // If no journal entry or no analysis is available, show placeholder
+    if (journalEntry == null || analysis == null) {
       return ComponentLibrary.gradientCard(
         gradient: DesignTokens.getCardGradient(context),
         child: _buildNoAnalysisState(context),
