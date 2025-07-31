@@ -265,6 +265,51 @@ class _JournalScreenState extends State<JournalScreen> {
     }
   }
 
+  /// Handle pull-to-refresh gesture
+  Future<void> _handleRefresh() async {
+    debugPrint('🔄 Pull-to-refresh triggered');
+    
+    try {
+      // Show feedback to user
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Refreshing journal state...'),
+            backgroundColor: DesignTokens.getPrimaryColor(context),
+            duration: const Duration(seconds: 1),
+          ),
+        );
+      }
+      
+      // Refresh journal provider data
+      if (mounted) {
+        final journalProvider = Provider.of<JournalProvider>(context, listen: false);
+        final coreProvider = Provider.of<CoreProvider>(context, listen: false);
+        
+        await journalProvider.refresh();
+        await coreProvider.refresh();
+      }
+      
+      // Refresh complete journal screen state
+      await refreshJournalScreenState();
+      
+      debugPrint('✅ Pull-to-refresh completed successfully');
+      
+    } catch (e) {
+      debugPrint('❌ Pull-to-refresh error: $e');
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Refresh failed: ${e.toString()}'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    }
+  }
+
   Future<JournalEntry?> _getTodaysAnalyzedEntry(JournalProvider journalProvider) async {
     try {
       final today = DateTime.now();
@@ -672,13 +717,18 @@ class _JournalScreenState extends State<JournalScreen> {
     Widget body = AdaptiveScaffold(
         backgroundColor: DesignTokens.getBackgroundPrimary(context),
         padding: EdgeInsets.zero, // Remove default padding to avoid double padding
-        body: SingleChildScrollView(
-          padding: const EdgeInsets.all(AppConstants.largePadding),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header with app title, date, and analysis counter
-              Column(
+        body: RefreshIndicator(
+          onRefresh: _handleRefresh,
+          color: DesignTokens.getPrimaryColor(context),
+          backgroundColor: DesignTokens.getBackgroundPrimary(context),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(AppConstants.largePadding),
+            physics: const AlwaysScrollableScrollPhysics(), // Ensure pull-to-refresh works even when content doesn't fill screen
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header with app title, date, and analysis counter
+                Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
@@ -808,8 +858,9 @@ class _JournalScreenState extends State<JournalScreen> {
               // Your Cores Card
               const YourCoresCard(),
               
-              const SizedBox(height: 100), // Extra space for bottom navigation
-            ],
+                const SizedBox(height: 100), // Extra space for bottom navigation
+              ],
+            ),
           ),
         ),
     );
