@@ -1,4 +1,5 @@
 // Dart imports
+import 'dart:async';
 import 'dart:io';
 
 // Flutter imports
@@ -17,7 +18,6 @@ import 'package:spiral_journal/design_system/responsive_layout.dart';
 import 'package:spiral_journal/models/journal_entry.dart';
 import 'package:spiral_journal/providers/core_provider_refactored.dart';
 import 'package:spiral_journal/providers/journal_provider.dart';
-import 'package:spiral_journal/services/ai_service_manager.dart';
 import 'package:spiral_journal/services/emotional_analyzer.dart';
 import 'package:spiral_journal/services/journal_service.dart';
 import 'package:spiral_journal/services/profile_service.dart';
@@ -58,6 +58,19 @@ class _JournalScreenState extends State<JournalScreen> {
     _loadUserName();
     _checkTodaysAnalysisStatus();
     _loadAiSettings();
+    _startPeriodicAnalysisCheck();
+  }
+
+  /// Start periodic check for completed analysis
+  void _startPeriodicAnalysisCheck() {
+    // Check every 5 minutes for completed batch analysis
+    Timer.periodic(const Duration(minutes: 5), (timer) {
+      if (mounted) {
+        refreshTodaysAnalysisStatus();
+      } else {
+        timer.cancel();
+      }
+    });
   }
 
   @override
@@ -163,36 +176,44 @@ class _JournalScreenState extends State<JournalScreen> {
 
   Future<void> _checkTodaysAnalysisStatus() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final today = DateTime.now();
-      final todayKey = '${today.year}-${today.month}-${today.day}';
+      if (!_isAiEnabled || !mounted) return;
       
-      // Check if we have an analyzed entry from today
-      final lastAnalysisDate = prefs.getString('last_analysis_date');
-      final hasAnalyzedToday = lastAnalysisDate == todayKey;
+      // Get today's entry from journal provider
+      final journalProvider = Provider.of<JournalProvider>(context, listen: false);
+      await journalProvider.initialize();
       
-      if (hasAnalyzedToday && _isAiEnabled && mounted) {
-        // Try to load today's analysis result from cache using JournalProvider
-        final journalProvider = Provider.of<JournalProvider>(context, listen: false);
-        await journalProvider.initialize();
+      final todaysEntry = await _getTodaysAnalyzedEntry(journalProvider);
+      
+      if (mounted && todaysEntry != null && todaysEntry.isAnalyzed && todaysEntry.aiAnalysis != null) {
+        // Convert EmotionalAnalysis to EmotionalAnalysisResult for display
+        final analysisResult = _convertToAnalysisResult(todaysEntry.aiAnalysis!);
         
-        // Get today's entry from journal provider
-        final todaysEntry = await _getTodaysAnalyzedEntry(journalProvider);
+        setState(() {
+          _hasAnalyzedEntryToday = true;
+          _todaysAnalyzedEntry = todaysEntry;
+          _todaysAnalysisResult = analysisResult;
+        });
         
-        if (mounted && todaysEntry != null && todaysEntry.isAnalyzed && todaysEntry.aiAnalysis != null) {
-          // Convert EmotionalAnalysis to EmotionalAnalysisResult for display
-          final analysisResult = _convertToAnalysisResult(todaysEntry.aiAnalysis!);
-          
+        debugPrint('✅ Found today\'s analyzed entry: ${todaysEntry.id}');
+      } else {
+        // Reset state if no analyzed entry found
+        if (mounted) {
           setState(() {
-            _hasAnalyzedEntryToday = true;
-            _todaysAnalyzedEntry = todaysEntry;
-            _todaysAnalysisResult = analysisResult;
+            _hasAnalyzedEntryToday = false;
+            _todaysAnalyzedEntry = null;
+            _todaysAnalysisResult = null;
           });
         }
       }
     } catch (e) {
       debugPrint('Error checking today\'s analysis status: $e');
     }
+  }
+
+  /// Refresh today's analysis status (called when batch analysis might have completed)
+  Future<void> refreshTodaysAnalysisStatus() async {
+    debugPrint('🔄 Refreshing today\'s analysis status...');
+    await _checkTodaysAnalysisStatus();
   }
 
   Future<JournalEntry?> _getTodaysAnalyzedEntry(JournalProvider journalProvider) async {
@@ -229,29 +250,6 @@ class _JournalScreenState extends State<JournalScreen> {
       growthIndicators: [], // Not stored in EmotionalAnalysis, use empty list
       validationScore: 0.8, // Default validation score
     );
-  }
-
-  Future<void> _saveAnalysisState(JournalEntry entry, EmotionalAnalysisResult analysisResult) async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final today = DateTime.now();
-      final todayKey = '${today.year}-${today.month}-${today.day}';
-      
-      // Save that we analyzed an entry today
-      await prefs.setString('last_analysis_date', todayKey);
-      
-      // Save the analysis result and entry for display
-      // Note: You may want to implement proper JSON serialization
-      if (mounted) {
-        setState(() {
-          _hasAnalyzedEntryToday = true;
-          _todaysAnalyzedEntry = entry;
-          _todaysAnalysisResult = analysisResult;
-        });
-      }
-    } catch (e) {
-      debugPrint('Error saving analysis state: $e');
-    }
   }
 
 
@@ -401,33 +399,38 @@ class _JournalScreenState extends State<JournalScreen> {
         }
 
         // Show success message with batch analysis info
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text('Entry saved successfully! 🎉'),
-                const SizedBox(height: AppConstants.spacing4),
-                Text(
-                  'AI analysis will be available in the next batch cycle',
-                  style: HeadingSystem.getBodySmall(context).copyWith(
-                    color: Colors.white.withValues(alpha: 0.9),
+        if (mounted) {
+          final theme = Theme.of(context);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Entry saved successfully! 🎉'),
+                  const SizedBox(height: AppConstants.spacing4),
+                  Text(
+                    'AI analysis will be available in the next batch cycle',
+                    style: HeadingSystem.getBodySmall(context).copyWith(
+                      color: Colors.white.withValues(alpha: 0.9),
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
+              backgroundColor: AppTheme.accentGreen,
+              duration: const Duration(seconds: 3),
             ),
-            backgroundColor: AppTheme.accentGreen,
-            duration: const Duration(seconds: 3),
-          ),
-        );
+          );
+        }
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to save entry: ${journalProvider.error ?? 'Unknown error'}'),
-            backgroundColor: AppTheme.accentRed,
-          ),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Failed to save entry: ${journalProvider.error ?? 'Unknown error'}'),
+              backgroundColor: AppTheme.accentRed,
+            ),
+          );
+        }
       }
     }
   }
@@ -693,7 +696,9 @@ class _JournalScreenState extends State<JournalScreen> {
               const SizedBox(height: AppConstants.spacing16),
               
               // Analysis Status Widget
-              const AnalysisStatusWidget(),
+              AnalysisStatusWidget(
+                onAnalysisComplete: refreshTodaysAnalysisStatus,
+              ),
               
               const SizedBox(height: AppConstants.spacing24),
               

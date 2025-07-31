@@ -6,7 +6,13 @@ import '../services/batch_ai_analysis_service.dart';
 
 /// Widget that shows the status of AI analysis batching
 class AnalysisStatusWidget extends StatefulWidget {
-  const AnalysisStatusWidget({super.key});
+  /// Optional callback when analysis completes
+  final VoidCallback? onAnalysisComplete;
+  
+  const AnalysisStatusWidget({
+    super.key,
+    this.onAnalysisComplete,
+  });
 
   @override
   State<AnalysisStatusWidget> createState() => _AnalysisStatusWidgetState();
@@ -172,6 +178,9 @@ class _AnalysisStatusWidgetState extends State<AnalysisStatusWidget> {
             duration: Duration(seconds: 2),
           ),
         );
+        
+        // Notify parent that analysis is complete
+        widget.onAnalysisComplete?.call();
       }
     } catch (e) {
       if (mounted) {

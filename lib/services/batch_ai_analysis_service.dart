@@ -4,7 +4,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/journal_entry.dart';
 import '../services/journal_service.dart';
 import '../services/ai_service_manager.dart';
-import '../services/emotional_analyzer.dart';
 
 /// Service for batched AI analysis of journal entries.
 /// 
@@ -171,6 +170,35 @@ class BatchAIAnalysisService {
 
     // Save the updated entry
     await _journalService.updateEntry(updatedEntry);
+    
+    // Update today's analysis state if this is today's entry
+    await _updateTodaysAnalysisState(updatedEntry);
+  }
+
+  /// Update today's analysis state for the emotional state widget
+  Future<void> _updateTodaysAnalysisState(JournalEntry analyzedEntry) async {
+    try {
+      final now = DateTime.now();
+      final today = DateTime(now.year, now.month, now.day);
+      final entryDate = DateTime(
+        analyzedEntry.createdAt.year,
+        analyzedEntry.createdAt.month,
+        analyzedEntry.createdAt.day,
+      );
+      
+      // Only update if this entry is from today
+      if (entryDate.isAtSameMomentAs(today)) {
+        final prefs = await SharedPreferences.getInstance();
+        final todayKey = '${today.year}-${today.month}-${today.day}';
+        
+        // Mark that we have analyzed an entry today
+        await prefs.setString('last_analysis_date', todayKey);
+        
+        debugPrint('BatchAIAnalysisService: Updated today\'s analysis state for entry ${analyzedEntry.id}');
+      }
+    } catch (e) {
+      debugPrint('BatchAIAnalysisService: Error updating today\'s analysis state: $e');
+    }
   }
 
   /// Update the last batch analysis time
