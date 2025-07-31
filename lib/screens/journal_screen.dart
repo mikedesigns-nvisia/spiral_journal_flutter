@@ -27,9 +27,7 @@ import 'package:spiral_journal/widgets/compact_analysis_counter.dart';
 import 'package:spiral_journal/widgets/journal_input.dart';
 import 'package:spiral_journal/widgets/mind_reflection_card.dart';
 import 'package:spiral_journal/widgets/mood_selector.dart';
-import 'package:spiral_journal/widgets/emotional_state_visualization.dart';
 import 'package:spiral_journal/widgets/your_cores_card.dart';
-import 'package:spiral_journal/models/emotional_mirror_data.dart';
 
 class JournalScreen extends StatefulWidget {
   const JournalScreen({super.key});
@@ -545,44 +543,21 @@ class _JournalScreenState extends State<JournalScreen> {
 
   
 
-  /// Calculate mood balance from moods list
-  double _calculateMoodBalance(List<String> moods) {
-    final positiveEmotions = ['happy', 'joyful', 'excited', 'grateful', 'content', 'peaceful', 'love', 'joy', 'optimistic', 'confident'];
-    final negativeEmotions = ['sad', 'angry', 'frustrated', 'anxious', 'worried', 'fear', 'disappointment', 'stress', 'overwhelmed'];
-    
-    double balance = 0.0;
-    for (final mood in moods) {
-      if (positiveEmotions.contains(mood.toLowerCase())) {
-        balance += 0.3;
-      } else if (negativeEmotions.contains(mood.toLowerCase())) {
-        balance -= 0.3;
-      }
-    }
-    
-    return balance.clamp(-1.0, 1.0);
+
+  /// Get color for mood chip
+  Color _getMoodColor(String mood) {
+    final moodLower = mood.toLowerCase();
+    if (moodLower.contains('happy') || moodLower.contains('joy')) return AppTheme.accentGreen;
+    if (moodLower.contains('grateful') || moodLower.contains('love')) return AppTheme.accentRed;
+    if (moodLower.contains('content') || moodLower.contains('peaceful')) return Colors.grey;
+    if (moodLower.contains('excited') || moodLower.contains('confident')) return AppTheme.primaryOrange;
+    if (moodLower.contains('sad') || moodLower.contains('disappointed')) return Colors.blue;
+    if (moodLower.contains('angry') || moodLower.contains('frustrated')) return AppTheme.accentRed;
+    if (moodLower.contains('anxious') || moodLower.contains('worried')) return Colors.purple;
+    if (moodLower.contains('stressed') || moodLower.contains('overwhelmed')) return Colors.orange;
+    return AppTheme.primaryOrange;
   }
 
-  /// Create mood overview from saved entry
-  MoodOverview _createMoodOverviewFromEntry(JournalEntry entry) {
-    if (entry.aiAnalysis != null) {
-      // Use AI analysis if available
-      final analysis = entry.aiAnalysis!;
-      return MoodOverview(
-        dominantMoods: analysis.primaryEmotions.take(4).toList(),
-        moodBalance: _calculateMoodBalance(analysis.primaryEmotions),
-        emotionalVariety: (analysis.primaryEmotions.length / 10.0).clamp(0.0, 1.0),
-        description: analysis.personalizedInsight ?? 'Your emotional journey continues...',
-      );
-    } else {
-      // Use the moods from the saved entry
-      return MoodOverview(
-        dominantMoods: entry.moods.take(4).toList(),
-        moodBalance: _calculateMoodBalance(entry.moods),
-        emotionalVariety: (entry.moods.length / 10.0).clamp(0.0, 1.0),
-        description: 'Your emotional state is being analyzed. Check back soon for deeper insights.',
-      );
-    }
-  }
 
   Widget _buildNormalJournalInput() {
     final now = DateTime.now();
@@ -696,11 +671,65 @@ class _JournalScreenState extends State<JournalScreen> {
                       ],
                     ),
                     const SizedBox(height: 16),
-                    // Emotional State Visualization Widget
-                    EmotionalStateVisualization(
-                      moodOverview: _createMoodOverviewFromEntry(_savedEntry!),
-                      showDescription: true,
+                    // Simplified Emotional State Preview (to avoid animation crashes)
+                    Container(
                       height: 300,
+                      decoration: BoxDecoration(
+                        gradient: DesignTokens.getCardGradient(context),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(20),
+                        child: Column(
+                          children: [
+                            // Mood chips display
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: _savedEntry!.moods.map((mood) => Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: _getMoodColor(mood).withValues(alpha: 0.2),
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(color: _getMoodColor(mood)),
+                                ),
+                                child: Text(
+                                  mood,
+                                  style: TextStyle(
+                                    color: _getMoodColor(mood),
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              )).toList(),
+                            ),
+                            const SizedBox(height: 20),
+                            Icon(
+                              Icons.psychology_outlined,
+                              size: 48,
+                              color: DesignTokens.getTextSecondary(context),
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              'Your emotional state is being analyzed',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w500,
+                                color: DesignTokens.getTextPrimary(context),
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Visit your Mirror tab to see the full animated visualization of your emotional patterns!',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: DesignTokens.getTextSecondary(context),
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
                   ],
                 ),
