@@ -16,9 +16,9 @@ import 'package:spiral_journal/design_system/design_tokens.dart';
 import 'package:spiral_journal/design_system/heading_system.dart';
 import 'package:spiral_journal/design_system/responsive_layout.dart';
 import 'package:spiral_journal/models/journal_entry.dart';
+import 'package:spiral_journal/models/emotional_mirror_data.dart';
 import 'package:spiral_journal/providers/core_provider_refactored.dart';
 import 'package:spiral_journal/providers/journal_provider.dart';
-import 'package:spiral_journal/services/emotional_analyzer.dart';
 import 'package:spiral_journal/services/journal_service.dart';
 import 'package:spiral_journal/services/profile_service.dart';
 import 'package:spiral_journal/theme/app_theme.dart';
@@ -28,7 +28,7 @@ import 'package:spiral_journal/widgets/compact_analysis_counter.dart';
 import 'package:spiral_journal/widgets/journal_input.dart';
 import 'package:spiral_journal/widgets/mind_reflection_card.dart';
 import 'package:spiral_journal/widgets/mood_selector.dart';
-import 'package:spiral_journal/widgets/post_analysis_display.dart';
+import 'package:spiral_journal/widgets/emotional_state_visualization.dart';
 import 'package:spiral_journal/widgets/your_cores_card.dart';
 
 class JournalScreen extends StatefulWidget {
@@ -47,9 +47,7 @@ class _JournalScreenState extends State<JournalScreen> {
   bool _hasProcessedEntryToday = false; // Track if user has already saved an entry today
   
   // Post-analysis state tracking
-  bool _hasAnalyzedEntryToday = false;
   JournalEntry? _todaysAnalyzedEntry;
-  EmotionalAnalysisResult? _todaysAnalysisResult;
   bool _isAiEnabled = true; // Will be loaded from settings
 
   @override
@@ -216,24 +214,23 @@ class _JournalScreenState extends State<JournalScreen> {
       
       final todaysEntry = await _getTodaysAnalyzedEntry(journalProvider);
       
-      if (mounted && todaysEntry != null && todaysEntry.isAnalyzed && todaysEntry.aiAnalysis != null) {
-        // Convert EmotionalAnalysis to EmotionalAnalysisResult for display
-        final analysisResult = _convertToAnalysisResult(todaysEntry.aiAnalysis!);
-        
+      if (mounted && todaysEntry != null) {
         setState(() {
-          _hasAnalyzedEntryToday = true;
           _todaysAnalyzedEntry = todaysEntry;
-          _todaysAnalysisResult = analysisResult;
+          _hasProcessedEntryToday = true;
         });
         
-        debugPrint('✅ Found today\'s analyzed entry: ${todaysEntry.id}');
+        if (todaysEntry.isAnalyzed && todaysEntry.aiAnalysis != null) {
+          debugPrint('✅ Found today\'s analyzed entry: ${todaysEntry.id}');
+        } else {
+          debugPrint('📝 Found today\'s entry waiting for analysis: ${todaysEntry.id}');
+        }
       } else {
-        // Reset state if no analyzed entry found
+        // Reset state if no entry found
         if (mounted) {
           setState(() {
-            _hasAnalyzedEntryToday = false;
             _todaysAnalyzedEntry = null;
-            _todaysAnalysisResult = null;
+            _hasProcessedEntryToday = false;
           });
         }
       }
@@ -330,20 +327,6 @@ class _JournalScreenState extends State<JournalScreen> {
       debugPrint('Error getting today\'s analyzed entry: $e');
       return null;
     }
-  }
-
-  EmotionalAnalysisResult _convertToAnalysisResult(EmotionalAnalysis analysis) {
-    return EmotionalAnalysisResult(
-      primaryEmotions: analysis.primaryEmotions,
-      emotionalIntensity: analysis.emotionalIntensity,
-      keyThemes: analysis.keyThemes,
-      overallSentiment: 0.0, // Not stored in EmotionalAnalysis, use default
-      personalizedInsight: analysis.personalizedInsight ?? 'Personal insights from your journal entry.',
-      coreImpacts: analysis.coreImpacts,
-      emotionalPatterns: [], // Not stored in EmotionalAnalysis, use empty list
-      growthIndicators: [], // Not stored in EmotionalAnalysis, use empty list
-      validationScore: 0.8, // Default validation score
-    );
   }
 
 
@@ -489,13 +472,12 @@ class _JournalScreenState extends State<JournalScreen> {
         // Refresh journal entries so they appear immediately in history
         await journalProvider.refresh();
 
-        // Get the saved entry to show in the emotional state widget
+        // Mark that we saved an entry today - show emotional state visualization
         final todaysEntry = await journalService.getTodaysEntry();
         if (mounted && todaysEntry != null) {
           setState(() {
-            _hasAnalyzedEntryToday = true; // Show widget immediately
-            _todaysAnalyzedEntry = todaysEntry; // Use the saved entry
-            _todaysAnalysisResult = null; // Will be populated after analysis
+            _hasProcessedEntryToday = true; // Show emotional state visualization
+            _todaysAnalyzedEntry = todaysEntry; // Store the saved entry
           });
         }
 
@@ -544,178 +526,99 @@ class _JournalScreenState extends State<JournalScreen> {
   }
 
 
-  void _showDetailedAnalysisResults(dynamic analysisResult, Duration analysisTime) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (BuildContext context) {
-        return DraggableScrollableSheet(
-          initialChildSize: 0.9,
-          minChildSize: 0.5,
-          maxChildSize: 0.95,
-          builder: (context, scrollController) {
-            return Container(
-              decoration: BoxDecoration(
-                color: Theme.of(context).scaffoldBackgroundColor,
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-              ),
+
+  /// Build the "Your Emotional State" hero visualization
+  Widget _buildYourEmotionalStateHero() {
+    // Create a mock mood overview based on selected moods from today's entry
+    MoodOverview? moodOverview;
+    
+    if (_todaysAnalyzedEntry != null) {
+      // If we have an analyzed entry, use its analysis
+      if (_todaysAnalyzedEntry!.aiAnalysis != null) {
+        final analysis = _todaysAnalyzedEntry!.aiAnalysis!;
+        moodOverview = MoodOverview(
+          dominantMoods: analysis.primaryEmotions.take(4).toList(),
+          moodBalance: _calculateMoodBalance(analysis.primaryEmotions),
+          emotionalVariety: (analysis.primaryEmotions.length / 10.0).clamp(0.0, 1.0),
+          description: analysis.personalizedInsight ?? 'Your emotional journey continues...',
+        );
+      } else {
+        // Use the moods from the saved entry
+        moodOverview = MoodOverview(
+          dominantMoods: _todaysAnalyzedEntry!.moods.take(4).toList(),
+          moodBalance: _calculateMoodBalance(_todaysAnalyzedEntry!.moods),
+          emotionalVariety: (_todaysAnalyzedEntry!.moods.length / 10.0).clamp(0.0, 1.0),
+          description: 'Your emotional state is being analyzed. Check back soon for deeper insights.',
+        );
+      }
+    }
+    
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Title
+        ResponsiveText(
+          'Your Emotional State',
+          baseFontSize: DesignTokens.fontSizeXXL,
+          fontWeight: DesignTokens.fontWeightBold,
+          color: DesignTokens.getTextPrimary(context),
+        ),
+        
+        const SizedBox(height: AppConstants.spacing16),
+        
+        // Emotional State Visualization
+        if (moodOverview != null)
+          EmotionalStateVisualization(
+            moodOverview: moodOverview,
+            showDescription: true,
+            height: 250,
+          )
+        else
+          Container(
+            height: 250,
+            decoration: BoxDecoration(
+              gradient: DesignTokens.getCardGradient(context),
+              borderRadius: BorderRadius.circular(DesignTokens.radiusL),
+            ),
+            child: Center(
               child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // Handle bar for dragging
-                  Container(
-                    width: 40,
-                    height: 4,
-                    margin: const EdgeInsets.symmetric(vertical: 8),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      borderRadius: BorderRadius.circular(2),
-                    ),
+                  Icon(
+                    Icons.psychology_outlined,
+                    size: 48,
+                    color: DesignTokens.getTextTertiary(context),
                   ),
-                  // Header with close button
-                  Padding(
-                    padding: const EdgeInsets.all(AppConstants.defaultPadding),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.psychology_rounded,
-                          color: DesignTokens.getPrimaryColor(context),
-                        ),
-                        const SizedBox(width: AppConstants.spacing8),
-                        Expanded(
-                          child: Text(
-                            'AI Analysis Results',
-                            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                        IconButton(
-                          onPressed: () => Navigator.of(context).pop(),
-                          icon: const Icon(Icons.close),
-                        ),
-                      ],
-                    ),
-                  ),
-                  // Content area
-                  Expanded(
-                    child: SingleChildScrollView(
-                      controller: scrollController,
-                      padding: const EdgeInsets.all(AppConstants.defaultPadding),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Performance metrics
-                          Container(
-                            padding: const EdgeInsets.all(AppConstants.spacing12),
-                            decoration: BoxDecoration(
-                              color: DesignTokens.getColorWithOpacity(
-                                DesignTokens.getPrimaryColor(context), 
-                                0.1
-                              ),
-                              borderRadius: BorderRadius.circular(AppConstants.radiusSmall),
-                            ),
-                            child: Row(
-                              children: [
-                                Icon(
-                                  Icons.speed,
-                                  size: 16,
-                                  color: DesignTokens.getPrimaryColor(context),
-                                ),
-                                const SizedBox(width: AppConstants.spacing8),
-                                Text(
-                                  'Analysis completed in ${analysisTime.inMilliseconds}ms',
-                                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: AppConstants.spacing20),
-                          
-                          // Show the complete PostAnalysisDisplay if we have today's entry
-                          if (_todaysAnalyzedEntry != null) 
-                            PostAnalysisDisplay(
-                              journalEntry: _todaysAnalyzedEntry!,
-                              analysisResult: null,
-                              onViewAnalysis: null, // Don't show view analysis button in modal
-                            )
-                          else
-                            // Fallback content for old analysis results
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                // Personal insight
-                                if (analysisResult.personalizedInsight.isNotEmpty) ...[
-                                  Text(
-                                    'Personal Insight:',
-                                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  const SizedBox(height: AppConstants.spacing12),
-                                  Container(
-                                    padding: const EdgeInsets.all(AppConstants.defaultPadding),
-                                    decoration: BoxDecoration(
-                                      color: DesignTokens.getColorWithOpacity(
-                                        DesignTokens.getPrimaryColor(context), 
-                                        0.1
-                                      ),
-                                      borderRadius: BorderRadius.circular(AppConstants.radiusMedium),
-                                    ),
-                                    child: Text(
-                                      analysisResult.personalizedInsight,
-                                      style: Theme.of(context).textTheme.bodyMedium,
-                                    ),
-                                  ),
-                                  const SizedBox(height: AppConstants.spacing20),
-                                ],
-                                
-                                // Detected emotions
-                                if (analysisResult.primaryEmotions.isNotEmpty) ...[
-                                  Text(
-                                    'Detected Emotions:',
-                                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  const SizedBox(height: AppConstants.spacing12),
-                                  Wrap(
-                                    spacing: 8,
-                                    runSpacing: 8,
-                                    children: analysisResult.primaryEmotions.map<Widget>((emotion) {
-                                      return Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                        decoration: BoxDecoration(
-                                          color: DesignTokens.getMoodColor(emotion),
-                                          borderRadius: BorderRadius.circular(AppConstants.radiusLarge),
-                                        ),
-                                        child: Text(
-                                          emotion,
-                                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                            color: Colors.white,
-                                            fontWeight: FontWeight.w500,
-                                          ),
-                                        ),
-                                      );
-                                    }).toList(),
-                                  ),
-                                  const SizedBox(height: AppConstants.spacing20),
-                                ],
-                              ],
-                            ),
-                        ],
-                      ),
-                    ),
+                  const SizedBox(height: AppConstants.spacing12),
+                  ResponsiveText(
+                    'Processing your emotional state...',
+                    baseFontSize: DesignTokens.fontSizeL,
+                    fontWeight: DesignTokens.fontWeightMedium,
+                    color: DesignTokens.getTextSecondary(context),
                   ),
                 ],
               ),
-            );
-          },
-        );
-      },
+            ),
+          ),
+      ],
     );
+  }
+  
+  /// Calculate mood balance from moods list
+  double _calculateMoodBalance(List<String> moods) {
+    final positiveEmotions = ['happy', 'joyful', 'excited', 'grateful', 'content', 'peaceful', 'love', 'joy', 'optimistic', 'confident'];
+    final negativeEmotions = ['sad', 'angry', 'frustrated', 'anxious', 'worried', 'fear', 'disappointment', 'stress', 'overwhelmed'];
+    
+    double balance = 0.0;
+    for (final mood in moods) {
+      if (positiveEmotions.contains(mood.toLowerCase())) {
+        balance += 0.3;
+      } else if (negativeEmotions.contains(mood.toLowerCase())) {
+        balance -= 0.3;
+      }
+    }
+    
+    return balance.clamp(-1.0, 1.0);
   }
 
   @override
@@ -815,15 +718,9 @@ class _JournalScreenState extends State<JournalScreen> {
               
               const SizedBox(height: AppConstants.spacing24),
               
-              // Conditional UI: Show post-analysis display or normal journal input
-              _hasAnalyzedEntryToday && _isAiEnabled
-                ? PostAnalysisDisplay(
-                    journalEntry: _todaysAnalyzedEntry,
-                    analysisResult: _todaysAnalysisResult,
-                    onViewAnalysis: _todaysAnalysisResult != null 
-                        ? () => _showDetailedAnalysisResults(_todaysAnalysisResult, Duration.zero)
-                        : null,
-                  )
+              // Conditional UI: Show emotional state visualization or normal journal input
+              _hasProcessedEntryToday
+                ? _buildYourEmotionalStateHero()
                 : Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
