@@ -50,6 +50,10 @@ class _JournalScreenState extends State<JournalScreen> {
   bool _showingSnapshot = false;
   JournalEntry? _savedEntry;
   
+  // Temporary test - uncomment to force snapshot to show
+  // bool _showingSnapshot = true;
+  // JournalEntry? _savedEntry = JournalEntry.create(content: "Test entry", moods: ["happy", "grateful"]);
+  
   // Post-analysis state tracking
   bool _isAiEnabled = true; // Will be loaded from settings
 
@@ -669,6 +673,20 @@ class _JournalScreenState extends State<JournalScreen> {
         
         // Your Cores Card
         const YourCoresCard(),
+        
+        // Temporary test button - remove after debugging
+        const SizedBox(height: 24),
+        ElevatedButton(
+          onPressed: () {
+            debugPrint('🧪 Test button pressed - creating test snapshot');
+            final testEntry = JournalEntry.create(
+              content: "Test entry for snapshot",
+              moods: ["happy", "grateful", "excited"]
+            );
+            _showSnapshot(testEntry);
+          },
+          child: const Text('Test Snapshot (Debug)'),
+        ),
       ],
     );
   }
