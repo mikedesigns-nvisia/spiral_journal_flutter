@@ -7,6 +7,7 @@ import '../design_system/responsive_layout.dart';
 import '../design_system/heading_system.dart';
 import '../providers/emotional_mirror_provider.dart';
 import '../widgets/loading_state_widget.dart' as loading_widget;
+import '../widgets/primary_emotional_state_widget.dart';
 import '../utils/iphone_detector.dart';
 import '../models/emotional_state.dart';
 
@@ -204,251 +205,17 @@ class _EmotionalMirrorScreenState extends State<EmotionalMirrorScreen>
   
 
   Widget _buildPrimaryEmotionalState(EmotionalMirrorProvider provider) {
-    // Create sample primary emotional state for demonstration
-    // In a real implementation, this would come from the provider
-    final primaryState = _createSampleEmotionalState(provider, isPrimary: true);
+    // Get real primary emotional state from provider
+    final primaryState = provider.getPrimaryEmotionalState(context);
     
-    if (primaryState == null) {
-      return Container(); // Return empty if no state
-    }
-    
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            primaryState.primaryColor.withValues(alpha: 0.1),
-            primaryState.primaryColor.withValues(alpha: 0.05),
-          ],
-        ),
-        borderRadius: BorderRadius.circular(DesignTokens.radiusL),
-        border: Border.all(
-          color: primaryState.primaryColor.withValues(alpha: 0.3),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Header with emotion name and icon
-          Padding(
-            padding: EdgeInsets.all(DesignTokens.spaceL),
-            child: Row(
-              children: [
-                Container(
-                  padding: EdgeInsets.all(DesignTokens.spaceS),
-                  decoration: BoxDecoration(
-                    color: primaryState.primaryColor.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(DesignTokens.radiusM),
-                  ),
-                  child: Icon(
-                    _getEmotionIcon(primaryState.emotion),
-                    color: primaryState.primaryColor,
-                    size: DesignTokens.iconSizeL,
-                  ),
-                ),
-                SizedBox(width: DesignTokens.spaceM),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Primary Emotion',
-                        style: HeadingSystem.getLabelMedium(context),
-                      ),
-                      Text(
-                        primaryState.displayName,
-                        style: HeadingSystem.getHeadlineMedium(context).copyWith(
-                          color: primaryState.primaryColor,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                // AI Confidence Badge
-                Container(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: DesignTokens.spaceM,
-                    vertical: DesignTokens.spaceS,
-                  ),
-                  decoration: BoxDecoration(
-                    color: _getConfidenceColor(primaryState.confidence).withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(DesignTokens.radiusL),
-                    border: Border.all(
-                      color: _getConfidenceColor(primaryState.confidence).withValues(alpha: 0.3),
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.auto_awesome,
-                        size: DesignTokens.iconSizeS,
-                        color: _getConfidenceColor(primaryState.confidence),
-                      ),
-                      SizedBox(width: DesignTokens.spaceS),
-                      Text(
-                        '${(primaryState.confidence * 100).round()}%',
-                        style: HeadingSystem.getTitleSmall(context).copyWith(
-                          color: _getConfidenceColor(primaryState.confidence),
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          
-          // Emotion intensity bar
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: DesignTokens.spaceL),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Intensity',
-                      style: HeadingSystem.getLabelMedium(context),
-                    ),
-                    Text(
-                      '${(primaryState.intensity * 100).round()}%',
-                      style: HeadingSystem.getLabelMedium(context).copyWith(
-                        color: primaryState.primaryColor,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-                SizedBox(height: DesignTokens.spaceS),
-                Container(
-                  height: 12,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(DesignTokens.radiusS),
-                    color: DesignTokens.getBackgroundTertiary(context),
-                  ),
-                  child: FractionallySizedBox(
-                    alignment: Alignment.centerLeft,
-                    widthFactor: primaryState.intensity,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(DesignTokens.radiusS),
-                        gradient: LinearGradient(
-                          colors: [
-                            primaryState.primaryColor,
-                            primaryState.primaryColor.withValues(alpha: 0.7),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          
-          // Description
-          Padding(
-            padding: EdgeInsets.all(DesignTokens.spaceL),
-            child: Container(
-              padding: EdgeInsets.all(DesignTokens.spaceM),
-              decoration: BoxDecoration(
-                color: DesignTokens.getBackgroundSecondary(context).withValues(alpha: 0.5),
-                borderRadius: BorderRadius.circular(DesignTokens.radiusM),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.info_outline,
-                    color: DesignTokens.getTextTertiary(context),
-                    size: DesignTokens.iconSizeS,
-                  ),
-                  SizedBox(width: DesignTokens.spaceS),
-                  Expanded(
-                    child: Text(
-                      primaryState.description,
-                      style: HeadingSystem.getBodyMedium(context),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
+    return PrimaryEmotionalStateWidget(
+      primaryState: primaryState,
+      showTabs: false,
+      showTimestamp: false,
+      focusable: false,
     );
   }
 
-  EmotionalState? _createSampleEmotionalState(EmotionalMirrorProvider provider, {required bool isPrimary}) {
-    final mirrorData = provider.mirrorData;
-    if (mirrorData == null) return null;
-    
-    // Extract emotion from mood overview
-    final moodOverview = mirrorData.moodOverview;
-    final balance = moodOverview.moodBalance;
-    final variety = moodOverview.emotionalVariety;
-    
-    // Determine emotions based on balance and available data
-    String emotion;
-    double intensity;
-    double confidence;
-    String description;
-    
-    if (isPrimary) {
-      // Primary emotion logic
-      if (balance > 0.3) {
-        emotion = 'content';
-        intensity = 0.7;
-        confidence = 0.8;
-        description = 'You\'re experiencing a sense of contentment and satisfaction with your current state.';
-      } else if (balance < -0.3) {
-        emotion = 'stressed';
-        intensity = 0.6;
-        confidence = 0.75;
-        description = 'You\'re feeling some stress and tension in your daily experiences.';
-      } else {
-        emotion = 'calm';
-        intensity = 0.5;
-        confidence = 0.7;
-        description = 'You\'re in a balanced, calm emotional state with steady feelings.';
-      }
-    } else {
-      // Secondary emotion logic - often complementary or underlying
-      if (balance > 0.3) {
-        emotion = variety > 0.6 ? 'excited' : 'grateful';
-        intensity = 0.5;
-        confidence = 0.65;
-        description = variety > 0.6 
-            ? 'There\'s an underlying excitement about possibilities and opportunities.'
-            : 'You have a deep sense of gratitude for the positive aspects of your life.';
-      } else if (balance < -0.3) {
-        emotion = variety > 0.5 ? 'anxious' : 'tired';
-        intensity = 0.4;
-        confidence = 0.6;
-        description = variety > 0.5
-            ? 'Beneath the stress, there\'s some anxiety about upcoming challenges.'
-            : 'You\'re feeling emotionally drained and need some rest and recovery.';
-      } else {
-        emotion = 'curious';
-        intensity = 0.4;
-        confidence = 0.65;
-        description = 'There\'s a quiet curiosity about what lies ahead and how things will unfold.';
-      }
-    }
-    
-    // Create emotional state using the factory constructor
-    return EmotionalState.create(
-      emotion: emotion,
-      intensity: intensity,
-      confidence: confidence,
-      context: context,
-      customDescription: description,
-    );
-  }
 
   Widget _buildMilestonesHeader(EmotionalMirrorProvider provider) {
     final mirrorData = provider.mirrorData!;
@@ -1062,39 +829,6 @@ class _EmotionalMirrorScreenState extends State<EmotionalMirrorScreen>
     return DesignTokens.getPrimaryColor(context);
   }
 
-  IconData _getEmotionIcon(String emotion) {
-    final iconMap = {
-      'happy': Icons.sentiment_very_satisfied,
-      'sad': Icons.sentiment_very_dissatisfied,
-      'angry': Icons.sentiment_very_dissatisfied,
-      'anxious': Icons.sentiment_dissatisfied,
-      'excited': Icons.sentiment_very_satisfied,
-      'calm': Icons.sentiment_satisfied,
-      'frustrated': Icons.sentiment_dissatisfied,
-      'content': Icons.sentiment_satisfied,
-      'worried': Icons.sentiment_dissatisfied,
-      'joyful': Icons.sentiment_very_satisfied,
-      'peaceful': Icons.sentiment_satisfied,
-      'stressed': Icons.sentiment_dissatisfied,
-      'optimistic': Icons.sentiment_satisfied,
-      'melancholy': Icons.sentiment_neutral,
-      'energetic': Icons.sentiment_very_satisfied,
-      'tired': Icons.sentiment_neutral,
-      'confident': Icons.sentiment_satisfied,
-      'uncertain': Icons.sentiment_neutral,
-      'grateful': Icons.sentiment_satisfied,
-      'lonely': Icons.sentiment_dissatisfied,
-    };
-    
-    return iconMap[emotion.toLowerCase()] ?? Icons.sentiment_neutral;
-  }
-
-  Color _getConfidenceColor(double confidence) {
-    if (confidence >= 0.8) return DesignTokens.successColor;
-    if (confidence >= 0.6) return DesignTokens.accentYellow;
-    if (confidence >= 0.4) return DesignTokens.accentBlue;
-    return DesignTokens.warningColor;
-  }
   
   Widget _buildEmotionalStateVisualization(dynamic overview) {
     return Container(
@@ -1126,62 +860,21 @@ class _EmotionalMirrorScreenState extends State<EmotionalMirrorScreen>
   }
   
   Widget _buildSwipeableInsightCards(List<String> insights) {
-    return SizedBox(
-      height: 120,
+    return AnimatedContainer(
+      duration: Duration(milliseconds: 300),
+      height: 180, // Increased from 120
+      constraints: BoxConstraints(
+        minHeight: 180,
+        maxHeight: 400, // Allow expansion up to this height
+      ),
       child: PageView.builder(
         controller: _insightPageController,
         itemCount: insights.length,
         itemBuilder: (context, index) {
-          return Container(
-            margin: EdgeInsets.symmetric(horizontal: DesignTokens.spaceS),
-            padding: EdgeInsets.all(DesignTokens.spaceM),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  DesignTokens.getPrimaryColor(context).withValues(alpha: 0.1),
-                  DesignTokens.accentBlue.withValues(alpha: 0.05),
-                ],
-              ),
-              borderRadius: BorderRadius.circular(DesignTokens.radiusL),
-              border: Border.all(
-                color: DesignTokens.getPrimaryColor(context).withValues(alpha: 0.2),
-              ),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      width: 6,
-                      height: 6,
-                      decoration: BoxDecoration(
-                        color: DesignTokens.getPrimaryColor(context),
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                    SizedBox(width: DesignTokens.spaceS),
-                    Text(
-                      'Insight ${index + 1} of ${insights.length}',
-                      style: HeadingSystem.getLabelSmall(context).copyWith(
-                        color: DesignTokens.getTextSecondary(context),
-                      ),
-                    ),
-                  ],
-                ),
-                SizedBox(height: DesignTokens.spaceS),
-                Expanded(
-                  child: Text(
-                    insights[index],
-                    style: HeadingSystem.getBodyMedium(context),
-                    maxLines: 3,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ],
-            ),
+          return _ExpandableInsightCard(
+            insight: insights[index],
+            index: index,
+            totalCount: insights.length,
           );
         },
       ),
@@ -1368,6 +1061,157 @@ class EmotionalStatePainter extends CustomPainter {
     return oldDelegate.animationValue != animationValue ||
            oldDelegate.moodBalance != moodBalance ||
            oldDelegate.emotionalVariety != emotionalVariety;
+  }
+}
+
+class _ExpandableInsightCard extends StatefulWidget {
+  final String insight;
+  final int index;
+  final int totalCount;
+
+  const _ExpandableInsightCard({
+    required this.insight,
+    required this.index,
+    required this.totalCount,
+  });
+
+  @override
+  State<_ExpandableInsightCard> createState() => _ExpandableInsightCardState();
+}
+
+class _ExpandableInsightCardState extends State<_ExpandableInsightCard> 
+    with SingleTickerProviderStateMixin {
+  bool _isExpanded = false;
+  late AnimationController _animationController;
+  late Animation<double> _expandAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _animationController = AnimationController(
+      duration: Duration(milliseconds: 300),
+      vsync: this,
+    );
+    _expandAnimation = CurvedAnimation(
+      parent: _animationController,
+      curve: Curves.easeInOut,
+    );
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
+  }
+
+  void _toggleExpanded() {
+    setState(() {
+      _isExpanded = !_isExpanded;
+      if (_isExpanded) {
+        _animationController.forward();
+      } else {
+        _animationController.reverse();
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: _toggleExpanded,
+      child: AnimatedBuilder(
+        animation: _expandAnimation,
+        builder: (context, child) {
+          return Container(
+            margin: EdgeInsets.symmetric(horizontal: DesignTokens.spaceS),
+            padding: EdgeInsets.all(DesignTokens.spaceL), // Increased from spaceM
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  DesignTokens.getPrimaryColor(context).withValues(alpha: 0.1),
+                  DesignTokens.accentBlue.withValues(alpha: 0.05),
+                ],
+              ),
+              borderRadius: BorderRadius.circular(DesignTokens.radiusL),
+              border: Border.all(
+                color: DesignTokens.getPrimaryColor(context).withValues(alpha: 0.2),
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 6,
+                      height: 6,
+                      decoration: BoxDecoration(
+                        color: DesignTokens.getPrimaryColor(context),
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    SizedBox(width: DesignTokens.spaceS),
+                    Text(
+                      'Insight ${widget.index + 1} of ${widget.totalCount}',
+                      style: HeadingSystem.getLabelSmall(context).copyWith(
+                        color: DesignTokens.getTextSecondary(context),
+                      ),
+                    ),
+                    Spacer(),
+                    AnimatedRotation(
+                      turns: _isExpanded ? 0.5 : 0.0,
+                      duration: Duration(milliseconds: 300),
+                      child: Icon(
+                        Icons.expand_more,
+                        color: DesignTokens.getTextSecondary(context),
+                        size: DesignTokens.iconSizeS,
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(height: DesignTokens.spaceM), // Increased from spaceS
+                AnimatedCrossFade(
+                  firstChild: Text(
+                    widget.insight,
+                    style: HeadingSystem.getBodyLarge(context), // Increased from getBodyMedium
+                    maxLines: 4, // Increased from 3 to show more text
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  secondChild: SingleChildScrollView(
+                    child: Text(
+                      widget.insight,
+                      style: HeadingSystem.getBodyLarge(context), // Increased from getBodyMedium
+                    ),
+                  ),
+                  crossFadeState: _isExpanded 
+                      ? CrossFadeState.showSecond 
+                      : CrossFadeState.showFirst,
+                  duration: Duration(milliseconds: 300),
+                ),
+                if (!_isExpanded && widget.insight.length > 100) ...[
+                  SizedBox(height: DesignTokens.spaceM), // Increased from spaceXS
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        'Tap to read more',
+                        style: HeadingSystem.getBodyMedium(context).copyWith( // Increased from getBodySmall
+                          color: DesignTokens.getPrimaryColor(context),
+                          fontStyle: FontStyle.italic,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ],
+            ),
+          );
+        },
+      ),
+    );
   }
 }
 

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../services/emotional_mirror_service.dart';
 import '../models/core.dart';
 import '../models/emotional_mirror_data.dart';
+import '../models/emotional_state.dart';
 
 /// Provider for managing emotional mirror state, filters, and data
 class EmotionalMirrorProvider extends ChangeNotifier {
@@ -55,6 +56,31 @@ class EmotionalMirrorProvider extends ChangeNotifier {
       _selectedPatternTypes.isNotEmpty ||
       _selectedCores.isNotEmpty ||
       _isAnalyzedFilter != null;
+
+  /// Get the primary emotional state from the mirror data
+  EmotionalState? getPrimaryEmotionalState(BuildContext context) {
+    if (_mirrorData == null) return null;
+    
+    final moodOverview = _mirrorData!.moodOverview;
+    if (moodOverview.dominantMoods.isEmpty) return null;
+    
+    // Create emotional state from the most dominant mood
+    final primaryMood = moodOverview.dominantMoods.first;
+    
+    // Map mood balance to intensity (0.0 to 1.0)
+    final intensity = ((moodOverview.moodBalance + 1.0) / 2.0).clamp(0.0, 1.0);
+    
+    // Use emotional variety as confidence indicator
+    final confidence = moodOverview.emotionalVariety.clamp(0.0, 1.0);
+    
+    return EmotionalState.create(
+      emotion: primaryMood,
+      intensity: intensity,
+      confidence: confidence,
+      context: context,
+      customDescription: moodOverview.description,
+    );
+  }
 
   int get timeRangeDays {
     switch (_selectedTimeRange) {
