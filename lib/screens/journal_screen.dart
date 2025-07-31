@@ -44,6 +44,7 @@ class _JournalScreenState extends State<JournalScreen> {
   
   String? _draftContent;
   String _userName = 'there'; // Default fallback name
+  bool _hasProcessedEntryToday = false; // Track if user has already saved an entry today
   
   // Post-analysis state tracking
   bool _hasAnalyzedEntryToday = false;
@@ -59,14 +60,21 @@ class _JournalScreenState extends State<JournalScreen> {
     _checkTodaysAnalysisStatus();
     _loadAiSettings();
     _startPeriodicAnalysisCheck();
+    
+    // Initial state refresh to ensure UI is consistent
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        refreshJournalScreenState();
+      }
+    });
   }
 
-  /// Start periodic check for completed analysis
+  /// Start periodic check for completed analysis and state refresh
   void _startPeriodicAnalysisCheck() {
-    // Check every 5 minutes for completed batch analysis
+    // Check every 5 minutes for completed batch analysis and refresh state
     Timer.periodic(const Duration(minutes: 5), (timer) {
       if (mounted) {
-        refreshTodaysAnalysisStatus();
+        refreshJournalScreenState();
       } else {
         timer.cancel();
       }
@@ -86,6 +94,9 @@ class _JournalScreenState extends State<JournalScreen> {
       final draftContent = prefs.getString('journal_draft_content');
       final draftMoods = prefs.getStringList('journal_draft_moods') ?? [];
       
+      // Check if user has already processed an entry today
+      await _checkHasProcessedEntryToday();
+      
       if (draftContent != null && draftContent.isNotEmpty) {
         if (mounted) {
           setState(() {
@@ -95,13 +106,34 @@ class _JournalScreenState extends State<JournalScreen> {
           });
         }
         
-        // Show recovery dialog
-        if (mounted) {
+        // Only show recovery dialog if user hasn't already saved an entry today
+        // If they have, the draft is likely from the same content they already saved
+        if (mounted && !_hasProcessedEntryToday) {
           _showDraftRecoveryDialog(draftContent);
+        } else if (_hasProcessedEntryToday) {
+          // User already saved today, clear the draft since it's likely already in history
+          await _clearDraftContent();
+          debugPrint('Cleared draft content - user already has entry in history today');
         }
       }
     } catch (e) {
       debugPrint('Error loading draft content: $e');
+    }
+  }
+
+  /// Check if user has already processed (saved) an entry today
+  Future<void> _checkHasProcessedEntryToday() async {
+    try {
+      final journalService = JournalService();
+      final todaysEntry = await journalService.getTodaysEntry();
+      
+      if (mounted) {
+        setState(() {
+          _hasProcessedEntryToday = todaysEntry != null;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error checking today\'s processed entry: $e');
     }
   }
 
@@ -214,6 +246,23 @@ class _JournalScreenState extends State<JournalScreen> {
   Future<void> refreshTodaysAnalysisStatus() async {
     debugPrint('🔄 Refreshing today\'s analysis status...');
     await _checkTodaysAnalysisStatus();
+  }
+
+  /// Refresh complete journal screen state after entry processing
+  Future<void> refreshJournalScreenState() async {
+    debugPrint('🔄 Refreshing complete journal screen state...');
+    
+    // Check if user has processed an entry today
+    await _checkHasProcessedEntryToday();
+    
+    // Refresh analysis status
+    await _checkTodaysAnalysisStatus();
+    
+    // If user has already processed an entry today, clear any lingering drafts
+    if (_hasProcessedEntryToday && _draftContent != null) {
+      await _clearDraftContent();
+      debugPrint('✅ Cleared lingering draft - user already has entry in history');
+    }
   }
 
   Future<JournalEntry?> _getTodaysAnalyzedEntry(JournalProvider journalProvider) async {
@@ -384,6 +433,11 @@ class _JournalScreenState extends State<JournalScreen> {
         // Clear draft content after successful save
         await _clearDraftContent();
 
+        // Mark that user has processed an entry today
+        setState(() {
+          _hasProcessedEntryToday = true;
+        });
+
         // Refresh cores after saving entry
         await coreProvider.refresh();
 
@@ -400,7 +454,6 @@ class _JournalScreenState extends State<JournalScreen> {
 
         // Show success message with batch analysis info
         if (mounted) {
-          final theme = Theme.of(context);
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Column(
@@ -697,7 +750,7 @@ class _JournalScreenState extends State<JournalScreen> {
               
               // Analysis Status Widget
               AnalysisStatusWidget(
-                onAnalysisComplete: refreshTodaysAnalysisStatus,
+                onAnalysisComplete: refreshJournalScreenState,
               ),
               
               const SizedBox(height: AppConstants.spacing24),
