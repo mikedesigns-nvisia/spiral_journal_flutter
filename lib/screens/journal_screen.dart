@@ -50,10 +50,6 @@ class _JournalScreenState extends State<JournalScreen> {
   bool _showingSnapshot = false;
   JournalEntry? _savedEntry;
   
-  // Temporary test - uncomment to force snapshot to show
-  // bool _showingSnapshot = true;
-  // JournalEntry? _savedEntry = JournalEntry.create(content: "Test entry", moods: ["happy", "grateful"]);
-  
   // Post-analysis state tracking
   bool _isAiEnabled = true; // Will be loaded from settings
 
@@ -633,36 +629,84 @@ class _JournalScreenState extends State<JournalScreen> {
         
         const SizedBox(height: AppConstants.spacing24),
         
-        // Mood Selector
-        MoodSelector(
-          selectedMoods: _selectedMoods,
-          onMoodChanged: (moods) {
-            if (mounted) {
-              setState(() {
-                _selectedMoods.clear();
-                _selectedMoods.addAll(moods);
-              });
-            }
-          },
-        ),
-        
-        const SizedBox(height: AppConstants.spacing24),
-        
-        // Journal Input
-        Consumer<JournalProvider>(
-          builder: (context, journalProvider, child) {
-            return JournalInput(
-              controller: _journalController,
-              onChanged: (text) {
-                // Handle text changes if needed
-              },
-              onSave: _saveEntry,
-              isSaving: journalProvider.isLoading,
-              onAutoSave: _saveDraftContent,
-              draftContent: _draftContent,
-            );
-          },
-        ),
+        // Conditional: Show snapshot or mood selector + journal input
+        _showingSnapshot && _savedEntry != null
+          ? Column(
+              children: [
+                EmotionalMirrorSnapshot(
+                  entry: _savedEntry!,
+                  onViewFullAnalysis: () {
+                    NavigationService.instance.switchToTab(2);
+                  },
+                ),
+                const SizedBox(height: 16),
+                // AI Analysis Pending widget
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: DesignTokens.getBackgroundSecondary(context),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: AppTheme.primaryOrange.withValues(alpha: 0.3),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.schedule, color: AppTheme.primaryOrange),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('AI Analysis Pending'),
+                            Text('1 entries will be analyzed in 10h 52m'),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
+                TextButton(
+                  onPressed: _resetToInputMode,
+                  child: const Text('Write Another Entry Tomorrow'),
+                ),
+              ],
+            )
+          : Column(
+              children: [
+                // Mood Selector
+                MoodSelector(
+                  selectedMoods: _selectedMoods,
+                  onMoodChanged: (moods) {
+                    if (mounted) {
+                      setState(() {
+                        _selectedMoods.clear();
+                        _selectedMoods.addAll(moods);
+                      });
+                    }
+                  },
+                ),
+                
+                const SizedBox(height: AppConstants.spacing24),
+                
+                // Journal Input
+                Consumer<JournalProvider>(
+                  builder: (context, journalProvider, child) {
+                    return JournalInput(
+                      controller: _journalController,
+                      onChanged: (text) {
+                        // Handle text changes if needed
+                      },
+                      onSave: _saveEntry,
+                      isSaving: journalProvider.isLoading,
+                      onAutoSave: _saveDraftContent,
+                      draftContent: _draftContent,
+                    );
+                  },
+                ),
+              ],
+            ),
         
         const SizedBox(height: AppConstants.spacing24),
         
@@ -673,20 +717,6 @@ class _JournalScreenState extends State<JournalScreen> {
         
         // Your Cores Card
         const YourCoresCard(),
-        
-        // Temporary test button - remove after debugging
-        const SizedBox(height: 24),
-        ElevatedButton(
-          onPressed: () {
-            debugPrint('🧪 Test button pressed - creating test snapshot');
-            final testEntry = JournalEntry.create(
-              content: "Test entry for snapshot",
-              moods: ["happy", "grateful", "excited"]
-            );
-            _showSnapshot(testEntry);
-          },
-          child: const Text('Test Snapshot (Debug)'),
-        ),
       ],
     );
   }
@@ -705,63 +735,13 @@ class _JournalScreenState extends State<JournalScreen> {
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(AppConstants.largePadding),
             physics: const AlwaysScrollableScrollPhysics(), // Ensure pull-to-refresh works even when content doesn't fill screen
-            child: _showingSnapshot && _savedEntry != null
-              ? ((){
-                  debugPrint('🎯 Rendering snapshot UI - _showingSnapshot: $_showingSnapshot, _savedEntry: ${_savedEntry?.id}');
-                  return Column(
-                  children: [
-                    EmotionalMirrorSnapshot(
-                      entry: _savedEntry!,
-                      onViewFullAnalysis: () {
-                        NavigationService.instance.switchToTab(2);
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    // Keep the existing AI Analysis Pending widget here
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: DesignTokens.getBackgroundSecondary(context),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: AppTheme.primaryOrange.withValues(alpha: 0.3),
-                        ),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(Icons.schedule, color: AppTheme.primaryOrange),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text('AI Analysis Pending'),
-                                Text('1 entries will be analyzed in 10h 52m'),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    TextButton(
-                      onPressed: _resetToInputMode,
-                      child: const Text('Write Another Entry Tomorrow'),
-                    ),
-                    const SizedBox(height: 100), // Extra space for bottom navigation
-                  ],
-                );
-                }())
-              : ((){
-                  debugPrint('🎯 Rendering normal input UI - _showingSnapshot: $_showingSnapshot');
-                  return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildNormalJournalInput(),
-                    const SizedBox(height: 100), // Extra space for bottom navigation
-                  ],
-                );
-                }()),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildNormalJournalInput(),
+                const SizedBox(height: 100), // Extra space for bottom navigation
+              ],
+            ),
           ),
         ),
     );
