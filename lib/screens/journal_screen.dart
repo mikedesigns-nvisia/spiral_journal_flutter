@@ -27,9 +27,9 @@ import 'package:spiral_journal/widgets/compact_analysis_counter.dart';
 import 'package:spiral_journal/widgets/journal_input.dart';
 import 'package:spiral_journal/widgets/mind_reflection_card.dart';
 import 'package:spiral_journal/widgets/mood_selector.dart';
-import 'package:spiral_journal/widgets/emotional_mirror_snapshot.dart';
+import 'package:spiral_journal/widgets/emotional_state_visualization.dart';
 import 'package:spiral_journal/widgets/your_cores_card.dart';
-import 'package:spiral_journal/services/navigation_service.dart';
+import 'package:spiral_journal/models/emotional_mirror_data.dart';
 
 class JournalScreen extends StatefulWidget {
   const JournalScreen({super.key});
@@ -545,6 +545,45 @@ class _JournalScreenState extends State<JournalScreen> {
 
   
 
+  /// Calculate mood balance from moods list
+  double _calculateMoodBalance(List<String> moods) {
+    final positiveEmotions = ['happy', 'joyful', 'excited', 'grateful', 'content', 'peaceful', 'love', 'joy', 'optimistic', 'confident'];
+    final negativeEmotions = ['sad', 'angry', 'frustrated', 'anxious', 'worried', 'fear', 'disappointment', 'stress', 'overwhelmed'];
+    
+    double balance = 0.0;
+    for (final mood in moods) {
+      if (positiveEmotions.contains(mood.toLowerCase())) {
+        balance += 0.3;
+      } else if (negativeEmotions.contains(mood.toLowerCase())) {
+        balance -= 0.3;
+      }
+    }
+    
+    return balance.clamp(-1.0, 1.0);
+  }
+
+  /// Create mood overview from saved entry
+  MoodOverview _createMoodOverviewFromEntry(JournalEntry entry) {
+    if (entry.aiAnalysis != null) {
+      // Use AI analysis if available
+      final analysis = entry.aiAnalysis!;
+      return MoodOverview(
+        dominantMoods: analysis.primaryEmotions.take(4).toList(),
+        moodBalance: _calculateMoodBalance(analysis.primaryEmotions),
+        emotionalVariety: (analysis.primaryEmotions.length / 10.0).clamp(0.0, 1.0),
+        description: analysis.personalizedInsight ?? 'Your emotional journey continues...',
+      );
+    } else {
+      // Use the moods from the saved entry
+      return MoodOverview(
+        dominantMoods: entry.moods.take(4).toList(),
+        moodBalance: _calculateMoodBalance(entry.moods),
+        emotionalVariety: (entry.moods.length / 10.0).clamp(0.0, 1.0),
+        description: 'Your emotional state is being analyzed. Check back soon for deeper insights.',
+      );
+    }
+  }
+
   Widget _buildNormalJournalInput() {
     final now = DateTime.now();
     final dateFormatter = DateFormat('EEEE, MMMM d');
@@ -629,42 +668,41 @@ class _JournalScreenState extends State<JournalScreen> {
         
         const SizedBox(height: AppConstants.spacing24),
         
-        // Conditional: Show snapshot or mood selector + journal input
+        // Conditional: Show emotional state visualization or mood selector + journal input
         _showingSnapshot && _savedEntry != null
           ? Column(
               children: [
-                EmotionalMirrorSnapshot(
-                  entry: _savedEntry!,
-                  onViewFullAnalysis: () {
-                    NavigationService.instance.switchToTab(2);
-                  },
-                ),
-                const SizedBox(height: 16),
-                // AI Analysis Pending widget
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: DesignTokens.getBackgroundSecondary(context),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: AppTheme.primaryOrange.withValues(alpha: 0.3),
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.schedule, color: AppTheme.primaryOrange),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('AI Analysis Pending'),
-                            Text('1 entries will be analyzed in 10h 52m'),
-                          ],
+                // Your Emotional State Visualization
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Title with sparkle icon
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.auto_awesome,
+                          color: DesignTokens.getPrimaryColor(context),
+                          size: 24,
                         ),
-                      ),
-                    ],
-                  ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Your Emotional State Visualization',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: DesignTokens.getTextPrimary(context),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    // Emotional State Visualization Widget
+                    EmotionalStateVisualization(
+                      moodOverview: _createMoodOverviewFromEntry(_savedEntry!),
+                      showDescription: true,
+                      height: 300,
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 24),
                 TextButton(
