@@ -90,9 +90,11 @@ class _JournalScreenState extends State<JournalScreen> {
 
   // Add this method to show snapshot after save:
   void _showSnapshot(JournalEntry entry) {
+    debugPrint('🎯 Showing snapshot for entry: ${entry.id}');
     setState(() {
       _showingSnapshot = true;
       _savedEntry = entry;
+      _hasProcessedEntryToday = false; // Reset this so snapshot shows instead of emotional state widget
     });
   }
 
@@ -493,10 +495,14 @@ class _JournalScreenState extends State<JournalScreen> {
 
         // Get the saved entry and show snapshot
         final todaysEntry = await journalService.getTodaysEntry();
+        debugPrint('📝 Retrieved today\'s entry after save: ${todaysEntry?.id}');
         
         if (todaysEntry != null) {
           // Show the snapshot instead of clearing
+          debugPrint('🎯 Calling _showSnapshot with entry: ${todaysEntry.id}');
           _showSnapshot(todaysEntry);
+        } else {
+          debugPrint('❌ No today\'s entry found after save');
         }
 
         // Show success message with batch analysis info
@@ -682,7 +688,9 @@ class _JournalScreenState extends State<JournalScreen> {
             padding: const EdgeInsets.all(AppConstants.largePadding),
             physics: const AlwaysScrollableScrollPhysics(), // Ensure pull-to-refresh works even when content doesn't fill screen
             child: _showingSnapshot && _savedEntry != null
-              ? Column(
+              ? ((){
+                  debugPrint('🎯 Rendering snapshot UI - _showingSnapshot: $_showingSnapshot, _savedEntry: ${_savedEntry?.id}');
+                  return Column(
                   children: [
                     EmotionalMirrorSnapshot(
                       entry: _savedEntry!,
@@ -724,14 +732,18 @@ class _JournalScreenState extends State<JournalScreen> {
                     ),
                     const SizedBox(height: 100), // Extra space for bottom navigation
                   ],
-                )
-              : Column(
+                );
+                }())
+              : ((){
+                  debugPrint('🎯 Rendering normal input UI - _showingSnapshot: $_showingSnapshot');
+                  return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _buildNormalJournalInput(),
                     const SizedBox(height: 100), // Extra space for bottom navigation
                   ],
-                ),
+                );
+                }()),
           ),
         ),
     );
