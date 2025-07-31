@@ -161,10 +161,8 @@ class JournalProvider with ChangeNotifier {
       // Refresh entries for current year immediately
       await loadEntriesForYear(_selectedYear);
       
-      // Queue the new entry for AI analysis in background
-      final newEntry = _entries.firstWhere((e) => e.id == entryId, orElse: () => throw Exception('Entry not found'));
-      debugPrint('JournalProvider: Queueing entry for analysis: ${newEntry.id}');
-      await queueEntryForAnalysis(newEntry);
+      // Note: AI analysis is now handled by batch processing service
+      debugPrint('JournalProvider: Entry created successfully. AI analysis will be handled in batch.');
       
       return true;
     } catch (e) {

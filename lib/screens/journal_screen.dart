@@ -23,6 +23,7 @@ import 'package:spiral_journal/services/journal_service.dart';
 import 'package:spiral_journal/services/profile_service.dart';
 import 'package:spiral_journal/theme/app_theme.dart';
 import 'package:spiral_journal/utils/ios_theme_enforcer.dart';
+import 'package:spiral_journal/widgets/analysis_status_widget.dart';
 import 'package:spiral_journal/widgets/compact_analysis_counter.dart';
 import 'package:spiral_journal/widgets/journal_input.dart';
 import 'package:spiral_journal/widgets/mind_reflection_card.dart';
@@ -369,9 +370,9 @@ class _JournalScreenState extends State<JournalScreen> {
     // Show initial saving message
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: const Text('Saving entry and analyzing with AI... 🤖'),
+        content: const Text('Saving entry... ✍️'),
         backgroundColor: DesignTokens.getPrimaryColor(context),
-        duration: const Duration(seconds: 2),
+        duration: const Duration(seconds: 1),
       ),
     );
 
@@ -384,9 +385,6 @@ class _JournalScreenState extends State<JournalScreen> {
       if (success) {
         // Clear draft content after successful save
         await _clearDraftContent();
-        
-        // Perform AI analysis on the saved entry
-        await _performRealTimeAIAnalysis();
 
         // Refresh cores after saving entry
         await coreProvider.refresh();
@@ -401,6 +399,28 @@ class _JournalScreenState extends State<JournalScreen> {
             _selectedMoods.clear();
           });
         }
+
+        // Show success message with batch analysis info
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Entry saved successfully! 🎉'),
+                const SizedBox(height: AppConstants.spacing4),
+                Text(
+                  'AI analysis will be available in the next batch cycle',
+                  style: HeadingSystem.getBodySmall(context).copyWith(
+                    color: Colors.white.withValues(alpha: 0.9),
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: AppTheme.accentGreen,
+            duration: const Duration(seconds: 3),
+          ),
+        );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -412,125 +432,6 @@ class _JournalScreenState extends State<JournalScreen> {
     }
   }
 
-  Future<void> _performRealTimeAIAnalysis() async {
-    try {
-      debugPrint('🔍 Starting real-time AI analysis...');
-      final startTime = DateTime.now();
-      
-      // Get AI service manager and journal provider
-      final aiManager = AIServiceManager();
-      final journalProvider = Provider.of<JournalProvider>(context, listen: false);
-      
-      // Get the most recently saved entry (should be the one we just saved)
-      final recentEntries = journalProvider.entries;
-      if (recentEntries.isEmpty) {
-        debugPrint('❌ No recent entries found for AI analysis');
-        return;
-      }
-      
-      final savedEntry = recentEntries.first; // Most recent entry
-      debugPrint('📝 Analyzing saved entry: ${savedEntry.content.length} characters');
-      debugPrint('🎭 Selected moods: ${savedEntry.moods.join(', ')}');
-
-      // Perform comprehensive AI analysis
-      final analysisResult = await aiManager.performEmotionalAnalysis(savedEntry);
-      
-      final analysisTime = DateTime.now().difference(startTime);
-      debugPrint('⚡ AI analysis completed in ${analysisTime.inMilliseconds}ms');
-      
-      // Log detailed analysis results
-      debugPrint('🧠 AI Analysis Results:');
-      debugPrint('   Primary Emotions: ${analysisResult.primaryEmotions.join(', ')}');
-      debugPrint('   Emotional Intensity: ${analysisResult.emotionalIntensity}');
-      debugPrint('   Overall Sentiment: ${analysisResult.overallSentiment}');
-      debugPrint('   Key Themes: ${analysisResult.keyThemes.join(', ')}');
-      debugPrint('   Growth Indicators: ${analysisResult.growthIndicators.join(', ')}');
-      debugPrint('   Personalized Insight: ${analysisResult.personalizedInsight}');
-
-      // Create EmotionalAnalysis object and update the entry
-      final emotionalAnalysis = EmotionalAnalysis(
-        primaryEmotions: analysisResult.primaryEmotions,
-        emotionalIntensity: analysisResult.emotionalIntensity,
-        keyThemes: analysisResult.keyThemes,
-        personalizedInsight: analysisResult.personalizedInsight,
-        analyzedAt: DateTime.now(),
-        growthIndicators: analysisResult.growthIndicators,
-        coreAdjustments: {},
-        mindReflection: null,
-        emotionalPatterns: [],
-        entryInsight: analysisResult.personalizedInsight,
-      );
-
-      // Update the saved entry with AI analysis results
-      final updatedEntry = savedEntry.copyWith(
-        aiAnalysis: emotionalAnalysis,
-        isAnalyzed: true,
-        aiDetectedMoods: analysisResult.primaryEmotions,
-        emotionalIntensity: analysisResult.emotionalIntensity,
-        keyThemes: analysisResult.keyThemes,
-        personalizedInsight: analysisResult.personalizedInsight,
-      );
-
-      // Save the updated entry with AI analysis
-      await journalProvider.updateEntry(updatedEntry);
-      debugPrint('💾 AI analysis results saved to entry');
-
-      // Save analysis state for post-analysis display (only if AI is enabled)
-      if (_isAiEnabled) {
-        await _saveAnalysisState(updatedEntry, analysisResult);
-      }
-
-      if (mounted) {
-        // Show comprehensive success message with AI insights
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Entry saved with AI analysis! 🎉'),
-                const SizedBox(height: AppConstants.spacing4),
-                Text(
-                  'Found ${analysisResult.primaryEmotions.length} emotions, ${analysisResult.keyThemes.length} themes',
-                  style: HeadingSystem.getBodySmall(context).copyWith(color: Colors.white.withValues(alpha: 0.9)),
-                ),
-              ],
-            ),
-            backgroundColor: AppTheme.accentGreen,
-            duration: const Duration(seconds: 4),
-            action: SnackBarAction(
-              label: 'View Analysis',
-              onPressed: () => _showDetailedAnalysisResults(analysisResult, analysisTime),
-            ),
-          ),
-        );
-      }
-    } catch (e, stackTrace) {
-      debugPrint('❌ AI Analysis error: $e');
-      debugPrint('Stack trace: $stackTrace');
-      
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text('Entry saved successfully! 🎉'),
-                const SizedBox(height: AppConstants.spacing4),
-                Text(
-                  'AI analysis unavailable: ${e.toString().split(':').first}',
-                  style: HeadingSystem.getBodySmall(context).copyWith(color: Colors.white.withValues(alpha: 0.9)),
-                ),
-              ],
-            ),
-            backgroundColor: AppTheme.accentYellow,
-            duration: const Duration(seconds: 3),
-          ),
-        );
-      }
-    }
-  }
 
   void _showDetailedAnalysisResults(dynamic analysisResult, Duration analysisTime) {
     showModalBottomSheet(
@@ -788,6 +689,11 @@ class _JournalScreenState extends State<JournalScreen> {
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),
+              
+              const SizedBox(height: AppConstants.spacing16),
+              
+              // Analysis Status Widget
+              const AnalysisStatusWidget(),
               
               const SizedBox(height: AppConstants.spacing24),
               
