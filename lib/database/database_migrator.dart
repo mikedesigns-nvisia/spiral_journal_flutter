@@ -235,16 +235,37 @@ class DatabaseMigrator {
   static Future<void> _migration_v3_to_v4(Transaction txn) async {
     debugPrint('Executing migration v3 to v4: Adding enhanced AI analysis fields');
     
-    // Add enhanced AI fields
-    await txn.execute('ALTER TABLE journal_entries ADD COLUMN aiDetectedMoods TEXT NOT NULL DEFAULT "[]"');
-    await txn.execute('ALTER TABLE journal_entries ADD COLUMN emotionalIntensity REAL');
-    await txn.execute('ALTER TABLE journal_entries ADD COLUMN keyThemes TEXT NOT NULL DEFAULT "[]"');
-    await txn.execute('ALTER TABLE journal_entries ADD COLUMN personalizedInsight TEXT');
+    // Get current columns to check what already exists
+    final result = await txn.rawQuery("PRAGMA table_info(journal_entries)");
+    final columnNames = result.map((col) => col['name'] as String).toSet();
     
-    // Create indexes for enhanced AI queries
-    await txn.execute('CREATE INDEX idx_journal_ai_moods ON journal_entries(aiDetectedMoods)');
-    await txn.execute('CREATE INDEX idx_journal_intensity ON journal_entries(emotionalIntensity)');
-    await txn.execute('CREATE INDEX idx_journal_themes ON journal_entries(keyThemes)');
+    // Add enhanced AI fields only if they don't exist
+    if (!columnNames.contains('aiDetectedMoods')) {
+      await txn.execute('ALTER TABLE journal_entries ADD COLUMN aiDetectedMoods TEXT NOT NULL DEFAULT "[]"');
+    }
+    if (!columnNames.contains('emotionalIntensity')) {
+      await txn.execute('ALTER TABLE journal_entries ADD COLUMN emotionalIntensity REAL');
+    }
+    if (!columnNames.contains('keyThemes')) {
+      await txn.execute('ALTER TABLE journal_entries ADD COLUMN keyThemes TEXT NOT NULL DEFAULT "[]"');
+    }
+    if (!columnNames.contains('personalizedInsight')) {
+      await txn.execute('ALTER TABLE journal_entries ADD COLUMN personalizedInsight TEXT');
+    }
+    
+    // Check and create indexes only if they don't exist
+    final indexResult = await txn.rawQuery("PRAGMA index_list(journal_entries)");
+    final indexNames = indexResult.map((idx) => idx['name'] as String).toSet();
+    
+    if (!indexNames.contains('idx_journal_ai_moods')) {
+      await txn.execute('CREATE INDEX idx_journal_ai_moods ON journal_entries(aiDetectedMoods)');
+    }
+    if (!indexNames.contains('idx_journal_intensity')) {
+      await txn.execute('CREATE INDEX idx_journal_intensity ON journal_entries(emotionalIntensity)');
+    }
+    if (!indexNames.contains('idx_journal_themes')) {
+      await txn.execute('CREATE INDEX idx_journal_themes ON journal_entries(keyThemes)');
+    }
   }
 
   /// Test migration from version 4 to 5: Add voice journal support
