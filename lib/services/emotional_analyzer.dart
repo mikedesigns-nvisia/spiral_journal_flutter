@@ -31,6 +31,7 @@ class EmotionalAnalyzer {
         emotionalPatterns: _extractEmotionalPatterns(aiResponse),
         growthIndicators: _extractGrowthIndicators(aiResponse),
         validationScore: _calculateValidationScore(aiResponse),
+        coreImpacts: _extractCoreImpacts(aiResponse),
       );
     } catch (e) {
       debugPrint('EmotionalAnalyzer processAnalysis error: $e');
@@ -105,6 +106,8 @@ class EmotionalAnalyzer {
             .take(5) // Limit to 5 indicators max
             .toList(),
         validationScore: result.validationScore.clamp(0.0, 1.0),
+        coreImpacts: Map<String, double>.from(result.coreImpacts)
+            .map((key, value) => MapEntry(key, value.clamp(0.0, 1.0))),
       );
     } catch (e) {
       debugPrint('EmotionalAnalyzer sanitizeAnalysisResult error: $e');
@@ -483,6 +486,7 @@ class EmotionalAnalyzer {
       ],
       growthIndicators: ['self_reflection'],
       validationScore: 0.3,
+      coreImpacts: {'self_awareness': 0.1},
     );
   }
 
@@ -821,6 +825,7 @@ class EmotionalAnalysisResult {
   final List<JournalEmotionalPattern> emotionalPatterns;
   final List<String> growthIndicators;
   final double validationScore; // 0-1 confidence score
+  final Map<String, double> coreImpacts; // Core ID -> impact strength
 
   EmotionalAnalysisResult({
     required this.primaryEmotions,
@@ -832,6 +837,7 @@ class EmotionalAnalysisResult {
     required this.emotionalPatterns,
     required this.growthIndicators,
     required this.validationScore,
+    required this.coreImpacts,
   });
 
   Map<String, dynamic> toJson() {
@@ -850,6 +856,7 @@ class EmotionalAnalysisResult {
       }).toList(),
       'growth_indicators': growthIndicators,
       'validation_score': validationScore,
+      'core_impacts': coreImpacts,
     };
   }
 }

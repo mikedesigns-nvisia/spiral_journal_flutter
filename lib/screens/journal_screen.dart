@@ -18,6 +18,7 @@ import 'package:spiral_journal/design_system/responsive_layout.dart';
 import 'package:spiral_journal/models/journal_entry.dart';
 import 'package:spiral_journal/providers/core_provider_refactored.dart';
 import 'package:spiral_journal/providers/journal_provider.dart';
+import 'package:spiral_journal/widgets/resonance_depth_visualizer.dart';
 import 'package:spiral_journal/services/journal_service.dart';
 import 'package:spiral_journal/services/profile_service.dart';
 import 'package:spiral_journal/theme/app_theme.dart';
@@ -582,19 +583,13 @@ class _JournalScreenState extends State<JournalScreen> {
                     ),
                     borderRadius: BorderRadius.circular(AppConstants.radiusMedium),
                   ),
-                  child: Image.asset(
-                    'assets/images/spiral_journal_icon.png',
+                  child: Container(
                     width: 24,
                     height: 24,
-                    fit: BoxFit.contain,
-                    color: DesignTokens.getPrimaryColor(context),
-                    errorBuilder: (context, error, stackTrace) {
-                      return Icon(
-                        Icons.auto_stories_rounded,
-                        color: DesignTokens.getPrimaryColor(context),
-                        size: 24,
-                      );
-                    },
+                    child: MiniOpalSphere(
+                      color: DesignTokens.getPrimaryColor(context),
+                      size: 24,
+                    ),
                   ),
                 ),
                 const SizedBox(width: AppConstants.spacing16),

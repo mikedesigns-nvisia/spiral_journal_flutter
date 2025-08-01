@@ -39,7 +39,8 @@ class EmotionalCore {
     this.supportingEvidence,
   });
 
-  // Remove percentage getter - no longer needed
+  /// Get percentage representation of current level (0-100)
+  double get percentage => currentLevel * 100.0;
   
   ResonanceDepth get resonanceDepth => ResonanceDepth.fromLevel(currentLevel);
   

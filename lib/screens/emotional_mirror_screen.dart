@@ -385,7 +385,7 @@ class _EmotionalMirrorScreenState extends State<EmotionalMirrorScreen>
             'Range',
             '${(overview.emotionalVariety * 100).round()}%',
             DesignTokens.accentBlue,
-            Icons.palette_rounded,
+            Icons.show_chart_rounded,
             'Emotional range',
           ),
           _buildMetricTile(

@@ -200,8 +200,6 @@ class _CoreLibraryScreenState extends State<CoreLibraryScreen> with TickerProvid
                         children: [
                           _buildHeader(),
                           const SizedBox(height: 32),
-                          _buildCoreOverview(coreProvider.allCores),
-                          const SizedBox(height: 32),
                           _buildCoreGrid(coreProvider.allCores),
                           // TODO: Implement combinations and recommendations through CoreProvider
                           // These will be added in future enhancements
@@ -344,95 +342,6 @@ class _CoreLibraryScreenState extends State<CoreLibraryScreen> with TickerProvid
     }
   }
 
-  Widget _buildCoreOverview(List<EmotionalCore> cores) {
-    if (cores.isEmpty) return const SizedBox.shrink();
-    
-    final averageLevel = cores.map((c) => c.currentLevel).reduce((a, b) => a + b) / cores.length;
-    final risingCores = cores.where((c) => c.trend == 'rising').length;
-    
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            AppTheme.getPrimaryColor(context).withValues(alpha: 0.1),
-            AppTheme.getPrimaryColor(context).withValues(alpha: 0.05),
-          ],
-        ),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: AppTheme.getPrimaryColor(context).withValues(alpha: 0.2),
-          width: 1,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(
-                Icons.trending_up,
-                color: AppTheme.getPrimaryColor(context),
-                size: 20,
-              ),
-              const SizedBox(width: 8),
-              Text(
-                'Overall Progress',
-                style: HeadingSystem.getTitleMedium(context).copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '${(averageLevel * 100).round()}%',
-                      style: HeadingSystem.getHeadlineMedium(context).copyWith(
-                        fontWeight: FontWeight.w700,
-                        color: AppTheme.getPrimaryColor(context),
-                      ),
-                    ),
-                    Text(
-                      'Average Core Level',
-                      style: HeadingSystem.getBodySmall(context).copyWith(
-                        color: AppTheme.getTextSecondary(context),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '$risingCores',
-                      style: HeadingSystem.getHeadlineMedium(context).copyWith(
-                        fontWeight: FontWeight.w700,
-                        color: AppTheme.accentGreen,
-                      ),
-                    ),
-                    Text(
-                      'Cores Rising',
-                      style: HeadingSystem.getBodySmall(context).copyWith(
-                        color: AppTheme.getTextSecondary(context),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
 
   Widget _buildCoreGrid(List<EmotionalCore> cores) {
     return Column(
@@ -445,21 +354,156 @@ class _CoreLibraryScreenState extends State<CoreLibraryScreen> with TickerProvid
           ),
         ),
         const SizedBox(height: 16),
-        GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2,
-            crossAxisSpacing: 16,
-            mainAxisSpacing: 16,
-            childAspectRatio: 1.1, // Further increased to give much more height
+        if (cores.isEmpty)
+          _buildEmptyState()
+        else
+          GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              crossAxisSpacing: 20,
+              mainAxisSpacing: 20,
+              childAspectRatio: 0.75, // Made taller to accommodate larger spheres
+            ),
+            itemCount: cores.length,
+            itemBuilder: (context, index) {
+              return _buildCoreCard(cores[index]);
+            },
           ),
-          itemCount: cores.length,
-          itemBuilder: (context, index) {
-            return _buildCoreCard(cores[index]);
-          },
-        ),
       ],
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Container(
+      padding: const EdgeInsets.all(32),
+      decoration: BoxDecoration(
+        color: AppTheme.getBackgroundSecondary(context),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: AppTheme.getBackgroundTertiary(context),
+          width: 1,
+        ),
+      ),
+      child: Column(
+        children: [
+          Icon(
+            Icons.psychology_outlined,
+            size: 48,
+            color: AppTheme.getTextTertiary(context),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'No Personality Cores Found',
+            style: HeadingSystem.getHeadlineSmall(context).copyWith(
+              color: AppTheme.getTextSecondary(context),
+              fontWeight: FontWeight.w600,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Your personality cores will appear here as you journal and reflect. Start writing to unlock insights about your inner growth.',
+            style: HeadingSystem.getBodyMedium(context).copyWith(
+              color: AppTheme.getTextTertiary(context),
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 24),
+          ElevatedButton.icon(
+            onPressed: () async {
+              try {
+                // Show loading feedback
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: const Row(
+                      children: [
+                        SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          ),
+                        ),
+                        SizedBox(width: 12),
+                        Text('Refreshing cores...'),
+                      ],
+                    ),
+                    backgroundColor: AppTheme.getPrimaryColor(context),
+                    duration: const Duration(seconds: 2),
+                  ),
+                );
+                
+                // Refresh cores data
+                final provider = Provider.of<CoreProvider>(context, listen: false);
+                await provider.refresh(forceRefresh: true);
+                
+                // Show success message
+                if (mounted) {
+                  ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: const Row(
+                        children: [
+                          Icon(Icons.check_circle, color: Colors.white, size: 16),
+                          SizedBox(width: 12),
+                          Text('Cores refreshed successfully!'),
+                        ],
+                      ),
+                      backgroundColor: Colors.green,
+                      duration: const Duration(seconds: 2),
+                    ),
+                  );
+                }
+              } catch (error) {
+                // Show error message
+                if (mounted) {
+                  ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Row(
+                        children: [
+                          const Icon(Icons.error_outline, color: Colors.white, size: 16),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              'Failed to refresh cores: ${error.toString()}',
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                      backgroundColor: Colors.red,
+                      duration: const Duration(seconds: 4),
+                      action: SnackBarAction(
+                        label: 'RETRY',
+                        textColor: Colors.white,
+                        onPressed: () {
+                          // Retry the refresh
+                          final provider = Provider.of<CoreProvider>(context, listen: false);
+                          provider.refresh(forceRefresh: true);
+                        },
+                      ),
+                    ),
+                  );
+                }
+              }
+            },
+            icon: const Icon(Icons.refresh, size: 18),
+            label: const Text('Refresh'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.getPrimaryColor(context),
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -472,35 +516,39 @@ class _CoreLibraryScreenState extends State<CoreLibraryScreen> with TickerProvid
     return GestureDetector(
       onTap: () => _showCoreDetail(core),
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              color.withValues(alpha: 0.1),
-              color.withValues(alpha: 0.05),
+              AppTheme.getBackgroundSecondary(context),
+              AppTheme.getBackgroundSecondary(context).withValues(alpha: 0.8),
             ],
           ),
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: isHighlighted 
-                ? color.withValues(alpha: 0.6)
-                : color.withValues(alpha: 0.3),
+                ? color.withValues(alpha: 0.5)
+                : AppTheme.getBackgroundTertiary(context),
             width: isHighlighted ? 2 : 1,
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: isHighlighted ? 0.1 : 0.05),
-              blurRadius: isHighlighted ? 12 : 8,
-              offset: Offset(0, isHighlighted ? 4 : 2),
+              color: color.withValues(alpha: 0.1),
+              blurRadius: isHighlighted ? 8 : 4,
+              offset: Offset(0, isHighlighted ? 3 : 1),
+            ),
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 6,
+              offset: const Offset(0, 2),
             ),
           ],
         ),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           crossAxisAlignment: CrossAxisAlignment.center,
-          mainAxisSize: MainAxisSize.min,
           children: [
             // Recent update indicator
             if (hasRecentUpdate) ...[
@@ -522,83 +570,98 @@ class _CoreLibraryScreenState extends State<CoreLibraryScreen> with TickerProvid
             ],
             
             // Resonance Depth Visualizer
-            ResonanceDepthVisualizer(
-              core: core,
-              size: 80,
-              showLabel: false,
-              showProgress: false,
-            ),
-            
-            const SizedBox(height: 12),
-            
-            // Core name
             Flexible(
-              child: Text(
-                core.name,
-                style: HeadingSystem.getTitleSmall(context)?.copyWith(
-                  fontWeight: FontWeight.w600,
+              flex: 3,
+              child: Center(
+                child: ResonanceDepthVisualizer(
+                  core: core,
+                  size: 100, // Increased from 80 to 100 for more prominence
+                  showLabel: false,
+                  showProgress: false,
                 ),
-                textAlign: TextAlign.center,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
               ),
             ),
             
-            const SizedBox(height: 4),
-            
-            // Resonance depth label
-            Text(
-              core.resonanceDepth.displayName,
-              style: HeadingSystem.getBodySmall(context)?.copyWith(
-                color: color,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            
-            const SizedBox(height: 4),
-            
-            // Trend indicator
-            if (core.trend != 'stable') ...[
-              Row(
-                mainAxisSize: MainAxisSize.min,
+            // Core info section
+            Flexible(
+              flex: 2,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(
-                    core.trend == 'rising' ? Icons.trending_up : 
-                    core.trend == 'declining' ? Icons.trending_down : Icons.trending_flat,
-                    color: trendColor,
-                    size: 12,
-                  ),
-                  const SizedBox(width: 4),
+                  // Core name
                   Text(
-                    core.trend.toUpperCase(),
-                    style: HeadingSystem.getLabelSmall(context)?.copyWith(
-                      color: trendColor,
+                    core.name,
+                    style: HeadingSystem.getTitleSmall(context)?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                    textAlign: TextAlign.center,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  
+                  const SizedBox(height: 4),
+                  
+                  // Resonance depth label
+                  Text(
+                    core.resonanceDepth.displayName,
+                    style: HeadingSystem.getBodySmall(context)?.copyWith(
+                      color: color,
                       fontWeight: FontWeight.w500,
-                      fontSize: 10,
                     ),
                   ),
                 ],
               ),
-            ],
+            ),
             
-            // Transition indicator
-            if (core.isTransitioning) ...[
-              const SizedBox(height: 4),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                decoration: BoxDecoration(
-                  color: AppTheme.getAccentColor(context).withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  'Transitioning',
-                  style: HeadingSystem.getLabelSmall(context)?.copyWith(
-                    color: AppTheme.getAccentColor(context),
-                    fontSize: 10,
-                  ),
+            // Trend and transition indicators (bottom section)
+            if (core.trend != 'stable' || core.isTransitioning)
+              Flexible(
+                flex: 1,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    if (core.trend != 'stable')
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            core.trend == 'rising' ? Icons.trending_up : 
+                            core.trend == 'declining' ? Icons.trending_down : Icons.trending_flat,
+                            color: trendColor,
+                            size: 12,
+                          ),
+                          const SizedBox(width: 2),
+                          Text(
+                            core.trend.toUpperCase(),
+                            style: HeadingSystem.getLabelSmall(context)?.copyWith(
+                              color: trendColor,
+                              fontWeight: FontWeight.w500,
+                              fontSize: 9,
+                            ),
+                          ),
+                        ],
+                      ),
+                    if (core.isTransitioning) ...[
+                      if (core.trend != 'stable') const SizedBox(height: 2),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                        decoration: BoxDecoration(
+                          color: AppTheme.getAccentColor(context).withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          'Transitioning',
+                          style: HeadingSystem.getLabelSmall(context)?.copyWith(
+                            color: AppTheme.getAccentColor(context),
+                            fontSize: 8,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
               ),
-            ],
           ],
         ),
       ),
@@ -1043,7 +1106,7 @@ class _CoreDetailSheetState extends State<CoreDetailSheet> {
                         ),
                       ),
                       Text(
-                        '${(widget.core.currentLevel * 100).round()}% • ${widget.core.trend.toUpperCase()}',
+                        '${widget.core.resonanceDepth.displayName.toUpperCase()} • ${widget.core.trend.toUpperCase()}',
                         style: HeadingSystem.getBodyMedium(context).copyWith(
                           color: color,
                           fontWeight: FontWeight.w500,
@@ -1128,13 +1191,13 @@ class _CoreDetailSheetState extends State<CoreDetailSheet> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          'Current Level',
+                          'Current Depth',
                           style: HeadingSystem.getBodySmall(context).copyWith(
                             color: AppTheme.getTextSecondary(context),
                           ),
                         ),
                         Text(
-                          '${(widget.core.currentLevel * 100).round()}%',
+                          widget.core.resonanceDepth.displayName,
                           style: HeadingSystem.getBodySmall(context).copyWith(
                             fontWeight: FontWeight.w600,
                           ),
@@ -1149,7 +1212,7 @@ class _CoreDetailSheetState extends State<CoreDetailSheet> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Previous: ${(widget.core.previousLevel * 100).round()}%',
+                      'Previous: ${widget.core.previousResonanceDepth.displayName}',
                       style: HeadingSystem.getBodySmall(context).copyWith(
                         color: AppTheme.getTextSecondary(context),
                       ),

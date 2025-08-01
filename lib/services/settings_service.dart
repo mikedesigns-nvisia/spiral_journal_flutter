@@ -4,6 +4,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/user_preferences.dart';
 import 'theme_service.dart';
 import 'core_background_sync_service.dart';
+import 'notification_service.dart';
+import 'analytics_service.dart';
 
 /// Comprehensive settings management service for application preferences.
 /// 
@@ -50,6 +52,8 @@ class SettingsService extends ChangeNotifier {
   bool _isInitialized = false;
   
   final ThemeService _themeService = ThemeService();
+  final NotificationService _notificationService = NotificationService();
+  final AnalyticsService _analyticsService = AnalyticsService();
 
   // Settings keys
   static const String _userPreferencesKey = 'user_preferences';
@@ -62,6 +66,8 @@ class SettingsService extends ChangeNotifier {
     try {
       _prefs = await SharedPreferences.getInstance();
       await _themeService.initialize();
+      await _notificationService.initialize();
+      await _analyticsService.initialize();
       await _loadPreferences();
       _isInitialized = true;
     } catch (e) {
@@ -222,6 +228,22 @@ class SettingsService extends ChangeNotifier {
       _currentPreferences = _currentPreferences.copyWith(
         analyticsEnabled: enabled,
       );
+      
+      // Track the analytics setting change in analytics service
+      if (enabled) {
+        await _analyticsService.logEvent('analytics_enabled', {
+          'timestamp': DateTime.now().toIso8601String(),
+          'user_action': 'settings_toggle',
+        });
+      } else {
+        await _analyticsService.logEvent('analytics_disabled', {
+          'timestamp': DateTime.now().toIso8601String(),
+          'user_action': 'settings_toggle',
+        });
+        // Clear analytics data when disabled for privacy
+        await _analyticsService.clearAnalyticsData();
+      }
+      
       await _savePreferences();
       notifyListeners();
     } catch (e) {
@@ -243,6 +265,29 @@ class SettingsService extends ChangeNotifier {
     if (_currentPreferences.dailyRemindersEnabled == enabled) return;
     
     try {
+      if (enabled) {
+        // Request notification permissions
+        final hasPermissions = await _notificationService.requestPermissions();
+        if (!hasPermissions) {
+          throw Exception('Notification permissions denied');
+        }
+        
+        // Schedule daily reminder with current time setting
+        final timeParts = _currentPreferences.reminderTime.split(':');
+        final hour = int.parse(timeParts[0]);
+        final minute = int.parse(timeParts[1]);
+        
+        await _notificationService.scheduleDailyReminder(
+          hour: hour,
+          minute: minute,
+          title: 'Journal Time 📝',
+          body: 'Take a moment to reflect and write in your journal',
+        );
+      } else {
+        // Cancel daily reminder
+        await _notificationService.cancelDailyReminder();
+      }
+      
       _currentPreferences = _currentPreferences.copyWith(
         dailyRemindersEnabled: enabled,
       );
@@ -268,6 +313,21 @@ class SettingsService extends ChangeNotifier {
     
     try {
       _currentPreferences = _currentPreferences.copyWith(reminderTime: time);
+      
+      // If daily reminders are enabled, reschedule with new time
+      if (_currentPreferences.dailyRemindersEnabled) {
+        final timeParts = time.split(':');
+        final hour = int.parse(timeParts[0]);
+        final minute = int.parse(timeParts[1]);
+        
+        await _notificationService.scheduleDailyReminder(
+          hour: hour,
+          minute: minute,
+          title: 'Journal Time 📝',
+          body: 'Take a moment to reflect and write in your journal',
+        );
+      }
+      
       await _savePreferences();
       notifyListeners();
     } catch (e) {

@@ -96,6 +96,8 @@
 	<string>Spiral Journal uses speech recognition to convert your spoken words into text for journal entries. All speech processing happens on your device to protect your privacy.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>This app does not access your photo library.</string>
+	<key>NSUserNotificationUsageDescription</key>
+	<string>Spiral Journal sends daily reminders to help you maintain your journaling habit and track your emotional growth.</string>
 	<key>NSSupportsAutomaticTermination</key>
 	<false/>
 	<key>NSUserTrackingUsageDescription</key>

@@ -311,6 +311,10 @@ class AppTheme {
     return DesignTokens.getBackgroundSecondary(context);
   }
   
+  static Color getBackgroundTertiary(BuildContext context) {
+    return DesignTokens.getBackgroundTertiary(context);
+  }
+  
   /// Get theme-aware text colors
   static Color getTextPrimary(BuildContext context) {
     return DesignTokens.getTextPrimary(context);
@@ -332,6 +336,11 @@ class AppTheme {
   /// Get core color (theme-agnostic)
   static Color getCoreColor(String coreType) {
     return DesignTokens.getCoreColor(coreType);
+  }
+  
+  /// Get theme-aware accent color
+  static Color getAccentColor(BuildContext context) {
+    return DesignTokens.getPrimaryColor(context);
   }
   
   /// Apply opacity to color

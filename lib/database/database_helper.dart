@@ -254,6 +254,14 @@ class DatabaseHelper {
         await txn.execute('ALTER TABLE emotional_cores ADD COLUMN entries_at_current_depth INTEGER DEFAULT 0');
         await txn.execute('ALTER TABLE emotional_cores ADD COLUMN transition_signals TEXT');
         await txn.execute('ALTER TABLE emotional_cores ADD COLUMN supporting_evidence TEXT');
+      }
+      
+      // Add last_updated column if it doesn't exist
+      if (!columnNames.contains('last_updated')) {
+        await txn.execute('ALTER TABLE emotional_cores ADD COLUMN last_updated TEXT DEFAULT (datetime(\'now\'))');
+      }
+      
+      if (!columnNames.contains('current_level')) {
         
         // Migrate percentage data to current_level (percentage/100)
         await txn.execute('''
@@ -262,11 +270,27 @@ class DatabaseHelper {
               previous_level = COALESCE(percentage, 0.0) / 100.0
         ''');
         
-        // Update last_updated to use existing updatedAt
-        await txn.execute('''
-          UPDATE emotional_cores 
-          SET last_updated = COALESCE(updatedAt, datetime('now'))
-        ''');
+        // Update last_updated to use existing updated_at or updatedAt
+        try {
+          await txn.execute('''
+            UPDATE emotional_cores 
+            SET last_updated = COALESCE(updated_at, datetime('now'))
+          ''');
+        } catch (e) {
+          // If updated_at doesn't exist, try updatedAt
+          try {
+            await txn.execute('''
+              UPDATE emotional_cores 
+              SET last_updated = COALESCE(updatedAt, datetime('now'))
+            ''');
+          } catch (e2) {
+            // If neither exists, just set to current time
+            await txn.execute('''
+              UPDATE emotional_cores 
+              SET last_updated = datetime('now')
+            ''');
+          }
+        }
       }
       
       // Create core transition history table if it doesn't exist

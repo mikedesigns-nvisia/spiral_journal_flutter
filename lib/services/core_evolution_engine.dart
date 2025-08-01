@@ -382,6 +382,266 @@ class CoreEvolutionEngine {
     
     return combinations;
   }
+
+  /// Calculate core progress with milestones and insights
+  CoreProgressResult calculateCoreProgress(
+    EmotionalCore core,
+    List<JournalEntry> recentEntries,
+  ) {
+    final currentDepth = core.resonanceDepth;
+    final milestones = _getMilestonesForDepth(currentDepth);
+    final achievedMilestones = _getAchievedMilestones(core, currentDepth);
+    final nextMilestone = _getNextMilestone(milestones, achievedMilestones);
+    final progressVelocity = _calculateProgressVelocity(core, recentEntries);
+    final estimatedTime = _estimateTimeToNextMilestone(core, progressVelocity);
+
+    return CoreProgressResult(
+      core: core,
+      milestones: milestones,
+      achievedMilestones: achievedMilestones,
+      nextMilestone: nextMilestone,
+      progressVelocity: progressVelocity,
+      estimatedTimeToNextMilestone: estimatedTime,
+    );
+  }
+
+  /// Get milestones for a specific resonance depth
+  List<String> _getMilestonesForDepth(ResonanceDepth depth) {
+    switch (depth) {
+      case ResonanceDepth.dormant:
+        return ['Show initial awareness', 'Recognize patterns', 'Begin exploration'];
+      case ResonanceDepth.emerging:
+        return ['Consistent practice', 'Growing confidence', 'Regular application'];
+      case ResonanceDepth.developing:
+        return ['Deeper understanding', 'Increased frequency', 'Natural integration'];
+      case ResonanceDepth.deepening:
+        return ['Automatic responses', 'Teaching others', 'Complex situations'];
+      case ResonanceDepth.integrated:
+        return ['Effortless expression', 'Leadership role', 'Inspiring others'];
+      case ResonanceDepth.transcendent:
+        return ['Master level', 'Transformative impact', 'Wisdom sharing'];
+    }
+  }
+
+  /// Get achieved milestones based on core's current state
+  List<String> _getAchievedMilestones(EmotionalCore core, ResonanceDepth depth) {
+    final achieved = <String>[];
+    final depthIndex = ResonanceDepth.values.indexOf(depth);
+    
+    // Mark milestones from previous depths as achieved
+    for (int i = 0; i < depthIndex; i++) {
+      achieved.addAll(_getMilestonesForDepth(ResonanceDepth.values[i]));
+    }
+    
+    // Add some milestones from current depth based on progress
+    final currentMilestones = _getMilestonesForDepth(depth);
+    final progressInDepth = (core.currentLevel - depth.minLevel) / (depth.maxLevel - depth.minLevel);
+    final achievedCount = (currentMilestones.length * progressInDepth).floor();
+    
+    achieved.addAll(currentMilestones.take(achievedCount));
+    
+    return achieved;
+  }
+
+  /// Get the next milestone to work on
+  String? _getNextMilestone(List<String> allMilestones, List<String> achieved) {
+    for (final milestone in allMilestones) {
+      if (!achieved.contains(milestone)) {
+        return milestone;
+      }
+    }
+    return null;
+  }
+
+  /// Calculate progress velocity based on recent activity
+  double _calculateProgressVelocity(EmotionalCore core, List<JournalEntry> recentEntries) {
+    if (recentEntries.isEmpty) return 0.0;
+    
+    // Simple velocity calculation based on recent changes and entry frequency
+    final daysSinceLastUpdate = DateTime.now().difference(core.lastUpdated).inDays;
+    final entriesPerDay = recentEntries.length / (daysSinceLastUpdate > 0 ? daysSinceLastUpdate : 1);
+    
+    return (entriesPerDay * 0.1).clamp(0.0, 1.0);
+  }
+
+  /// Estimate time to next milestone
+  Duration? _estimateTimeToNextMilestone(EmotionalCore core, double velocity) {
+    if (velocity <= 0.0) return null;
+    
+    // Rough estimation based on current progress and velocity
+    final daysEstimate = (30 / velocity).ceil(); // Base estimate of 30 days, adjusted by velocity
+    return Duration(days: daysEstimate);
+  }
+
+  /// Update cores with analysis results
+  List<EmotionalCore> updateCoresWithAnalysis(
+    List<EmotionalCore> currentCores,
+    dynamic analysisResult, // Can be EmotionalAnalysisResult or Map<String, dynamic>
+    dynamic entry, // Can be JournalEntry or other entry type
+  ) {
+    try {
+      // Extract core resonance data from analysis result
+      Map<String, dynamic> coreResonance = {};
+      
+      if (analysisResult is Map<String, dynamic>) {
+        coreResonance = Map<String, dynamic>.from(analysisResult['coreResonance'] ?? {});
+      } else if (analysisResult != null && analysisResult.toString().contains('coreResonance')) {
+        // Try to extract from object properties if available
+        try {
+          final resonanceData = (analysisResult as dynamic).coreResonance;
+          if (resonanceData is Map) {
+            coreResonance = Map<String, dynamic>.from(resonanceData);
+          }
+        } catch (e) {
+          debugPrint('CoreEvolutionEngine: Could not extract coreResonance: $e');
+        }
+      }
+      
+      final updatedCores = <EmotionalCore>[];
+      
+      for (final core in currentCores) {
+        final resonanceData = coreResonance[core.id];
+        
+        if (resonanceData == null) {
+          // No resonance data for this core, return unchanged
+          updatedCores.add(core);
+          continue;
+        }
+        
+        // Extract resonance information
+        double resonanceStrength = 0.0;
+        String depthIndicator = core.resonanceDepth.name;
+        List<String> transitionSignals = [];
+        String? supportingEvidence;
+        
+        if (resonanceData is Map<String, dynamic>) {
+          resonanceStrength = (resonanceData['resonanceStrength'] ?? 0.0).toDouble();
+          depthIndicator = resonanceData['depthIndicator'] ?? core.resonanceDepth.name;
+          transitionSignals = List<String>.from(resonanceData['transitionSignals'] ?? []);
+          supportingEvidence = resonanceData['supportingEvidence'];
+        }
+        
+        // Calculate level adjustment based on resonance strength
+        final levelAdjustment = resonanceStrength * 0.05; // Small incremental changes
+        final newLevel = (core.currentLevel + levelAdjustment).clamp(0.0, 1.0);
+        
+        // Determine trend
+        String trend = core.trend;
+        if (newLevel > core.currentLevel) {
+          trend = 'rising';
+        } else if (newLevel < core.currentLevel) {
+          trend = 'declining';
+        } else {
+          trend = 'stable';
+        }
+        
+        // Update the core
+        updatedCores.add(core.copyWith(
+          currentLevel: newLevel,
+          previousLevel: core.currentLevel,
+          lastUpdated: DateTime.now(),
+          trend: trend,
+          transitionSignals: transitionSignals,
+          supportingEvidence: supportingEvidence,
+          entriesAtCurrentDepth: core.entriesAtCurrentDepth + 1,
+        ));
+      }
+      
+      return updatedCores;
+    } catch (e) {
+      debugPrint('CoreEvolutionEngine updateCoresWithAnalysis error: $e');
+      return currentCores; // Return unchanged cores on error
+    }
+  }
+
+  /// Generate insight for a specific core based on recent analyses
+  String generateCoreInsight(
+    EmotionalCore core,
+    List<dynamic> recentAnalyses, // List<EmotionalAnalysisResult> or similar
+  ) {
+    try {
+      final depth = core.resonanceDepth;
+      final trend = core.trend;
+      final name = core.name.toLowerCase();
+      
+      // Base insight based on current depth and trend
+      String baseInsight = _getDepthInsight(core, depth);
+      
+      // Add trend-specific information
+      String trendInsight = '';
+      switch (trend) {
+        case 'rising':
+          trendInsight = 'Your $name is growing stronger and showing signs of positive development.';
+          break;
+        case 'declining':
+          trendInsight = 'Your $name may need more attention to maintain its current level.';
+          break;
+        case 'stable':
+          trendInsight = 'Your $name is maintaining steady progress at its current level.';
+          break;
+      }
+      
+      // Add transition insight if applicable
+      String transitionInsight = '';
+      if (core.isTransitioning) {
+        transitionInsight = ' You\'re currently in a transitional phase, which is an excellent opportunity for growth.';
+      }
+      
+      // Combine insights
+      final insight = '$baseInsight $trendInsight$transitionInsight';
+      
+      return insight.trim();
+    } catch (e) {
+      debugPrint('CoreEvolutionEngine generateCoreInsight error: $e');
+      return 'Your ${core.name.toLowerCase()} continues to develop through your reflective practice.';
+    }
+  }
+  
+  /// Get depth-specific insight
+  String _getDepthInsight(EmotionalCore core, ResonanceDepth depth) {
+    final name = core.name.toLowerCase();
+    
+    switch (depth) {
+      case ResonanceDepth.dormant:
+        return 'Your $name is ready to emerge with focused attention and practice.';
+      case ResonanceDepth.emerging:
+        return 'Your $name is beginning to show itself more consistently in your experiences.';
+      case ResonanceDepth.developing:
+        return 'Your $name is actively developing and becoming more integrated into your daily life.';
+      case ResonanceDepth.deepening:
+        return 'Your $name is reaching deeper levels of integration and natural expression.';
+      case ResonanceDepth.integrated:
+        return 'Your $name flows naturally through your experiences and interactions.';
+      case ResonanceDepth.transcendent:
+        return 'Your $name has become a source of wisdom and inspiration, both for yourself and others.';
+    }
+  }
+
+  /// Update cores from analysis data (different from updateCoresWithAnalysis)
+  Future<void> updateCoresFromAnalysis(Map<String, dynamic> analysisData) async {
+    try {
+      debugPrint('CoreEvolutionEngine: Processing core updates from analysis data');
+      
+      // This method processes aggregated analysis data to update cores
+      // The actual core updates would typically be handled by a core service
+      // For now, we'll just log the received data
+      
+      for (final entry in analysisData.entries) {
+        final coreId = entry.key;
+        final updateData = entry.value;
+        
+        debugPrint('CoreEvolutionEngine: Core update for $coreId: $updateData');
+        
+        // In a full implementation, this would:
+        // 1. Load the current core data
+        // 2. Apply the updates based on the analysis
+        // 3. Save the updated core data
+        // 4. Trigger any necessary events or notifications
+      }
+    } catch (e) {
+      debugPrint('CoreEvolutionEngine updateCoresFromAnalysis error: $e');
+    }
+  }
 }
 
 /// Configuration for each emotional core
@@ -417,5 +677,24 @@ class CoreUpdate {
     this.toDepth,
     this.entryId,
     this.reason,
+  });
+}
+
+/// Result of core progress calculation
+class CoreProgressResult {
+  final EmotionalCore core;
+  final List<String> milestones;
+  final List<String> achievedMilestones;
+  final String? nextMilestone;
+  final double progressVelocity;
+  final Duration? estimatedTimeToNextMilestone;
+
+  const CoreProgressResult({
+    required this.core,
+    required this.milestones,
+    required this.achievedMilestones,
+    this.nextMilestone,
+    required this.progressVelocity,
+    this.estimatedTimeToNextMilestone,
   });
 }

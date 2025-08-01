@@ -4,6 +4,7 @@ import 'dart:math';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/core.dart';
 import '../models/journal_entry.dart';
+import '../database/core_dao.dart';
 import 'emotional_analyzer.dart';
 
 /// Service for managing the complete emotional core library system.
@@ -18,6 +19,8 @@ class CoreLibraryService {
   static const String _coresKey = 'emotional_cores';
   static const String _milestonesKey = 'core_milestones';
   static const String _insightsKey = 'core_insights';
+  
+  final CoreDao _coreDao = CoreDao();
 
   // Core configuration for all six personality cores
   static const Map<String, CoreConfig> _coreConfigs = {
@@ -86,48 +89,33 @@ class CoreLibraryService {
   /// Get all six emotional cores
   Future<List<EmotionalCore>> getAllCores() async {
     try {
-      debugPrint('CoreLibraryService: Getting all cores');
-      final prefs = await SharedPreferences.getInstance();
-      final coresJson = prefs.getString(_coresKey);
+      debugPrint('CoreLibraryService: Getting all cores from database');
       
-      if (coresJson != null && coresJson.isNotEmpty) {
-        debugPrint('CoreLibraryService: Found stored cores data, length: ${coresJson.length}');
-        
-        try {
-          final coresList = jsonDecode(coresJson) as List;
-          final cores = coresList.map((json) => EmotionalCore.fromJson(json)).toList();
-          
-          // Validate the loaded cores
-          if (cores.isEmpty) {
-            debugPrint('CoreLibraryService: Warning - Loaded empty cores list, using initial cores');
-            return _createInitialCores();
-          }
-          
-          // Check if we have all expected cores
-          final expectedCoreIds = _coreConfigs.keys.toSet();
-          final loadedCoreIds = cores.map((c) => c.id).toSet();
-          
-          if (!expectedCoreIds.every((id) => loadedCoreIds.contains(id))) {
-            debugPrint('CoreLibraryService: Warning - Missing some expected cores, using initial cores');
-            return _createInitialCores();
-          }
-          
-          debugPrint('CoreLibraryService: Successfully loaded ${cores.length} cores from storage');
-          return cores;
-        } catch (parseError) {
-          debugPrint('CoreLibraryService: Error parsing cores JSON: $parseError');
-          debugPrint('CoreLibraryService: Using initial cores due to parse error');
-          return _createInitialCores();
-        }
-      } else {
-        debugPrint('CoreLibraryService: No cores found in storage, creating initial cores');
-        final initialCores = _createInitialCores();
-        
-        // Save the initial cores to storage
-        await _saveCores(initialCores);
-        
-        return initialCores;
+      // First, get cores from database
+      final dbCores = await _coreDao.getAllEmotionalCores();
+      
+      if (dbCores.isNotEmpty) {
+        debugPrint('CoreLibraryService: Successfully loaded ${dbCores.length} cores from database');
+        return dbCores;
       }
+      
+      debugPrint('CoreLibraryService: No cores in database, initializing default cores');
+      
+      // Initialize database with default cores if empty
+      await _coreDao.initializeDefaultCores();
+      
+      // Get the newly initialized cores
+      final initializedCores = await _coreDao.getAllEmotionalCores();
+      
+      if (initializedCores.isNotEmpty) {
+        debugPrint('CoreLibraryService: Successfully initialized ${initializedCores.length} cores in database');
+        return initializedCores;
+      }
+      
+      // Fallback to in-memory cores if database fails
+      debugPrint('CoreLibraryService: Database initialization failed, using in-memory cores');
+      return _createInitialCores();
+      
     } catch (e) {
       debugPrint('CoreLibraryService getAllCores error: $e');
       debugPrint('CoreLibraryService getAllCores error details: ${e.toString()}');
@@ -343,12 +331,9 @@ class CoreLibraryService {
   /// Update a specific core
   Future<void> updateCore(EmotionalCore core) async {
     try {
-      final cores = await getAllCores();
-      final updatedCores = cores.map((existingCore) {
-        return existingCore.id == core.id ? core : existingCore;
-      }).toList();
-      
-      await _saveCores(updatedCores);
+      debugPrint('CoreLibraryService: Updating core ${core.name} in database');
+      await _coreDao.updateEmotionalCore(core);
+      debugPrint('CoreLibraryService: Successfully updated core ${core.name}');
     } catch (e) {
       debugPrint('CoreLibraryService updateCore error: $e');
     }
@@ -761,7 +746,7 @@ class CoreLibraryService {
 
   Future<void> _saveCores(List<EmotionalCore> cores) async {
     try {
-      debugPrint('CoreLibraryService: Saving ${cores.length} cores to storage');
+      debugPrint('CoreLibraryService: Saving ${cores.length} cores to database');
       
       // Validate cores before saving
       for (final core in cores) {
@@ -773,37 +758,13 @@ class CoreLibraryService {
         }
       }
       
-      final prefs = await SharedPreferences.getInstance();
-      
-      // Create a clean list of core JSON objects
-      final coreJsonList = cores.map((core) {
-        final json = core.toJson();
-        // Ensure all required fields are present
-        if (!json.containsKey('id') || !json.containsKey('name') || 
-            !json.containsKey('currentLevel') || !json.containsKey('trend')) {
-          debugPrint('CoreLibraryService: Warning - Core JSON missing required fields: ${json['name'] ?? 'unknown'}');
-        }
-        return json;
-      }).toList();
-      
-      final coresJson = jsonEncode(coreJsonList);
-      debugPrint('CoreLibraryService: Serialized cores JSON length: ${coresJson.length}');
-      
-      // Save to SharedPreferences
-      final success = await prefs.setString(_coresKey, coresJson);
-      if (success) {
-        debugPrint('CoreLibraryService: Successfully saved cores to storage');
-      } else {
-        debugPrint('CoreLibraryService: Failed to save cores to storage');
+      // Update each core in the database
+      for (final core in cores) {
+        await _coreDao.updateEmotionalCore(core);
       }
       
-      // Verify the save was successful by reading back
-      final savedJson = prefs.getString(_coresKey);
-      if (savedJson != null) {
-        debugPrint('CoreLibraryService: Verified saved data exists in storage');
-      } else {
-        debugPrint('CoreLibraryService: WARNING - Failed to verify saved data');
-      }
+      debugPrint('CoreLibraryService: Successfully saved ${cores.length} cores to database');
+      
     } catch (e) {
       debugPrint('CoreLibraryService _saveCores error: $e');
       debugPrint('CoreLibraryService _saveCores error details: ${e.toString()}');
