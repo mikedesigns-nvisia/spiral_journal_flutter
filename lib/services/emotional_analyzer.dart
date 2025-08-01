@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import '../models/journal_entry.dart';
+import '../models/core_resonance_data.dart';
 
 /// Service for analyzing emotional patterns and extracting structured insights from AI responses.
 /// 
@@ -24,9 +25,9 @@ class EmotionalAnalyzer {
         primaryEmotions: _extractPrimaryEmotions(aiResponse),
         emotionalIntensity: _extractEmotionalIntensity(aiResponse),
         keyThemes: _extractKeyThemes(aiResponse),
-        overallSentiment: _calculateOverallSentiment(aiResponse, entry),
+        overallSentiment: _extractOverallSentiment(aiResponse),
         personalizedInsight: _extractPersonalizedInsight(aiResponse),
-        coreImpacts: _extractCoreImpacts(aiResponse),
+        coreResonance: _extractCoreResonance(aiResponse),
         emotionalPatterns: _extractEmotionalPatterns(aiResponse),
         growthIndicators: _extractGrowthIndicators(aiResponse),
         validationScore: _calculateValidationScore(aiResponse),
@@ -42,13 +43,13 @@ class EmotionalAnalyzer {
     try {
       // Check required fields
       if (result.primaryEmotions.isEmpty) return false;
-      if (result.emotionalIntensity < 0 || result.emotionalIntensity > 10) return false;
+      if (result.emotionalIntensity < 0 || result.emotionalIntensity > 1) return false;
       if (result.overallSentiment < -1 || result.overallSentiment > 1) return false;
       if (result.personalizedInsight.isEmpty) return false;
 
-      // Validate core impacts
-      for (final impact in result.coreImpacts.values) {
-        if (impact < -1.0 || impact > 1.0) return false;
+      // Validate core resonance data
+      for (final resonanceData in result.coreResonance.values) {
+        if (resonanceData.resonanceStrength < 0.0 || resonanceData.resonanceStrength > 1.0) return false;
       }
 
       // Check validation score
@@ -70,7 +71,7 @@ class EmotionalAnalyzer {
             .where((emotion) => emotion.isNotEmpty)
             .take(5) // Limit to 5 emotions max
             .toList(),
-        emotionalIntensity: result.emotionalIntensity.clamp(0.0, 10.0),
+        emotionalIntensity: result.emotionalIntensity.clamp(0.0, 1.0),
         keyThemes: result.keyThemes
             .map((theme) => _sanitizeText(theme))
             .where((theme) => theme.isNotEmpty)
@@ -78,8 +79,17 @@ class EmotionalAnalyzer {
             .toList(),
         overallSentiment: result.overallSentiment.clamp(-1.0, 1.0),
         personalizedInsight: _sanitizeText(result.personalizedInsight, maxLength: 500),
-        coreImpacts: result.coreImpacts.map((key, value) => 
-            MapEntry(key, value.clamp(-1.0, 1.0))),
+        coreResonance: result.coreResonance.map((key, value) => 
+            MapEntry(key, CoreResonanceData(
+              resonanceStrength: value.resonanceStrength.clamp(0.0, 1.0),
+              depthIndicator: _sanitizeText(value.depthIndicator),
+              transitionSignals: value.transitionSignals
+                  .map((signal) => _sanitizeText(signal))
+                  .where((signal) => signal.isNotEmpty)
+                  .take(3)
+                  .toList(),
+              supportingEvidence: _sanitizeText(value.supportingEvidence, maxLength: 300),
+            ))),
         emotionalPatterns: result.emotionalPatterns
             .map((pattern) => JournalEmotionalPattern(
               title: _sanitizeText(pattern.title),
@@ -259,14 +269,14 @@ class EmotionalAnalyzer {
       if (response.containsKey('emotional_analysis')) {
         final analysis = response['emotional_analysis'] as Map<String, dynamic>;
         final intensity = analysis['emotional_intensity'] as num?;
-        return (intensity?.toDouble() ?? 5.0) * 10; // Convert 0-1 to 0-10 scale
+        return intensity?.toDouble() ?? 0.5; // Keep as 0-1 scale
       }
       
-      // Fallback to legacy format
+      // Fallback to legacy format - convert from 0-10 to 0-1 scale
       final intensity = response['emotional_intensity'] as num?;
-      return intensity?.toDouble() ?? 5.0;
+      return (intensity?.toDouble() ?? 5.0) / 10.0;
     } catch (e) {
-      return 5.0;
+      return 0.5;
     }
   }
 
@@ -286,7 +296,7 @@ class EmotionalAnalyzer {
     }
   }
 
-  double _calculateOverallSentiment(Map<String, dynamic> response, JournalEntry entry) {
+  double _extractOverallSentiment(Map<String, dynamic> response) {
     try {
       if (response.containsKey('emotional_analysis')) {
         final analysis = response['emotional_analysis'] as Map<String, dynamic>;
@@ -294,7 +304,7 @@ class EmotionalAnalyzer {
         return sentiment?.toDouble() ?? 0.0;
       }
       
-      // Calculate from emotions and content
+      // Calculate from emotions for fallback
       final emotions = _extractPrimaryEmotions(response);
       final positiveEmotions = ['happy', 'joyful', 'excited', 'grateful', 'content', 'peaceful'];
       final negativeEmotions = ['sad', 'angry', 'frustrated', 'anxious', 'worried'];
@@ -308,15 +318,34 @@ class EmotionalAnalyzer {
         }
       }
       
-      // Adjust based on content analysis
-      final content = entry.content.toLowerCase();
-      if (content.contains('grateful') || content.contains('thankful')) sentiment += 0.2;
-      if (content.contains('love') || content.contains('amazing')) sentiment += 0.2;
-      if (content.contains('difficult') || content.contains('hard')) sentiment -= 0.1;
-      
       return sentiment.clamp(-1.0, 1.0);
     } catch (e) {
       return 0.0;
+    }
+  }
+
+  Map<String, CoreResonanceData> _extractCoreResonance(Map<String, dynamic> response) {
+    try {
+      final coreResonanceMap = <String, CoreResonanceData>{};
+      
+      if (response.containsKey('core_updates')) {
+        final coreUpdates = response['core_updates'] as List<dynamic>;
+        
+        for (final update in coreUpdates) {
+          final coreMap = update as Map<String, dynamic>;
+          final coreId = coreMap['id'] as String;
+          if (coreMap.containsKey('resonance_depth')) {
+            coreResonanceMap[coreId] = CoreResonanceData.fromJson(
+              coreMap['resonance_depth'] as Map<String, dynamic>
+            );
+          }
+        }
+      }
+      
+      return coreResonanceMap;
+    } catch (e) {
+      debugPrint('EmotionalAnalyzer _extractCoreResonance error: $e');
+      return {};
     }
   }
 
@@ -432,11 +461,18 @@ class EmotionalAnalyzer {
   EmotionalAnalysisResult _createFallbackAnalysis(JournalEntry entry) {
     return EmotionalAnalysisResult(
       primaryEmotions: entry.moods.isNotEmpty ? [entry.moods.first] : ['neutral'],
-      emotionalIntensity: 5.0,
+      emotionalIntensity: 0.5, // 0-1 scale
       keyThemes: ['self_reflection'],
       overallSentiment: 0.0,
       personalizedInsight: 'Thank you for taking time to reflect and journal.',
-      coreImpacts: {'Self-Awareness': 0.1},
+      coreResonance: {
+        'self_awareness': CoreResonanceData(
+          resonanceStrength: 0.7,
+          depthIndicator: 'emerging',
+          transitionSignals: ['Self-reflection through journaling'],
+          supportingEvidence: 'Taking time to write and reflect shows growing self-awareness',
+        ),
+      },
       emotionalPatterns: [
         JournalEmotionalPattern(
           title: 'Journaling Practice',
@@ -774,14 +810,14 @@ class EmotionalAnalyzer {
   }
 }
 
-/// Structured result of emotional analysis
+/// Structured result of emotional analysis with resonance depth system
 class EmotionalAnalysisResult {
   final List<String> primaryEmotions;
-  final double emotionalIntensity; // 0-10 scale
+  final double emotionalIntensity; // 0-1 scale
   final List<String> keyThemes;
   final double overallSentiment; // -1 to 1 scale
   final String personalizedInsight;
-  final Map<String, double> coreImpacts; // Core name -> impact value
+  final Map<String, CoreResonanceData> coreResonance; // Core ID -> resonance data
   final List<JournalEmotionalPattern> emotionalPatterns;
   final List<String> growthIndicators;
   final double validationScore; // 0-1 confidence score
@@ -792,7 +828,7 @@ class EmotionalAnalysisResult {
     required this.keyThemes,
     required this.overallSentiment,
     required this.personalizedInsight,
-    required this.coreImpacts,
+    required this.coreResonance,
     required this.emotionalPatterns,
     required this.growthIndicators,
     required this.validationScore,
@@ -805,7 +841,7 @@ class EmotionalAnalysisResult {
       'key_themes': keyThemes,
       'overall_sentiment': overallSentiment,
       'personalized_insight': personalizedInsight,
-      'core_impacts': coreImpacts,
+      'core_resonance': coreResonance.map((key, value) => MapEntry(key, value.toJson())),
       'emotional_patterns': emotionalPatterns.map((p) => {
         'category': p.category,
         'title': p.title,

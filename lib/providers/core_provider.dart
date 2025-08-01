@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import '../models/core.dart';
 import '../models/core_error.dart';
 import '../models/journal_entry.dart';
+import '../models/resonance_depth.dart';
 import '../services/core_library_service.dart';
 import '../services/core_cache_manager.dart';
 import '../services/core_background_sync_service.dart';
@@ -295,14 +296,21 @@ class CoreProvider with ChangeNotifier {
         await loadAllCores(forceRefresh: forceRefresh);
       }
       
-      // Sort by current level and recent activity
+      // Sort by resonance depth and progress within depth
       final sortedCores = List<EmotionalCore>.from(_allCores);
       sortedCores.sort((a, b) {
-        // Primary sort: current level
-        final levelComparison = b.currentLevel.compareTo(a.currentLevel);
-        if (levelComparison != 0) return levelComparison;
+        // Primary sort: resonance depth (higher depth = better)
+        final depthCompare = ResonanceDepth.values
+            .indexOf(b.resonanceDepth)
+            .compareTo(ResonanceDepth.values.indexOf(a.resonanceDepth));
         
-        // Secondary sort: recent activity (last updated)
+        if (depthCompare != 0) return depthCompare;
+        
+        // Secondary sort: progress within depth
+        final progressCompare = b.depthProgress.compareTo(a.depthProgress);
+        if (progressCompare != 0) return progressCompare;
+        
+        // Tertiary sort: recent activity (last updated)
         return b.lastUpdated.compareTo(a.lastUpdated);
       });
       
@@ -850,8 +858,9 @@ class CoreProvider with ChangeNotifier {
           hasChanges = true;
         } else {
           for (int i = 0; i < freshCores.length; i++) {
-            if (freshCores[i].currentLevel != _allCores[i].currentLevel ||
-                freshCores[i].trend != _allCores[i].trend) {
+            if (freshCores[i].resonanceDepth != _allCores[i].resonanceDepth ||
+                freshCores[i].trend != _allCores[i].trend ||
+                freshCores[i].depthProgress != _allCores[i].depthProgress) {
               hasChanges = true;
               break;
             }
@@ -985,15 +994,32 @@ class CoreProvider with ChangeNotifier {
   ) async {
     final events = <CoreUpdateEvent>[];
     
-    // Level change event
-    if (previousCore != null && newCore.currentLevel != previousCore.currentLevel) {
+    // Resonance depth change event
+    if (previousCore != null && newCore.resonanceDepth != previousCore.resonanceDepth) {
       events.add(CoreUpdateEvent(
         coreId: newCore.id,
         type: CoreUpdateEventType.levelChanged,
         data: {
+          'previousDepth': previousCore.resonanceDepth.name,
+          'newDepth': newCore.resonanceDepth.name,
           'previousLevel': previousCore.currentLevel,
           'newLevel': newCore.currentLevel,
-          'change': newCore.currentLevel - previousCore.currentLevel,
+          'depthTransition': true,
+        },
+        timestamp: DateTime.now(),
+        relatedJournalEntryId: relatedEntry?.id,
+        updateSource: 'ai_analysis',
+      ));
+    } else if (previousCore != null && newCore.depthProgress != previousCore.depthProgress) {
+      // Progress within depth change event
+      events.add(CoreUpdateEvent(
+        coreId: newCore.id,
+        type: CoreUpdateEventType.levelChanged,
+        data: {
+          'depth': newCore.resonanceDepth.name,
+          'previousProgress': previousCore.depthProgress,
+          'newProgress': newCore.depthProgress,
+          'progressChange': newCore.depthProgress - previousCore.depthProgress,
         },
         timestamp: DateTime.now(),
         relatedJournalEntryId: relatedEntry?.id,

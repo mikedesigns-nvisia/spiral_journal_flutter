@@ -11,6 +11,7 @@ import '../providers/journal_provider.dart';
 import '../services/core_navigation_context_service.dart';
 import '../services/accessibility_service.dart';
 import '../services/core_visual_consistency_service.dart';
+import '../widgets/resonance_depth_visualizer.dart';
 
 class CoreLibraryScreen extends StatefulWidget {
   final CoreNavigationContext? navigationContext;
@@ -473,8 +474,15 @@ class _CoreLibraryScreenState extends State<CoreLibraryScreen> with TickerProvid
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: AppTheme.getBackgroundSecondary(context),
-          borderRadius: BorderRadius.circular(16),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              color.withValues(alpha: 0.1),
+              color.withValues(alpha: 0.05),
+            ],
+          ),
+          borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: isHighlighted 
                 ? color.withValues(alpha: 0.6)
@@ -504,99 +512,30 @@ class _CoreLibraryScreenState extends State<CoreLibraryScreen> with TickerProvid
                 ),
                 child: Text(
                   'UPDATED',
-                  style: HeadingSystem.getLabelSmall(context).copyWith(
+                  style: HeadingSystem.getLabelSmall(context)?.copyWith(
                     color: AppTheme.accentGreen,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
               ),
-              const SizedBox(height: 6),
+              const SizedBox(height: 8),
             ],
-            // Progress Circle with animation
-            AnimatedBuilder(
-              animation: _pulseAnimation,
-              builder: (context, child) {
-                final shouldAnimate = _recentlyUpdatedCores.contains(core.id);
-                final scale = shouldAnimate ? _pulseAnimation.value : 1.0;
-                
-                return Transform.scale(
-                  scale: scale,
-                  child: SizedBox(
-                    width: 70,
-                    height: 70,
-                    child: Stack(
-                      children: [
-                        // Background circle
-                        Container(
-                          width: 70,
-                          height: 70,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: color.withValues(alpha: 0.1),
-                          ),
-                        ),
-                        // Progress circle with animated progress
-                        TweenAnimationBuilder<double>(
-                          duration: const Duration(milliseconds: 800),
-                          tween: Tween<double>(
-                            begin: core.previousLevel,
-                            end: core.currentLevel,
-                          ),
-                          curve: Curves.easeInOutCubic,
-                          builder: (context, animatedProgress, child) {
-                            return CustomPaint(
-                              size: const Size(70, 70),
-                              painter: CircularProgressPainter(
-                                progress: animatedProgress,
-                                color: color,
-                                strokeWidth: isHighlighted ? 6 : 5,
-                              ),
-                            );
-                          },
-                        ),
-                        // Center content
-                        Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                _getCoreIcon(core.id),
-                                color: color,
-                                size: 22,
-                              ),
-                              const SizedBox(height: 2),
-                              TweenAnimationBuilder<double>(
-                                duration: const Duration(milliseconds: 600),
-                                tween: Tween<double>(
-                                  begin: core.previousLevel * 100,
-                                  end: core.currentLevel * 100,
-                                ),
-                                curve: Curves.easeOut,
-                                builder: (context, animatedValue, child) {
-                                  return Text(
-                                    '${animatedValue.round()}%',
-                                    style: HeadingSystem.getLabelSmall(context).copyWith(
-                                      fontWeight: FontWeight.w600,
-                                      color: color,
-                                    ),
-                                  );
-                                },
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              },
+            
+            // Resonance Depth Visualizer
+            ResonanceDepthVisualizer(
+              core: core,
+              size: 80,
+              showLabel: false,
+              showProgress: false,
             ),
-            const SizedBox(height: 8),
+            
+            const SizedBox(height: 12),
+            
             // Core name
             Flexible(
               child: Text(
                 core.name,
-                style: HeadingSystem.getTitleSmall(context).copyWith(
+                style: HeadingSystem.getTitleSmall(context)?.copyWith(
                   fontWeight: FontWeight.w600,
                 ),
                 textAlign: TextAlign.center,
@@ -604,27 +543,62 @@ class _CoreLibraryScreenState extends State<CoreLibraryScreen> with TickerProvid
                 overflow: TextOverflow.ellipsis,
               ),
             ),
-            const SizedBox(height: 2),
+            
+            const SizedBox(height: 4),
+            
+            // Resonance depth label
+            Text(
+              core.resonanceDepth.displayName,
+              style: HeadingSystem.getBodySmall(context)?.copyWith(
+                color: color,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            
+            const SizedBox(height: 4),
+            
             // Trend indicator
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  core.trend == 'rising' ? Icons.trending_up : 
-                  core.trend == 'declining' ? Icons.trending_down : Icons.trending_flat,
-                  color: trendColor,
-                  size: 14,
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  core.trend.toUpperCase(),
-                  style: HeadingSystem.getLabelSmall(context).copyWith(
+            if (core.trend != 'stable') ...[
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    core.trend == 'rising' ? Icons.trending_up : 
+                    core.trend == 'declining' ? Icons.trending_down : Icons.trending_flat,
                     color: trendColor,
-                    fontWeight: FontWeight.w500,
+                    size: 12,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    core.trend.toUpperCase(),
+                    style: HeadingSystem.getLabelSmall(context)?.copyWith(
+                      color: trendColor,
+                      fontWeight: FontWeight.w500,
+                      fontSize: 10,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+            
+            // Transition indicator
+            if (core.isTransitioning) ...[
+              const SizedBox(height: 4),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: AppTheme.getAccentColor(context).withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  'Transitioning',
+                  style: HeadingSystem.getLabelSmall(context)?.copyWith(
+                    color: AppTheme.getAccentColor(context),
+                    fontSize: 10,
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ],
         ),
       ),

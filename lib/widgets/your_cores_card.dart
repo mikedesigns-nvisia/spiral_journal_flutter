@@ -12,6 +12,7 @@ import 'package:spiral_journal/services/core_navigation_context_service.dart';
 import 'package:spiral_journal/services/navigation_service.dart';
 import 'package:spiral_journal/models/core.dart';
 import 'package:spiral_journal/widgets/base_card.dart';
+import 'package:spiral_journal/widgets/resonance_depth_visualizer.dart';
 
 class YourCoresCard extends StatefulWidget {
   const YourCoresCard({super.key});
@@ -521,11 +522,9 @@ class _YourCoresCardState extends State<YourCoresCard>
   ) {
     final coreColor = _getCoreColor(core.color);
     final icon = _getCoreIcon(core.name);
-    final percentage = '${core.percentage.round()}%';
     
     // Get animations for this core
     final pulseAnimation = _pulseAnimations[core.id];
-    final progressAnimation = _progressAnimations[core.id];
     
     // Check if this core has recent updates
     final hasRecentUpdate = _hasRecentUpdate(core);
@@ -539,7 +538,7 @@ class _YourCoresCardState extends State<YourCoresCard>
       ),
     );
     
-    // Create comprehensive semantic label
+    // Create comprehensive semantic label for resonance depth
     final semanticLabel = _accessibilityService.getCoreCardSemanticLabel(
       core.name,
       core.currentLevel,
@@ -576,97 +575,118 @@ class _YourCoresCardState extends State<YourCoresCard>
                   constraints: BoxConstraints(
                     minHeight: _accessibilityService.getMinimumTouchTargetSize(),
                   ),
-                  padding: EdgeInsets.all(DesignTokens.spaceXL),
+                  padding: EdgeInsets.all(DesignTokens.spaceM),
                   decoration: BoxDecoration(
-                color: DesignTokens.getColorWithOpacity(coreColor, 0.1),
-                borderRadius: BorderRadius.circular(DesignTokens.radiusL),
-                border: Border.all(
-                  color: DesignTokens.getColorWithOpacity(
-                    coreColor, 
-                    hasRecentUpdate ? 0.6 : 0.3,
-                  ),
-                  width: hasRecentUpdate ? 2.0 : 1.0,
-                ),
-                boxShadow: hasRecentUpdate ? [
-                  BoxShadow(
-                    color: DesignTokens.getColorWithOpacity(coreColor, 0.2),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ] : null,
-              ),
-              child: Stack(
-                children: [
-                  Row(
-                    children: [
-                      // Animated core icon with hero transition
-                      Hero(
-                        tag: 'core_icon_${core.id}',
-                        child: Container(
-                          padding: EdgeInsets.all(DesignTokens.spaceM),
-                          decoration: BoxDecoration(
-                            color: DesignTokens.getColorWithOpacity(coreColor, 0.8),
-                            borderRadius: BorderRadius.circular(DesignTokens.radiusM),
-                          ),
-                          child: Icon(
-                            icon,
-                            color: Colors.white,
-                            size: DesignTokens.iconSizeM,
-                          ),
-                        ),
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        DesignTokens.getColorWithOpacity(coreColor, 0.1),
+                        DesignTokens.getColorWithOpacity(coreColor, 0.05),
+                      ],
+                    ),
+                    borderRadius: BorderRadius.circular(DesignTokens.radiusL),
+                    border: Border.all(
+                      color: DesignTokens.getColorWithOpacity(
+                        coreColor, 
+                        hasRecentUpdate ? 0.6 : 0.3,
                       ),
-                      SizedBox(width: DesignTokens.spaceL),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              core.name,
-                              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                                fontWeight: FontWeight.w600,
-                                color: DesignTokens.getTextPrimary(context),
+                      width: hasRecentUpdate ? 2.0 : 1.0,
+                    ),
+                    boxShadow: hasRecentUpdate ? [
+                      BoxShadow(
+                        color: DesignTokens.getColorWithOpacity(coreColor, 0.2),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ] : null,
+                  ),
+                  child: Stack(
+                    children: [
+                      Row(
+                        children: [
+                          // Resonance Depth Visualizer (compact)
+                          ResonanceDepthVisualizer(
+                            core: core,
+                            size: 40,
+                            showLabel: false,
+                            showProgress: false,
+                            isCompact: true,
+                          ),
+                          SizedBox(width: DesignTokens.spaceM),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  core.name,
+                                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                    color: DesignTokens.getTextPrimary(context),
+                                  ),
+                                ),
+                                SizedBox(height: DesignTokens.spaceXS),
+                                Text(
+                                  core.resonanceDepth.displayName,
+                                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: coreColor,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          // Trend indicator
+                          _buildTrendArrow(core),
+                        ],
+                      ),
+                      // Recent update indicator
+                      if (hasRecentUpdate)
+                        Positioned(
+                          top: 0,
+                          right: 0,
+                          child: recentChangeIndicator,
+                        ),
+                      // Journal connection indicator
+                      if (_hasJournalConnection(core))
+                        Positioned(
+                          bottom: 0,
+                          left: 0,
+                          child: _buildJournalConnectionIndicator(core),
+                        ),
+                      // Transition indicator
+                      if (core.isTransitioning)
+                        Positioned(
+                          top: 0,
+                          left: 0,
+                          child: Container(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: DesignTokens.spaceS,
+                              vertical: DesignTokens.spaceXS,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppTheme.getAccentColor(context).withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(DesignTokens.radiusS),
+                              border: Border.all(
+                                color: AppTheme.getAccentColor(context).withValues(alpha: 0.3),
                               ),
                             ),
-                            SizedBox(height: DesignTokens.spaceS),
-                            // Enhanced progress visualization
-                            _buildProgressBar(core, progressAnimation),
-                          ],
-                        ),
-                      ),
-                      // Animated percentage display
-                      Hero(
-                        tag: 'core_percentage_${core.id}',
-                        child: Text(
-                          percentage,
-                          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                            color: DesignTokens.getTextPrimary(context),
-                            fontWeight: FontWeight.w700,
+                            child: Text(
+                              'Transitioning',
+                              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                                color: AppTheme.getAccentColor(context),
+                                fontSize: 10,
+                              ),
+                            ),
                           ),
                         ),
-                      ),
                     ],
                   ),
-                  // Recent update indicator
-                  if (hasRecentUpdate)
-                    Positioned(
-                      top: 0,
-                      right: 0,
-                      child: recentChangeIndicator,
-                    ),
-                  // Journal connection indicator
-                  if (_hasJournalConnection(core))
-                    Positioned(
-                      bottom: 0,
-                      left: 0,
-                      child: _buildJournalConnectionIndicator(core),
-                    ),
-                ],
+                ),
               ),
             ),
           ),
-        ),
-      ),
-    );
+        );
       },
     );
   }

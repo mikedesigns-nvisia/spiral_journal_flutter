@@ -1,10 +1,14 @@
+import 'resonance_depth.dart';
+
 class EmotionalCore {
   final String id;
   final String name;
   final String description;
-  final double currentLevel; // 0.0 to 1.0 (replaces percentage)
+  final double currentLevel; // Keep for internal calculations only
   final double previousLevel;
   final DateTime lastUpdated;
+  final DateTime? lastTransitionDate;
+  final int entriesAtCurrentDepth;
   final String trend; // 'rising', 'stable', 'declining'
   final String color;
   final String iconPath;
@@ -12,6 +16,8 @@ class EmotionalCore {
   final List<String> relatedCores;
   final List<CoreMilestone> milestones;
   final List<CoreInsight> recentInsights;
+  final List<String> transitionSignals; // New field
+  final String? supportingEvidence; // New field
 
   EmotionalCore({
     required this.id,
@@ -20,6 +26,8 @@ class EmotionalCore {
     required this.currentLevel,
     required this.previousLevel,
     required this.lastUpdated,
+    this.lastTransitionDate,
+    this.entriesAtCurrentDepth = 0,
     required this.trend,
     required this.color,
     required this.iconPath,
@@ -27,10 +35,24 @@ class EmotionalCore {
     required this.relatedCores,
     this.milestones = const [],
     this.recentInsights = const [],
+    this.transitionSignals = const [],
+    this.supportingEvidence,
   });
 
-  // Backward compatibility getter
-  double get percentage => currentLevel * 100;
+  // Remove percentage getter - no longer needed
+  
+  ResonanceDepth get resonanceDepth => ResonanceDepth.fromLevel(currentLevel);
+  
+  ResonanceDepth get previousResonanceDepth => ResonanceDepth.fromLevel(previousLevel);
+
+  double get depthProgress {
+    final depth = resonanceDepth;
+    final range = depth.maxLevel - depth.minLevel;
+    final progress = (currentLevel - depth.minLevel) / range;
+    return progress.clamp(0.0, 1.0);
+  }
+  
+  bool get isTransitioning => transitionSignals.isNotEmpty && depthProgress > 0.7;
 
   factory EmotionalCore.fromJson(Map<String, dynamic> json) {
     return EmotionalCore(
@@ -42,6 +64,10 @@ class EmotionalCore {
       lastUpdated: json['lastUpdated'] != null 
           ? DateTime.parse(json['lastUpdated'])
           : DateTime.now(),
+      lastTransitionDate: json['lastTransitionDate'] != null 
+          ? DateTime.parse(json['lastTransitionDate'])
+          : null,
+      entriesAtCurrentDepth: json['entriesAtCurrentDepth'] ?? 0,
       trend: json['trend'] ?? 'stable',
       color: json['color'],
       iconPath: json['iconPath'],
@@ -53,6 +79,8 @@ class EmotionalCore {
       recentInsights: (json['recentInsights'] as List<dynamic>?)
           ?.map((i) => CoreInsight.fromJson(i))
           .toList() ?? [],
+      transitionSignals: List<String>.from(json['transitionSignals'] ?? []),
+      supportingEvidence: json['supportingEvidence'],
     );
   }
 
@@ -64,6 +92,8 @@ class EmotionalCore {
       'currentLevel': currentLevel,
       'previousLevel': previousLevel,
       'lastUpdated': lastUpdated.toIso8601String(),
+      'lastTransitionDate': lastTransitionDate?.toIso8601String(),
+      'entriesAtCurrentDepth': entriesAtCurrentDepth,
       'trend': trend,
       'color': color,
       'iconPath': iconPath,
@@ -71,8 +101,8 @@ class EmotionalCore {
       'relatedCores': relatedCores,
       'milestones': milestones.map((m) => m.toJson()).toList(),
       'recentInsights': recentInsights.map((i) => i.toJson()).toList(),
-      // Backward compatibility
-      'percentage': percentage,
+      'transitionSignals': transitionSignals,
+      'supportingEvidence': supportingEvidence,
     };
   }
 
@@ -83,6 +113,8 @@ class EmotionalCore {
     double? currentLevel,
     double? previousLevel,
     DateTime? lastUpdated,
+    DateTime? lastTransitionDate,
+    int? entriesAtCurrentDepth,
     String? trend,
     String? color,
     String? iconPath,
@@ -90,6 +122,8 @@ class EmotionalCore {
     List<String>? relatedCores,
     List<CoreMilestone>? milestones,
     List<CoreInsight>? recentInsights,
+    List<String>? transitionSignals,
+    String? supportingEvidence,
   }) {
     return EmotionalCore(
       id: id ?? this.id,
@@ -98,6 +132,8 @@ class EmotionalCore {
       currentLevel: currentLevel ?? this.currentLevel,
       previousLevel: previousLevel ?? this.previousLevel,
       lastUpdated: lastUpdated ?? this.lastUpdated,
+      lastTransitionDate: lastTransitionDate ?? this.lastTransitionDate,
+      entriesAtCurrentDepth: entriesAtCurrentDepth ?? this.entriesAtCurrentDepth,
       trend: trend ?? this.trend,
       color: color ?? this.color,
       iconPath: iconPath ?? this.iconPath,
@@ -105,6 +141,8 @@ class EmotionalCore {
       relatedCores: relatedCores ?? this.relatedCores,
       milestones: milestones ?? this.milestones,
       recentInsights: recentInsights ?? this.recentInsights,
+      transitionSignals: transitionSignals ?? this.transitionSignals,
+      supportingEvidence: supportingEvidence ?? this.supportingEvidence,
     );
   }
 }

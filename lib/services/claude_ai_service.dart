@@ -149,7 +149,7 @@ class ClaudeAIService {
 
   String _buildAnalysisPrompt(JournalEntry entry) {
     return '''
-Analyze this journal entry for emotional intelligence insights:
+Analyze this journal entry for emotional depth and resonance patterns:
 
 Date: ${entry.formattedDate}
 Moods: ${entry.moods.join(', ')}
@@ -157,29 +157,101 @@ Content: "${entry.content}"
 
 Please provide a JSON response with the following structure:
 {
-  "primary_emotions": ["emotion1", "emotion2"],
-  "emotional_intensity": 7.5,
-  "growth_indicators": ["indicator1", "indicator2"],
-  "core_strengths": {
-    "optimism": 0.2,
-    "resilience": 0.1,
-    "self_awareness": 0.3,
-    "creativity": 0.0,
-    "social_connection": 0.1,
-    "growth_mindset": 0.2
+  "emotional_analysis": {
+    "primary_emotions": ["emotion1", "emotion2"],
+    "emotional_intensity": 0.75,
+    "key_themes": ["theme1", "theme2"],
+    "overall_sentiment": 0.3,
+    "personalized_insight": "Brief encouraging insight about the entry"
   },
-  "insight": "Brief encouraging insight about the entry"
+  "core_updates": [
+    {
+      "id": "optimism",
+      "resonance_depth": {
+        "resonance_strength": 0.8,
+        "depth_indicator": "developing",
+        "transition_signals": ["Shows positive reframing", "Future-focused language"],
+        "supporting_evidence": "Specific evidence from the entry showing this resonance depth"
+      }
+    },
+    {
+      "id": "resilience",
+      "resonance_depth": {
+        "resonance_strength": 0.6,
+        "depth_indicator": "emerging",
+        "transition_signals": ["Acknowledging challenges", "Problem-solving approach"],
+        "supporting_evidence": "Evidence of resilience thinking patterns"
+      }
+    }
+  ],
+  "emotional_patterns": [
+    {
+      "title": "Pattern name",
+      "description": "Pattern description",
+      "type": "growth",
+      "category": "Emotional Awareness",
+      "confidence": 0.8
+    }
+  ]
 }
 
-Focus on:
-1. Emotional patterns and self-awareness
-2. Growth mindset indicators
-3. Resilience and coping mechanisms
-4. Creative expression
-5. Social connections mentioned
-6. Optimistic vs pessimistic language
+Focus on these six core aspects of emotional depth:
 
-Provide core_strengths as small incremental values (-0.5 to +0.5) representing how this entry should adjust each core percentage.
+1. **Optimism** - Hope, positive outlook, future possibilities
+   - Dormant: No positive framing, pessimistic outlook
+   - Emerging: Occasional positive thoughts, glimpses of hope
+   - Developing: Regular positive reframing, balanced perspective
+   - Deepening: Natural optimism, resilient hope despite challenges
+   - Integrated: Deep trust in positive outcomes, inspiring others
+   - Transcendent: Unwavering positive vision that transforms situations
+
+2. **Resilience** - Bouncing back, coping with challenges, adaptability
+   - Dormant: Overwhelmed by setbacks, avoidance patterns
+   - Emerging: Beginning to acknowledge challenges constructively
+   - Developing: Active problem-solving, seeking support
+   - Deepening: Strong recovery patterns, learning from difficulties
+   - Integrated: Challenges seen as growth opportunities
+   - Transcendent: Profound strength that helps others through difficulties
+
+3. **Self-Awareness** - Understanding emotions, recognizing patterns, mindfulness
+   - Dormant: Limited emotional insight, reactive patterns
+   - Emerging: Beginning to notice emotional states
+   - Developing: Regular self-reflection, pattern recognition
+   - Deepening: Deep emotional understanding, mindful responses
+   - Integrated: Seamless emotional intelligence in daily life
+   - Transcendent: Profound self-knowledge that guides authentic living
+
+4. **Creativity** - Creative expression, innovative thinking, artistic pursuits
+   - Dormant: Little creative expression, rigid thinking
+   - Emerging: Occasional creative moments, openness to new ideas
+   - Developing: Regular creative activities, flexible thinking
+   - Deepening: Creative problem-solving, artistic expression as outlet
+   - Integrated: Creativity woven into daily life and identity
+   - Transcendent: Boundless creative flow that inspires transformation
+
+5. **Social Connection** - Relationships, empathy, community building
+   - Dormant: Isolated, difficulty with social bonds
+   - Emerging: Beginning to reach out, recognizing need for connection
+   - Developing: Actively building relationships, showing empathy
+   - Deepening: Meaningful connections, strong support network
+   - Integrated: Natural community builder, deep empathic presence
+   - Transcendent: Profound ability to unite and heal through connection
+
+6. **Growth Mindset** - Learning from failure, embracing challenges, continuous development
+   - Dormant: Fixed mindset, avoiding challenges
+   - Emerging: Beginning to see failure as learning
+   - Developing: Actively seeking growth opportunities
+   - Deepening: Challenges welcomed as development paths
+   - Integrated: Natural learner, continuous self-improvement
+   - Transcendent: Profound wisdom that transforms obstacles into opportunities
+
+For each core that resonates with this entry:
+- Assess resonance_strength (0.0-1.0): How strongly this entry demonstrates this core
+- Determine depth_indicator: Which of the six depth stages this entry suggests
+- Identify transition_signals: Specific language or concepts that indicate depth
+- Provide supporting_evidence: Direct quotes or observations from the entry
+
+Only include cores that genuinely resonate with the entry content. Quality over quantity.
 ''';
   }
 

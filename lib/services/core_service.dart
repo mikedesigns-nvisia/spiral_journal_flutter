@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import '../models/core.dart';
 import '../models/core_error.dart';
 import '../models/journal_entry.dart';
+import '../models/resonance_depth.dart';
 import '../database/core_dao.dart';
 import 'package:uuid/uuid.dart';
 
@@ -48,10 +49,23 @@ class CoreService {
   /// All emotional cores
   List<EmotionalCore> get cores => List.unmodifiable(_cores);
   
-  /// Get top cores by level (default: top 3)
+  /// Get top cores by resonance depth (default: top 3)
   List<EmotionalCore> getTopCores({int limit = 3}) {
     final sortedCores = List<EmotionalCore>.from(_cores);
-    sortedCores.sort((a, b) => b.currentLevel.compareTo(a.currentLevel));
+    
+    // Sort by resonance depth level first, then by progress within depth
+    sortedCores.sort((a, b) {
+      // Compare depth levels (higher depth = better)
+      final depthCompare = ResonanceDepth.values
+          .indexOf(b.resonanceDepth)
+          .compareTo(ResonanceDepth.values.indexOf(a.resonanceDepth));
+      
+      if (depthCompare != 0) return depthCompare;
+      
+      // If same depth, compare progress within that depth
+      return b.depthProgress.compareTo(a.depthProgress);
+    });
+    
     return sortedCores.take(limit).toList();
   }
 

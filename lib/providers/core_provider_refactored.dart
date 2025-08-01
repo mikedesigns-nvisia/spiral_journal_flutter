@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import '../models/core.dart';
 import '../models/core_error.dart';
 import '../models/journal_entry.dart';
+import '../models/resonance_depth.dart';
 import '../services/core_service.dart';
 
 /// Refactored CoreProvider focused solely on state management
@@ -204,9 +205,11 @@ class CoreProvider with ChangeNotifier {
     return _cores.where((core) => core.trend == trend).toList();
   }
 
-  /// Get cores above a certain level
-  List<EmotionalCore> getCoresAboveLevel(double level) {
-    return _cores.where((core) => core.currentLevel >= level).toList();
+  /// Get cores at or above a certain resonance depth
+  List<EmotionalCore> getCoresAtOrAboveDepth(ResonanceDepth depth) {
+    final depthIndex = ResonanceDepth.values.indexOf(depth);
+    return _cores.where((core) => 
+        ResonanceDepth.values.indexOf(core.resonanceDepth) >= depthIndex).toList();
   }
 
   /// Get the most recently updated core
@@ -231,12 +234,13 @@ class CoreProvider with ChangeNotifier {
     return hoursSinceUpdate < 24;
   }
 
-  /// Get average level across all cores
-  double getAverageCoreLevel() {
+  /// Get average resonance depth index across all cores
+  double getAverageDepthIndex() {
     if (_cores.isEmpty) return 0.0;
     
-    final totalLevel = _cores.fold<double>(0.0, (sum, core) => sum + core.currentLevel);
-    return totalLevel / _cores.length;
+    final totalDepthIndex = _cores.fold<double>(0.0, (sum, core) => 
+        sum + ResonanceDepth.values.indexOf(core.resonanceDepth));
+    return totalDepthIndex / _cores.length;
   }
 
   /// Get distribution of core trends
