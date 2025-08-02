@@ -252,50 +252,58 @@ class _ResonanceDepthVisualizerState extends State<ResonanceDepthVisualizer>
   }
   
   Widget _buildSphere(Color color, ResonanceDepth depth, {double? size}) {
-    final sphereSize = size ?? widget.size * 0.6; // Increased from 0.5 to 0.6
+    final sphereSize = size ?? widget.size * 0.6;
+    final isDormant = depth == ResonanceDepth.dormant;
     
     return Container(
       width: sphereSize,
       height: sphereSize,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
+        // Translucent outer membrane (jellyfish-like shell)
         gradient: RadialGradient(
-          center: const Alignment(-0.2, -0.3), // Adjusted for opal-like lighting
+          center: const Alignment(-0.2, -0.3),
           radius: 1.2,
           colors: [
-            Colors.white.withValues(alpha: 1.0), // Bright white core
-            Colors.white.withValues(alpha: 0.8),
-            _getComplementaryColor(color).withValues(alpha: 0.6), // Add complementary color for depth
-            color.withValues(alpha: 0.9),
-            color.withValues(alpha: 1.0),
-            _getDarkerVariant(color).withValues(alpha: 0.9), // Darker variant for depth
-            Colors.black.withValues(alpha: 0.3), // Dark edge for opal effect
+            Colors.white.withValues(alpha: isDormant ? 0.6 : 1.0),
+            Colors.white.withValues(alpha: isDormant ? 0.5 : 0.8),
+            _getComplementaryColor(color).withValues(alpha: isDormant ? 0.3 : 0.6),
+            color.withValues(alpha: isDormant ? 0.6 : 0.9),
+            color.withValues(alpha: isDormant ? 0.8 : 1.0),
+            _getDarkerVariant(color).withValues(alpha: isDormant ? 0.6 : 0.9),
+            Colors.black.withValues(alpha: isDormant ? 0.15 : 0.3),
           ],
           stops: const [0.0, 0.1, 0.25, 0.45, 0.7, 0.85, 1.0],
         ),
         boxShadow: [
-          // Stronger inner shadow for more depth
+          // Translucent outer membrane glow
+          BoxShadow(
+            color: color.withOpacity(isDormant ? 0.2 : 0.4),
+            blurRadius: sphereSize * 0.4,
+            spreadRadius: sphereSize * 0.1,
+          ),
+          // Inner shadow for depth
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.3),
             blurRadius: sphereSize * 0.15,
             spreadRadius: -sphereSize * 0.05,
             offset: Offset(sphereSize * 0.08, sphereSize * 0.08),
           ),
-          // Primary glow - more prominent
+          // Primary bioluminescent glow
           BoxShadow(
-            color: color.withValues(alpha: 0.5),
+            color: color.withValues(alpha: isDormant ? 0.3 : 0.5),
             blurRadius: sphereSize * 0.3,
             spreadRadius: sphereSize * 0.08,
           ),
-          // Secondary glow layer - larger and softer
+          // Secondary glow layer
           BoxShadow(
-            color: color.withValues(alpha: 0.3),
+            color: color.withValues(alpha: isDormant ? 0.2 : 0.3),
             blurRadius: sphereSize * 0.5,
             spreadRadius: sphereSize * 0.15,
           ),
           // Outer atmospheric glow
           BoxShadow(
-            color: color.withValues(alpha: 0.15),
+            color: color.withValues(alpha: isDormant ? 0.1 : 0.15),
             blurRadius: sphereSize * 0.8,
             spreadRadius: sphereSize * 0.25,
           ),
@@ -316,66 +324,124 @@ class _ResonanceDepthVisualizerState extends State<ResonanceDepthVisualizer>
       ),
       child: Stack(
         children: [
-          // Opal-like internal swirls
+          // Bioluminescent flow layer (jellyfish-like internal movement)
+          Positioned.fill(
+            child: ClipOval(
+              child: CustomPaint(
+                painter: BioluminescentFlowPainter(
+                  coreColor: color,
+                  complementaryColor: _getComplementaryColor(color),
+                  flowPhase: _pulseAnimation.value * 2 * 3.14159,
+                  intensity: isDormant ? 0.3 : 1.0,
+                  isDormant: isDormant,
+                  breathingScale: 1.0 + _pulseAnimation.value * 0.1,
+                ),
+              ),
+            ),
+          ),
+          // Opal-like internal swirls (enhanced for jellyfish effect)
           Positioned.fill(
             child: ClipOval(
               child: CustomPaint(
                 painter: OpalSwirliPainter(
                   primaryColor: color,
                   complementaryColor: _getComplementaryColor(color),
-                  animationValue: _pulseAnimation.value, // Always animated for living opal effect
+                  animationValue: _pulseAnimation.value,
                 ),
               ),
             ),
           ),
-          // Primary brilliant highlight
+          // Floating light particles (jellyfish bioluminescence)
+          ...List.generate(isDormant ? 3 : 6, (index) {
+            final progress = (_pulseAnimation.value + index * 0.3) % 1.0;
+            final radius = sphereSize / 2;
+            final baseAngle = (progress * 2 * 3.14159) + (index * 3.14159 / 3);
+            final orbitRadius = radius * (0.3 + (index % 3) * 0.1);
+            final waveOffset = sin(progress * 4 * 3.14159 + index) * 5;
+            
+            final x = radius + (orbitRadius + waveOffset) * cos(baseAngle);
+            final y = radius + (orbitRadius + waveOffset) * sin(baseAngle);
+            
+            final opacity = (sin(progress * 6 * 3.14159 + index) + 1) / 2 * (isDormant ? 0.2 : 0.4);
+            
+            return Positioned(
+              left: x - 2,
+              top: y - 2,
+              child: Container(
+                width: 4,
+                height: 4,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: color.withOpacity(opacity),
+                  boxShadow: [
+                    BoxShadow(
+                      color: color.withOpacity(opacity * 0.8),
+                      blurRadius: 6,
+                      spreadRadius: 1,
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }),
+          // Organic bioluminescent nucleus (jellyfish-like core)
           Positioned(
-            top: sphereSize * 0.08,
-            left: sphereSize * 0.08,
+            top: sphereSize * 0.35,
+            left: sphereSize * 0.35,
+            child: Transform.scale(
+              scale: 1.0 + _pulseAnimation.value * (isDormant ? 0.05 : 0.1),
+              child: Container(
+                width: sphereSize * 0.3,
+                height: sphereSize * 0.3,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: color.withOpacity(isDormant ? 0.3 : 0.6),
+                      blurRadius: 15,
+                      spreadRadius: 3,
+                    ),
+                  ],
+                  gradient: RadialGradient(
+                    colors: [
+                      color.withOpacity(isDormant ? 0.6 : 0.8), // Start with the core color, not white
+                      color.withOpacity(isDormant ? 0.8 : 1.0),
+                      color.withOpacity(isDormant ? 0.4 : 0.6),
+                    ],
+                    stops: const [0.0, 0.4, 1.0],
+                  ),
+                ),
+              ),
+            ),
+          ),
+          // Subtle internal glow (replaces harsh highlights)
+          Positioned(
+            top: sphereSize * 0.2,
+            left: sphereSize * 0.2,
             child: Container(
-              width: sphereSize * 0.4,
-              height: sphereSize * 0.4,
+              width: sphereSize * 0.6,
+              height: sphereSize * 0.6,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 gradient: RadialGradient(
                   colors: [
-                    Colors.white.withValues(alpha: 1.0),
-                    Colors.white.withValues(alpha: 0.9),
-                    Colors.white.withValues(alpha: 0.6),
-                    _getComplementaryColor(color).withValues(alpha: 0.3),
-                    Colors.white.withValues(alpha: 0.0),
+                    color.withValues(alpha: isDormant ? 0.1 : 0.2),
+                    color.withValues(alpha: isDormant ? 0.05 : 0.1),
+                    Colors.transparent,
                   ],
-                  stops: const [0.0, 0.2, 0.5, 0.8, 1.0],
+                  stops: const [0.0, 0.6, 1.0],
                 ),
               ),
             ),
           ),
-          // Sharp brilliant reflection
-          Positioned(
-            top: sphereSize * 0.05,
-            left: sphereSize * 0.05,
-            child: Container(
-              width: sphereSize * 0.12,
-              height: sphereSize * 0.12,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: RadialGradient(
-                  colors: [
-                    Colors.white.withValues(alpha: 1.0),
-                    Colors.white.withValues(alpha: 0.0),
-                  ],
-                ),
-              ),
-            ),
-          ),
-          // Opal rim effect
+          // Translucent membrane rim (jellyfish shell effect)
           Positioned.fill(
             child: Container(
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: _getComplementaryColor(color).withValues(alpha: 0.4),
-                  width: 1.5,
+                  color: color.withOpacity(isDormant ? 0.2 : 0.3),
+                  width: 1.0,
                 ),
               ),
             ),
@@ -720,6 +786,124 @@ class ResonanceDepthPainter extends CustomPainter {
   
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
+}
+
+// Bioluminescent flow painter for jellyfish-like internal movement
+class BioluminescentFlowPainter extends CustomPainter {
+  final Color coreColor;
+  final Color complementaryColor;
+  final double flowPhase;
+  final double intensity;
+  final bool isDormant;
+  final double breathingScale;
+  
+  BioluminescentFlowPainter({
+    required this.coreColor,
+    required this.complementaryColor,
+    required this.flowPhase,
+    required this.intensity,
+    required this.isDormant,
+    required this.breathingScale,
+  });
+  
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = size.width / 2;
+    
+    // Create organic flow patterns like jellyfish internal movement
+    final flowPaint = Paint()
+      ..style = PaintingStyle.fill
+      ..blendMode = BlendMode.screen;
+    
+    // Multiple flowing layers for depth
+    for (int layer = 0; layer < (isDormant ? 2 : 3); layer++) {
+      final layerRadius = radius * (0.3 + layer * 0.15);
+      final layerPhase = flowPhase + layer * 3.14159 / 3;
+      final layerOpacity = (isDormant ? 0.08 : 0.15) - layer * 0.02;
+      
+      // Create organic wave patterns
+      final path = Path();
+      bool first = true;
+      
+      for (int i = 0; i <= 40; i++) {
+        final angle = (i / 40.0) * 2 * 3.14159;
+        final waveOffset = sin(layerPhase + angle * (2 + layer)) * 
+                          (isDormant ? 6 : 12) * breathingScale;
+        final currentRadius = layerRadius + waveOffset;
+        
+        final x = center.dx + currentRadius * cos(angle);
+        final y = center.dy + currentRadius * sin(angle);
+        
+        if (first) {
+          path.moveTo(x, y);
+          first = false;
+        } else {
+          path.lineTo(x, y);
+        }
+      }
+      path.close();
+      
+      // Create gradient for organic glow
+      final gradient = RadialGradient(
+        center: Alignment.center,
+        colors: [
+          coreColor.withOpacity(layerOpacity * intensity),
+          complementaryColor.withOpacity(layerOpacity * intensity * 0.7),
+          Colors.transparent,
+        ],
+        stops: const [0.0, 0.6, 1.0],
+      );
+      
+      flowPaint.shader = gradient.createShader(
+        Rect.fromCircle(center: center, radius: layerRadius * 1.3),
+      );
+      
+      canvas.drawPath(path, flowPaint);
+    }
+    
+    // Add flowing light tendrils (like jellyfish tentacles of light)
+    if (!isDormant) {
+      for (int i = 0; i < 4; i++) {
+        final tendrilAngle = flowPhase + i * 3.14159 / 2;
+        final tendrilPaint = Paint()
+          ..color = coreColor.withOpacity(0.1 * intensity)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1.5
+          ..strokeCap = StrokeCap.round;
+        
+        final startRadius = radius * 0.15;
+        final endRadius = radius * 0.6;
+        
+        final path = Path();
+        path.moveTo(
+          center.dx + startRadius * cos(tendrilAngle),
+          center.dy + startRadius * sin(tendrilAngle),
+        );
+        
+        // Create wavy tendril
+        for (double t = 0; t <= 1; t += 0.2) {
+          final currentRadius = startRadius + (endRadius - startRadius) * t;
+          final waveAngle = tendrilAngle + sin(flowPhase * 1.5 + t * 3) * 0.2;
+          
+          path.lineTo(
+            center.dx + currentRadius * cos(waveAngle),
+            center.dy + currentRadius * sin(waveAngle),
+          );
+        }
+        
+        canvas.drawPath(path, tendrilPaint);
+      }
+    }
+  }
+  
+  @override
+  bool shouldRepaint(BioluminescentFlowPainter oldDelegate) {
+    return oldDelegate.flowPhase != flowPhase ||
+           oldDelegate.intensity != intensity ||
+           oldDelegate.breathingScale != breathingScale ||
+           oldDelegate.isDormant != isDormant;
+  }
 }
 
 class OpalSwirliPainter extends CustomPainter {

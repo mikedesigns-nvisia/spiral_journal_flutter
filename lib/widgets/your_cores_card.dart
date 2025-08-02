@@ -219,6 +219,9 @@ class _YourCoresCardState extends State<YourCoresCard>
       triggeredBy: 'core_tap',
     );
     
+    // Store the context in the navigation service so CoreLibraryScreen can access it
+    _navigationService.preserveContext(navigationContext);
+    
     // Navigate to core library and highlight the specific core
     NavigationService.instance.switchToTab(NavigationService.insightsTab);
   }
@@ -241,6 +244,9 @@ class _YourCoresCardState extends State<YourCoresCard>
     final navigationContext = _navigationService.createExploreAllContext(
       highlightCoreIds: highlightCoreIds,
     );
+    
+    // Store the context in the navigation service so CoreLibraryScreen can access it
+    _navigationService.preserveContext(navigationContext);
     
     // Navigate to the existing Core Library tab instead of pushing a new screen
     NavigationService.instance.switchToTab(NavigationService.insightsTab);

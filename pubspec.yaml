@@ -55,6 +55,9 @@ dependencies:
   # Network connectivity monitoring
   connectivity_plus: ^6.0.5
   
+  # Sensors for gyroscope-based lighting
+  sensors_plus: ^4.0.2
+  
   # Local analytics and crash reporting (no external services)
 
 dev_dependencies:

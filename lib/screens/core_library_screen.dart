@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'dart:math' as math;
 import '../theme/app_theme.dart';
@@ -11,6 +12,7 @@ import '../providers/journal_provider.dart';
 import '../services/core_navigation_context_service.dart';
 import '../services/accessibility_service.dart';
 import '../services/core_visual_consistency_service.dart';
+import '../services/gyroscope_lighting_service.dart';
 import '../widgets/resonance_depth_visualizer.dart';
 
 class CoreLibraryScreen extends StatefulWidget {
@@ -33,6 +35,13 @@ class _CoreLibraryScreenState extends State<CoreLibraryScreen> with TickerProvid
   final CoreNavigationContextService _navigationService = CoreNavigationContextService();
   final AccessibilityService _accessibilityService = AccessibilityService();
   final CoreVisualConsistencyService _visualConsistencyService = CoreVisualConsistencyService();
+  final GyroscopeLightingService _gyroscopeService = GyroscopeLightingService();
+  
+  // Animation controllers for orb animations
+  late List<AnimationController> _orbAnimationControllers;
+  late List<Animation<double>> _breathingAnimations;
+  late List<Animation<double>> _floatingAnimations;
+  late List<Animation<double>> _glowAnimations;
   
   // Track recent updates for visual indicators
   final Set<String> _recentlyUpdatedCores = <String>{};
@@ -76,9 +85,22 @@ class _CoreLibraryScreenState extends State<CoreLibraryScreen> with TickerProvid
       ),
     );
     
-    // Initialize with navigation context if provided
+    // Initialize orb animations
+    _initializeOrbAnimations();
+    
+    // Initialize gyroscope lighting
+    _gyroscopeService.initialize();
+    
+    // Initialize with navigation context if provided directly or check for stored context
     if (widget.navigationContext != null) {
       _navigationService.preserveContext(widget.navigationContext!);
+    } else {
+      // Check if there's a stored navigation context from tab navigation
+      final storedContext = _navigationService.currentContext;
+      if (storedContext != null) {
+        // Use the stored context for proper highlighting and navigation
+        debugPrint('CoreLibraryScreen: Using stored navigation context from ${storedContext.sourceScreen}');
+      }
     }
     
     // Load core data through provider
@@ -92,8 +114,64 @@ class _CoreLibraryScreenState extends State<CoreLibraryScreen> with TickerProvid
     });
   }
   
+  void _initializeOrbAnimations() {
+    _orbAnimationControllers = [];
+    _breathingAnimations = [];
+    _floatingAnimations = [];
+    _glowAnimations = [];
+    
+    // Create 6 animation controllers with staggered animations
+    for (int i = 0; i < 6; i++) {
+      // Create controller with different duration for each orb to avoid synchronization
+      final controller = AnimationController(
+        duration: Duration(milliseconds: 3500 + (i * 300)), // 3.5-5s cycles
+        vsync: this,
+      );
+      
+      // Breathing animation (scale)
+      final breathingAnimation = Tween<double>(
+        begin: 0.95,
+        end: 1.05,
+      ).animate(CurvedAnimation(
+        parent: controller,
+        curve: Curves.easeInOut,
+      ));
+      
+      // Floating animation (vertical movement)
+      final floatingAnimation = Tween<double>(
+        begin: -5.0,
+        end: 5.0,
+      ).animate(CurvedAnimation(
+        parent: controller,
+        curve: Curves.easeInOut,
+      ));
+      
+      // Glow animation (blur intensity)
+      final glowAnimation = Tween<double>(
+        begin: 1.0,
+        end: 1.5,
+      ).animate(CurvedAnimation(
+        parent: controller,
+        curve: Curves.easeInOut,
+      ));
+      
+      _orbAnimationControllers.add(controller);
+      _breathingAnimations.add(breathingAnimation);
+      _floatingAnimations.add(floatingAnimation);
+      _glowAnimations.add(glowAnimation);
+      
+      // Start animation with delay to create staggered effect
+      Future.delayed(Duration(milliseconds: i * 200), () {
+        if (!_accessibilityService.reducedMotionMode) {
+          controller.repeat(reverse: true);
+        }
+      });
+    }
+  }
+  
   void _handleInitialScreenState() {
-    final context = widget.navigationContext;
+    // Check for navigation context from widget parameter or stored context
+    final context = widget.navigationContext ?? _navigationService.currentContext;
     if (context == null) return;
     
     // Handle context-aware initial state
@@ -130,6 +208,15 @@ class _CoreLibraryScreenState extends State<CoreLibraryScreen> with TickerProvid
   void dispose() {
     _animationController.dispose();
     _updateAnimationController.dispose();
+    
+    // Dispose orb animation controllers
+    for (final controller in _orbAnimationControllers) {
+      controller.dispose();
+    }
+    
+    // Dispose gyroscope service
+    _gyroscopeService.dispose();
+    
     super.dispose();
   }
 
@@ -177,7 +264,7 @@ class _CoreLibraryScreenState extends State<CoreLibraryScreen> with TickerProvid
             if (coreProvider.isLoading && coreProvider.allCores.isEmpty) {
               return _visualConsistencyService.buildCoreLoadingState(
                 context,
-                loadingText: 'Loading your core library...',
+                loadingText: 'Illuminating your inner universe...',
               );
             }
             
@@ -277,23 +364,23 @@ class _CoreLibraryScreenState extends State<CoreLibraryScreen> with TickerProvid
   String _getContextualTitle() {
     final context = widget.navigationContext;
     if (context?.triggeredBy == 'explore_all') {
-      return 'Explore All Cores';
+      return 'Discover Your Growth';
     }
     if (context?.sourceScreen == 'journal') {
-      return 'Your Core Growth';
+      return 'Your Inner Landscape';
     }
-    return 'Core Library';
+    return 'Your Core Universe';
   }
   
   String _getContextualSubtitle() {
     final context = widget.navigationContext;
     if (context?.triggeredBy == 'explore_all') {
-      return 'See how your recent journaling has influenced your personality cores';
+      return 'Watch how your thoughts and reflections shape the depths of who you are';
     }
     if (context?.sourceScreen == 'journal') {
-      return 'Track your emotional growth from your journal insights';
+      return 'See how your words have nurtured the different facets of your inner self';
     }
-    return 'Track your emotional growth across six personality cores';
+    return 'Six living dimensions of your personality that grow with every reflection';
   }
   
   Widget _buildJournalContextBanner() {
@@ -322,7 +409,7 @@ class _CoreLibraryScreenState extends State<CoreLibraryScreen> with TickerProvid
           const SizedBox(width: 12),
           Expanded(
             child: Text(
-              'Viewing cores influenced by your recent journal entry',
+              'Witnessing how your latest reflections have shaped your inner landscape',
               style: HeadingSystem.getBodyMedium(context).copyWith(
                 color: AppTheme.getPrimaryColor(context),
                 fontWeight: FontWeight.w500,
@@ -348,7 +435,7 @@ class _CoreLibraryScreenState extends State<CoreLibraryScreen> with TickerProvid
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Your Six Personality Cores',
+          'The Six Facets of You',
           style: HeadingSystem.getHeadlineSmall(context).copyWith(
             fontWeight: FontWeight.w600,
           ),
@@ -368,7 +455,7 @@ class _CoreLibraryScreenState extends State<CoreLibraryScreen> with TickerProvid
             ),
             itemCount: cores.length,
             itemBuilder: (context, index) {
-              return _buildCoreCard(cores[index]);
+              return _buildCoreCard(cores[index], index);
             },
           ),
       ],
@@ -395,7 +482,7 @@ class _CoreLibraryScreenState extends State<CoreLibraryScreen> with TickerProvid
           ),
           const SizedBox(height: 16),
           Text(
-            'No Personality Cores Found',
+            'Your Cores Are Waiting to Bloom',
             style: HeadingSystem.getHeadlineSmall(context).copyWith(
               color: AppTheme.getTextSecondary(context),
               fontWeight: FontWeight.w600,
@@ -404,7 +491,7 @@ class _CoreLibraryScreenState extends State<CoreLibraryScreen> with TickerProvid
           ),
           const SizedBox(height: 8),
           Text(
-            'Your personality cores will appear here as you journal and reflect. Start writing to unlock insights about your inner growth.',
+            'Every thought you share, every feeling you explore creates the foundation for your six personality cores. Your inner universe is ready to take shape.',
             style: HeadingSystem.getBodyMedium(context).copyWith(
               color: AppTheme.getTextTertiary(context),
             ),
@@ -428,7 +515,7 @@ class _CoreLibraryScreenState extends State<CoreLibraryScreen> with TickerProvid
                           ),
                         ),
                         SizedBox(width: 12),
-                        Text('Refreshing cores...'),
+                        Text('Awakening your cores...'),
                       ],
                     ),
                     backgroundColor: AppTheme.getPrimaryColor(context),
@@ -449,7 +536,7 @@ class _CoreLibraryScreenState extends State<CoreLibraryScreen> with TickerProvid
                         children: [
                           Icon(Icons.check_circle, color: Colors.white, size: 16),
                           SizedBox(width: 12),
-                          Text('Cores refreshed successfully!'),
+                          Text('Your inner universe is ready!'),
                         ],
                       ),
                       backgroundColor: Colors.green,
@@ -492,7 +579,7 @@ class _CoreLibraryScreenState extends State<CoreLibraryScreen> with TickerProvid
               }
             },
             icon: const Icon(Icons.refresh, size: 18),
-            label: const Text('Refresh'),
+            label: const Text('Awaken Cores'),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppTheme.getPrimaryColor(context),
               foregroundColor: Colors.white,
@@ -507,7 +594,7 @@ class _CoreLibraryScreenState extends State<CoreLibraryScreen> with TickerProvid
     );
   }
 
-  Widget _buildCoreCard(EmotionalCore core) {
+  Widget _buildCoreCard(EmotionalCore core, int index) {
     final color = _getCoreColor(core.color);
     final trendColor = _getTrendColor(core.trend);
     final isHighlighted = _shouldHighlightCore(core.id);
@@ -569,15 +656,117 @@ class _CoreLibraryScreenState extends State<CoreLibraryScreen> with TickerProvid
               const SizedBox(height: 8),
             ],
             
-            // Resonance Depth Visualizer
+            // Resonance Depth Visualizer with animations
             Flexible(
               flex: 3,
               child: Center(
-                child: ResonanceDepthVisualizer(
-                  core: core,
-                  size: 100, // Increased from 80 to 100 for more prominence
-                  showLabel: false,
-                  showProgress: false,
+                child: RepaintBoundary(
+                  child: index < _orbAnimationControllers.length 
+                    ? AnimatedBuilder(
+                        animation: Listenable.merge([
+                          _orbAnimationControllers[index],
+                          _breathingAnimations[index],
+                          _floatingAnimations[index],
+                          _glowAnimations[index],
+                        ]),
+                        builder: (context, child) {
+                      // Calculate animation values with dormant/active variations
+                      final isDormant = core.currentLevel < 0.1;
+                      final breathingScale = isDormant 
+                          ? 0.98 + (_breathingAnimations[index].value - 0.95) * 0.4  // Smaller amplitude for dormant
+                          : _breathingAnimations[index].value;
+                      final floatingOffset = isDormant
+                          ? _floatingAnimations[index].value * 0.5  // Less movement for dormant
+                          : _floatingAnimations[index].value;
+                      final glowIntensity = isDormant
+                          ? 1.0 + (_glowAnimations[index].value - 1.0) * 0.3  // Dimmer glow for dormant
+                          : _glowAnimations[index].value;
+                      
+                      return ListenableBuilder(
+                        listenable: _gyroscopeService,
+                        builder: (context, child) {
+                          // Get gyroscope-based lighting values
+                          final shadowOffset = _gyroscopeService.getShadowOffset(intensity: glowIntensity);
+                          final lightIntensity = _gyroscopeService.getLightIntensity();
+                          
+                          return Transform.translate(
+                            offset: Offset(0, floatingOffset),
+                            child: Transform.scale(
+                              scale: breathingScale,
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  boxShadow: [
+                                    // Main glow shadow with gyroscope-based offset
+                                    BoxShadow(
+                                      color: color.withValues(alpha: isDormant ? 0.15 : 0.25 * lightIntensity),
+                                      blurRadius: 20 * glowIntensity * lightIntensity,
+                                      spreadRadius: 5 * glowIntensity,
+                                      offset: shadowOffset,
+                                    ),
+                                    // Secondary glow for depth
+                                    BoxShadow(
+                                      color: color.withValues(alpha: isDormant ? 0.1 : 0.2 * lightIntensity),
+                                      blurRadius: 10 * glowIntensity,
+                                      spreadRadius: 2 * glowIntensity,
+                                      offset: shadowOffset * 0.5,
+                                    ),
+                                    // Rim lighting based on gyroscope angle
+                                    BoxShadow(
+                                      color: Colors.white.withValues(alpha: _gyroscopeService.getRimLightIntensity(0) * lightIntensity),
+                                      blurRadius: 15,
+                                      spreadRadius: 1,
+                                      offset: Offset(-shadowOffset.dx * 0.3, -shadowOffset.dy * 0.3),
+                                    ),
+                                  ],
+                                ),
+                                child: ResonanceDepthVisualizer(
+                                  core: core,
+                                  size: 100, // Increased from 80 to 100 for more prominence
+                                  showLabel: false,
+                                  showProgress: false,
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      );
+                    },
+                  )
+                  : ListenableBuilder(
+                      listenable: _gyroscopeService,
+                      builder: (context, child) {
+                        final shadowOffset = _gyroscopeService.getShadowOffset();
+                        final lightIntensity = _gyroscopeService.getLightIntensity();
+                        final isDormant = core.currentLevel < 0.1;
+                        
+                        return Container(
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: color.withValues(alpha: isDormant ? 0.15 : 0.25 * lightIntensity),
+                                blurRadius: 20 * lightIntensity,
+                                spreadRadius: 5,
+                                offset: shadowOffset,
+                              ),
+                              BoxShadow(
+                                color: Colors.white.withValues(alpha: _gyroscopeService.getRimLightIntensity(0) * lightIntensity),
+                                blurRadius: 15,
+                                spreadRadius: 1,
+                                offset: Offset(-shadowOffset.dx * 0.3, -shadowOffset.dy * 0.3),
+                              ),
+                            ],
+                          ),
+                          child: ResonanceDepthVisualizer(
+                            core: core,
+                            size: 100,
+                            showLabel: false,
+                            showProgress: false,
+                          ),
+                        );
+                      },
+                    ),
                 ),
               ),
             ),
@@ -921,10 +1110,9 @@ class _CoreLibraryScreenState extends State<CoreLibraryScreen> with TickerProvid
   }
   
   void _triggerHapticFeedback() {
-    // Import flutter/services.dart for HapticFeedback
-    // HapticFeedback.lightImpact();
-    // For now, we'll just log it
-    debugPrint('Haptic feedback triggered');
+    if (!_accessibilityService.reducedMotionMode) {
+      HapticFeedback.lightImpact();
+    }
   }
   
   void _triggerCelebrationAnimation(CoreUpdateEvent event) {
