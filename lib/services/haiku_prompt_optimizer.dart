@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import '../models/journal_entry.dart';
 
@@ -27,13 +26,8 @@ class HaikuPromptOptimizer {
   static const double _haikuOutputCost = 1.25; // $1.25 per 1M output tokens
 
   // Optimization settings
-  static const int _maxPromptTokens = 800;      // Ultra-short prompts for Haiku
   static const int _maxOutputTokens = 1024;     // Sufficient for structured output
   static const double _temperature = 0.7;       // Balanced creativity/consistency
-
-  // Model selection thresholds
-  static const int _complexityThresholdWords = 200;  // Switch to Sonnet for complex entries
-  static const int _moodThreshold = 4;               // Multiple moods = complexity
 
   /// Create optimized system prompt for Haiku
   String createHaikuSystemPrompt() {
@@ -63,7 +57,7 @@ Limit: 3 emotions, 3 themes, 3 patterns, 3 growth items. Insight max 100 chars.'
     final content = _compressContent(entry.content);
     final moods = entry.moods.take(3).join(','); // Limit to 3 moods
     
-    return '''Entry: "${content}"
+    return '''Entry: "$content"
 Moods: ${moods.isNotEmpty ? moods : 'none'}
 Date: ${_formatDateCompact(entry.date)}''';
   }
@@ -99,41 +93,24 @@ JSON insight:
 Max 80 chars each field.''';
   }
 
-  /// Determine optimal model for entry complexity
-  ModelSelectionResult selectOptimalModel(JournalEntry entry) {
-    final wordCount = entry.content.split(' ').length;
-    final moodCount = entry.moods.length;
-    final hasComplexThemes = _hasComplexThemes(entry.content);
-    
-    final complexityScore = _calculateComplexityScore(wordCount, moodCount, hasComplexThemes);
-    
-    if (complexityScore > 0.7) {
-      return ModelSelectionResult(
-        model: 'claude-3-5-sonnet-20241022',
-        reason: 'High complexity (score: ${complexityScore.toStringAsFixed(2)})',
-        estimatedCost: _estimateSonnetCost(entry),
-        useExtendedThinking: true,
-      );
-    } else {
-      return ModelSelectionResult(
-        model: 'claude-3-haiku-20240307',
-        reason: 'Optimized for Haiku (score: ${complexityScore.toStringAsFixed(2)})',
-        estimatedCost: _estimateHaikuCost(entry),
-        useExtendedThinking: false,
-      );
-    }
+  /// Get Haiku model configuration for all entries
+  ModelSelectionResult getHaikuModel(JournalEntry entry) {
+    return ModelSelectionResult(
+      model: 'claude-3-haiku-20240307',
+      reason: 'Cost-optimized Haiku for all analysis',
+      estimatedCost: _estimateHaikuCost(entry),
+      useExtendedThinking: false,
+    );
   }
 
-  /// Create cost-optimized request configuration
+  /// Create Haiku-optimized request configuration
   Map<String, dynamic> createOptimizedRequestConfig(
-    String model,
     String systemPrompt,
-    String userPrompt, {
-    bool useExtendedThinking = false,
-  }) {
-    final config = <String, dynamic>{
-      'model': model,
-      'max_tokens': model.contains('haiku') ? _maxOutputTokens : 2048,
+    String userPrompt,
+  ) {
+    return {
+      'model': 'claude-3-haiku-20240307',
+      'max_tokens': _maxOutputTokens,
       'temperature': _temperature,
       'system': systemPrompt,
       'messages': [
@@ -143,34 +120,18 @@ Max 80 chars each field.''';
         }
       ],
     };
-
-    // Only add extended thinking for complex Sonnet requests
-    if (useExtendedThinking && !model.contains('haiku')) {
-      config['thinking'] = {
-        'type': 'enabled',
-        'budget_tokens': 1024, // Reduced thinking budget for cost optimization
-      };
-    }
-
-    return config;
   }
 
-  /// Track token usage and costs
-  void trackUsage(String model, int inputTokens, int outputTokens) {
+  /// Track token usage and costs (Haiku only)
+  void trackUsage(int inputTokens, int outputTokens) {
     _totalTokensUsed += (inputTokens + outputTokens);
     _totalRequests++;
 
-    if (model.contains('haiku')) {
-      _estimatedCost += (inputTokens * _haikuInputCost / 1000000) + 
-                       (outputTokens * _haikuOutputCost / 1000000);
-    } else {
-      // Sonnet pricing (approximate)
-      _estimatedCost += (inputTokens * 3.0 / 1000000) + 
-                       (outputTokens * 15.0 / 1000000);
-    }
+    _estimatedCost += (inputTokens * _haikuInputCost / 1000000) + 
+                     (outputTokens * _haikuOutputCost / 1000000);
 
     if (kDebugMode) {
-      debugPrint('💰 Cost Tracking - Model: $model, Tokens: ${inputTokens + outputTokens}, '
+      debugPrint('💰 Haiku Cost Tracking - Tokens: ${inputTokens + outputTokens}, '
                 'Total Cost: \$${_estimatedCost.toStringAsFixed(4)}');
     }
   }
@@ -276,33 +237,6 @@ Max 80 chars each field.''';
     return samples;
   }
 
-  /// Check for complex themes requiring Sonnet
-  bool _hasComplexThemes(String content) {
-    final complexIndicators = [
-      'relationship', 'career', 'family', 'future', 'past', 'trauma',
-      'depression', 'anxiety', 'therapy', 'meditation', 'philosophy',
-      'spirituality', 'meaning', 'purpose', 'identity', 'growth'
-    ];
-    
-    final contentLower = content.toLowerCase();
-    return complexIndicators.any((indicator) => contentLower.contains(indicator));
-  }
-
-  /// Calculate complexity score for model selection
-  double _calculateComplexityScore(int wordCount, int moodCount, bool hasComplexThemes) {
-    double score = 0.0;
-    
-    // Word count factor (normalized to 0-1)
-    score += (wordCount / 500).clamp(0.0, 1.0) * 0.4;
-    
-    // Mood complexity factor
-    score += (moodCount / 8).clamp(0.0, 1.0) * 0.3;
-    
-    // Complex themes factor
-    if (hasComplexThemes) score += 0.3;
-    
-    return score.clamp(0.0, 1.0);
-  }
 
   /// Estimate Haiku cost for entry
   double _estimateHaikuCost(JournalEntry entry) {
@@ -313,14 +247,6 @@ Max 80 chars each field.''';
            (estimatedOutputTokens * _haikuOutputCost / 1000000);
   }
 
-  /// Estimate Sonnet cost for entry
-  double _estimateSonnetCost(JournalEntry entry) {
-    final estimatedInputTokens = (entry.content.length / 4).round() + 500; // +500 for detailed system prompt
-    final estimatedOutputTokens = 800; // More detailed output
-    
-    return (estimatedInputTokens * 3.0 / 1000000) + 
-           (estimatedOutputTokens * 15.0 / 1000000);
-  }
 }
 
 /// Result of model selection optimization
@@ -338,7 +264,6 @@ class ModelSelectionResult {
   });
 
   bool get isHaiku => model.contains('haiku');
-  bool get isSonnet => model.contains('sonnet');
 }
 
 /// Cost tracking metrics

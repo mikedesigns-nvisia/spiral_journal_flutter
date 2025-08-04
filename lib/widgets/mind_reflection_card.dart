@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:spiral_journal/design_system/design_tokens.dart';
 import 'package:spiral_journal/services/navigation_service.dart';
@@ -9,8 +10,50 @@ import 'package:spiral_journal/providers/journal_provider.dart';
 import 'package:spiral_journal/models/emotional_state.dart';
 import 'package:spiral_journal/widgets/primary_emotional_state_widget.dart';
 
-class MindReflectionCard extends StatelessWidget {
+class MindReflectionCard extends StatefulWidget {
   const MindReflectionCard({super.key});
+
+  @override
+  State<MindReflectionCard> createState() => _MindReflectionCardState();
+}
+
+class _MindReflectionCardState extends State<MindReflectionCard>
+    with TickerProviderStateMixin {
+  late AnimationController _scaleController;
+  late Animation<double> _scaleAnimation;
+  
+  // Cache the primary emotional state to prevent recalculation
+  EmotionalState? _cachedPrimaryState;
+  String? _cachedStateKey;
+  
+  @override
+  void initState() {
+    super.initState();
+    _initializeAnimations();
+  }
+  
+  void _initializeAnimations() {
+    _scaleController = AnimationController(
+      duration: const Duration(milliseconds: 200),
+      vsync: this,
+    );
+    
+    _scaleAnimation = Tween<double>(
+      begin: 0.98,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _scaleController,
+      curve: Curves.elasticOut,
+    ));
+    
+    _scaleController.forward();
+  }
+  
+  @override
+  void dispose() {
+    _scaleController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -23,10 +66,13 @@ class MindReflectionCard extends StatelessWidget {
             children: [
               // Header section using standardized component
               CardHeader(
-                icon: Icons.auto_awesome_rounded,
-                title: 'Mind Reflection',
-                iconBackgroundColor: DesignTokens.accentYellow,
-                iconColor: Colors.white,
+                icon: Icons.flip_rounded,
+                title: 'Mirror Reflection',
+                iconBackgroundColor: DesignTokens.getColorWithOpacity(
+                  DesignTokens.accentYellow, 
+                  0.15,
+                ),
+                iconColor: DesignTokens.accentYellow,
               ),
               SizedBox(height: DesignTokens.spaceXL),
               
@@ -53,7 +99,8 @@ class MindReflectionCard extends StatelessWidget {
 
   Widget _buildContent(BuildContext context, EmotionalMirrorProvider provider, JournalProvider journalProvider) {
     // Get the primary emotional state from recent journal entries
-    final primaryEmotionalState = _getPrimaryEmotionalState(context, journalProvider);
+    // Use the same emotional state as the Emotional Mirror for consistency
+    final primaryEmotionalState = _getCachedPrimaryEmotionalState(provider, context);
     
     if (provider.isLoading || journalProvider.isLoading) {
       return Column(
@@ -109,31 +156,43 @@ class MindReflectionCard extends StatelessWidget {
           ),
           SizedBox(height: DesignTokens.spaceXL),
           
-          // Use the actual PrimaryEmotionalStateWidget
-          PrimaryEmotionalStateWidget(
-            primaryState: primaryEmotionalState,
-            showAnimation: false, // Disable animations in card context
-            showTabs: false, // Only show primary emotion
-            showTimestamp: false, // Hide timestamp in card
-            focusable: false, // Not focusable in card context
-            onTap: () {
-              NavigationService.instance.switchToTab(NavigationService.mirrorTab);
+          // Interactive emotional state widget with haptic feedback
+          AnimatedBuilder(
+            animation: _scaleAnimation,
+            builder: (context, child) {
+              return Transform.scale(
+                scale: _scaleAnimation.value,
+                child: child!,
+              );
             },
+            child: GestureDetector(
+              onTap: () {
+                HapticFeedback.lightImpact();
+                _animatePress();
+                NavigationService.instance.switchToTab(NavigationService.mirrorTab);
+              },
+              onLongPress: () {
+                HapticFeedback.mediumImpact();
+                _showEmotionalInsightDialog(context, primaryEmotionalState);
+              },
+              child: PrimaryEmotionalStateWidget(
+                key: ValueKey('primary-emotion-${primaryEmotionalState.emotion}'), // Add stable key
+                primaryState: primaryEmotionalState,
+                showAnimation: true, // Enable animations for interactivity
+                showTabs: false,
+                showTimestamp: false,
+                focusable: false,
+              ),
+            ),
           ),
           
           SizedBox(height: DesignTokens.spaceXL),
           
-          // Add personalized insights based on the emotion
-          ..._generateInsightsFromState(primaryEmotionalState).asMap().entries.map((entry) {
-            final index = entry.key;
-            final insight = entry.value;
-            return Column(
-              children: [
-                _buildInsightBullet(context, insight),
-                if (index < 2) SizedBox(height: DesignTokens.spaceL), // Only show spacing between first 3 insights
-              ],
-            );
-          }).take(3),
+          // Interactive swipeable insights - separate widget to prevent parent rebuilds
+          _SwipeableInsightsWidget(
+            key: ValueKey('insights-${primaryEmotionalState.emotion}'),
+            emotionalState: primaryEmotionalState,
+          ),
         ],
       );
     }
@@ -202,6 +261,18 @@ class MindReflectionCard extends StatelessWidget {
         }),
       ],
     );
+  }
+
+  /// Cache the primary emotional state to prevent unnecessary recalculations
+  EmotionalState? _getCachedPrimaryEmotionalState(EmotionalMirrorProvider provider, BuildContext context) {
+    final stateKey = '${provider.hashCode}-${DateTime.now().millisecondsSinceEpoch ~/ 60000}'; // Cache for 1 minute
+    
+    if (_cachedStateKey != stateKey || _cachedPrimaryState == null) {
+      _cachedPrimaryState = provider.getPrimaryEmotionalState(context);
+      _cachedStateKey = stateKey;
+    }
+    
+    return _cachedPrimaryState;
   }
 
   String _getFooterDescription(EmotionalMirrorProvider provider, JournalProvider journalProvider) {
@@ -298,6 +369,322 @@ class MindReflectionCard extends StatelessWidget {
     );
   }
 
+  /// Get emotion description for the emotional state
+  String _getEmotionDescription(String emotion) {
+    final descriptions = {
+      'happy': 'A sense of joy and contentment fills your being',
+      'sad': 'Processing feelings of sadness and introspection',
+      'calm': 'Experiencing peace and emotional equilibrium',
+      'anxious': 'Navigating feelings of worry and uncertainty',
+      'excited': 'Energized with anticipation and enthusiasm',
+      'angry': 'Processing intense feelings that need attention',
+      'grateful': 'Appreciating the positive aspects of life',
+      'frustrated': 'Working through challenging situations',
+      'content': 'Finding satisfaction in the present moment',
+      'peaceful': 'Embracing tranquility and inner harmony',
+    };
+    
+    return descriptions[emotion.toLowerCase()] ?? 'Experiencing a unique emotional state';
+  }
+
+
+
+
+  Widget _buildInsightBullet(BuildContext context, String text) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 6,
+          height: 6,
+          margin: EdgeInsets.only(top: DesignTokens.spaceS),
+          decoration: BoxDecoration(
+            color: AppTheme.accentGreen,
+            shape: BoxShape.circle,
+          ),
+        ),
+        SizedBox(width: DesignTokens.spaceL),
+        Expanded(
+          child: Text(
+            text,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              height: 1.3,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // New interactive methods
+  void _animatePress() {
+    _scaleController.reverse().then((_) {
+      _scaleController.forward();
+    });
+  }
+  
+  void _showEmotionalInsightDialog(BuildContext context, EmotionalState state) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(DesignTokens.radiusL),
+        ),
+        title: Row(
+          children: [
+            Icon(
+              Icons.psychology,
+              color: _getEmotionColor(state.emotion),
+            ),
+            SizedBox(width: DesignTokens.spaceM),
+            Text('Emotional Insight'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Current State: ${state.emotion.toUpperCase()}',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+                color: _getEmotionColor(state.emotion),
+              ),
+            ),
+            SizedBox(height: DesignTokens.spaceM),
+            
+            Text(
+              'Intensity: ${(state.intensity * 100).round()}%',
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+            SizedBox(height: DesignTokens.spaceS),
+            
+            Text(
+              'Confidence: ${(state.confidence * 100).round()}%',
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+            SizedBox(height: DesignTokens.spaceL),
+            
+            Text(
+              'What this means:',
+              style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            SizedBox(height: DesignTokens.spaceS),
+            
+            Text(
+              _getDetailedEmotionDescription(state.emotion),
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                height: 1.4,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text('Close'),
+          ),
+          FilledButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              NavigationService.instance.switchToTab(NavigationService.mirrorTab);
+            },
+            child: Text('Explore More'),
+          ),
+        ],
+      ),
+    );
+  }
+  
+  
+  // Helper methods
+  Color _getEmotionColor(String emotion) {
+    switch (emotion.toLowerCase()) {
+      case 'happy':
+      case 'joy':
+      case 'excited':
+        return Colors.orange;
+      case 'sad':
+      case 'disappointed':
+        return Colors.blue;
+      case 'angry':
+      case 'frustrated':
+        return Colors.red;
+      case 'calm':
+      case 'peaceful':
+        return Colors.green;
+      case 'anxious':
+      case 'worried':
+        return Colors.purple;
+      default:
+        return DesignTokens.accentYellow;
+    }
+  }
+  
+  String _getDetailedEmotionDescription(String emotion) {
+    switch (emotion.toLowerCase()) {
+      case 'happy':
+        return 'You\'re experiencing positive emotions that can boost creativity, enhance social connections, and improve overall well-being. This is a great time for growth-oriented activities and building relationships.';
+      case 'sad':
+        return 'You\'re processing deeper emotions that, while challenging, can lead to increased empathy, self-reflection, and personal growth. Consider journaling or connecting with supportive people.';
+      case 'angry':
+        return 'You\'re feeling strong emotions that signal something important to you. Channel this energy constructively - identify what needs to change and take purposeful action.';
+      case 'calm':
+        return 'You\'re in a balanced state that\'s ideal for clear thinking, decision-making, and mindful reflection. This is a perfect time for planning and setting intentions.';
+      case 'anxious':
+        return 'You\'re experiencing anticipatory emotions that show you care deeply about outcomes. Practice grounding techniques and focus on what you can control in the present moment.';
+      default:
+        return 'Your emotional state provides valuable insights into your inner world. Each emotion serves a purpose in your personal growth journey.';
+    }
+  }
+}
+
+/// Separate stateful widget for swipeable insights to completely isolate from parent rebuilds
+class _SwipeableInsightsWidget extends StatefulWidget {
+  final EmotionalState emotionalState;
+
+  const _SwipeableInsightsWidget({
+    Key? key,
+    required this.emotionalState,
+  }) : super(key: key);
+
+  @override
+  State<_SwipeableInsightsWidget> createState() => _SwipeableInsightsWidgetState();
+}
+
+class _SwipeableInsightsWidgetState extends State<_SwipeableInsightsWidget> {
+  int _selectedInsightIndex = 0;
+  List<String>? _cachedInsights;
+  String? _lastEmotionKey;
+
+  @override
+  Widget build(BuildContext context) {
+    // Cache insights to prevent regeneration
+    final emotionKey = '${widget.emotionalState.emotion}-${widget.emotionalState.intensity}';
+    if (_lastEmotionKey != emotionKey || _cachedInsights == null) {
+      _cachedInsights = _generateInsightsFromState(widget.emotionalState);
+      _lastEmotionKey = emotionKey;
+      _selectedInsightIndex = 0; // Reset selection when emotion changes
+    }
+
+    return Container(
+      height: 120,
+      child: Column(
+        children: [
+          // Swipeable insight cards
+          Expanded(
+            child: PageView.builder(
+              onPageChanged: (index) {
+                if (_selectedInsightIndex != index) {
+                  setState(() {
+                    _selectedInsightIndex = index;
+                  });
+                  HapticFeedback.selectionClick();
+                }
+              },
+              itemCount: _cachedInsights!.length,
+              itemBuilder: (context, index) {
+                return Container(
+                  margin: EdgeInsets.symmetric(horizontal: 4),
+                  child: _buildInsightCard(context, _cachedInsights![index], index),
+                );
+              },
+            ),
+          ),
+          
+          SizedBox(height: DesignTokens.spaceM),
+          
+          // Page indicator
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: List.generate(
+              _cachedInsights!.length,
+              (index) => AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                width: index == _selectedInsightIndex ? 12 : 6,
+                height: 6,
+                margin: EdgeInsets.symmetric(horizontal: 3),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(3),
+                  color: index == _selectedInsightIndex
+                      ? DesignTokens.accentGreen
+                      : DesignTokens.accentGreen.withValues(alpha: 0.3),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInsightCard(BuildContext context, String insight, int index) {
+    final isSelected = index == _selectedInsightIndex;
+    
+    return GestureDetector(
+      onTap: () {
+        HapticFeedback.lightImpact();
+        setState(() {
+          _selectedInsightIndex = index;
+        });
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: EdgeInsets.all(DesignTokens.spaceM),
+        decoration: BoxDecoration(
+          color: isSelected 
+              ? DesignTokens.accentGreen.withValues(alpha: 0.1)
+              : DesignTokens.getBackgroundSecondary(context),
+          borderRadius: BorderRadius.circular(DesignTokens.radiusM),
+          border: Border.all(
+            color: isSelected 
+                ? DesignTokens.accentGreen.withValues(alpha: 0.3)
+                : DesignTokens.getSubtleBorderColor(context),
+            width: isSelected ? 2 : 1,
+          ),
+          boxShadow: isSelected ? [
+            BoxShadow(
+              color: DesignTokens.accentGreen.withValues(alpha: 0.1),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ] : null,
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              width: 8,
+              height: 8,
+              margin: EdgeInsets.only(top: 4, right: DesignTokens.spaceS),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: isSelected 
+                    ? DesignTokens.accentGreen 
+                    : DesignTokens.accentGreen.withValues(alpha: 0.5),
+              ),
+            ),
+            Expanded(
+              child: AnimatedDefaultTextStyle(
+                duration: const Duration(milliseconds: 200),
+                style: Theme.of(context).textTheme.bodyMedium!.copyWith(
+                  height: 1.4,
+                  color: isSelected 
+                      ? DesignTokens.getTextPrimary(context)
+                      : DesignTokens.getTextSecondary(context),
+                  fontWeight: isSelected ? FontWeight.w500 : FontWeight.w400,
+                ),
+                child: Text(insight),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
   /// Generate insights based on emotional state with variety and context
   List<String> _generateInsightsFromState(EmotionalState state) {
@@ -463,50 +850,5 @@ class MindReflectionCard extends StatelessWidget {
     } else {
       return 'Subtle emotions require mindful attention and often reveal profound insights about your authentic self';
     }
-  }
-
-  /// Get emotion description for the emotional state
-  String _getEmotionDescription(String emotion) {
-    final descriptions = {
-      'happy': 'A sense of joy and contentment fills your being',
-      'sad': 'Processing feelings of sadness and introspection',
-      'calm': 'Experiencing peace and emotional equilibrium',
-      'anxious': 'Navigating feelings of worry and uncertainty',
-      'excited': 'Energized with anticipation and enthusiasm',
-      'angry': 'Processing intense feelings that need attention',
-      'grateful': 'Appreciating the positive aspects of life',
-      'frustrated': 'Working through challenging situations',
-      'content': 'Finding satisfaction in the present moment',
-      'peaceful': 'Embracing tranquility and inner harmony',
-    };
-    
-    return descriptions[emotion.toLowerCase()] ?? 'Experiencing a unique emotional state';
-  }
-
-
-  Widget _buildInsightBullet(BuildContext context, String text) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          width: 6,
-          height: 6,
-          margin: EdgeInsets.only(top: DesignTokens.spaceS),
-          decoration: BoxDecoration(
-            color: AppTheme.accentGreen,
-            shape: BoxShape.circle,
-          ),
-        ),
-        SizedBox(width: DesignTokens.spaceL),
-        Expanded(
-          child: Text(
-            text,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              height: 1.3,
-            ),
-          ),
-        ),
-      ],
-    );
   }
 }

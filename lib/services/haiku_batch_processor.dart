@@ -209,7 +209,6 @@ class HaikuBatchProcessor {
       
       // Select optimal model (use Haiku for batches to maximize cost savings)
       final modelConfig = _optimizer.createOptimizedRequestConfig(
-        'claude-3-haiku-20240307',
         systemPrompt,
         batchPrompt,
       );
@@ -383,7 +382,7 @@ Limits: 3 emotions, 3 themes, 3 patterns, 3 growth items per entry. Insight max 
       if (usage != null) {
         final inputTokens = usage['input_tokens'] as int? ?? 0;
         final outputTokens = usage['output_tokens'] as int? ?? 0;
-        _optimizer.trackUsage('claude-3-haiku-20240307', inputTokens, outputTokens);
+        _optimizer.trackUsage(inputTokens, outputTokens);
       }
       
       return analyses.cast<Map<String, dynamic>>();

@@ -349,6 +349,30 @@ class _JournalScreenState extends State<JournalScreen> {
     }
   }
 
+  /// Synchronous version to get today's analyzed entry for UI building
+  JournalEntry? _getTodaysAnalyzedEntrySync(JournalProvider journalProvider) {
+    try {
+      final today = DateTime.now();
+      final todayStart = DateTime(today.year, today.month, today.day);
+      final todayEnd = todayStart.add(const Duration(days: 1));
+      
+      // Get all entries and find today's analyzed entry
+      final entries = journalProvider.entries;
+      for (final entry in entries) {
+        if (entry.createdAt.isAfter(todayStart) && 
+            entry.createdAt.isBefore(todayEnd) &&
+            entry.isAnalyzed &&
+            entry.aiAnalysis != null) {
+          return entry;
+        }
+      }
+      return null;
+    } catch (e) {
+      debugPrint('Error getting today\'s analyzed entry sync: $e');
+      return null;
+    }
+  }
+
 
   void _showDraftRecoveryDialog(String draftContent) {
     showDialog(
@@ -567,217 +591,258 @@ class _JournalScreenState extends State<JournalScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Header with date
-        
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        // Simplified header - more space efficient
+        Row(
           children: [
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(AppConstants.smallPadding),
-                  decoration: BoxDecoration(
-                    color: DesignTokens.getColorWithOpacity(
-                      DesignTokens.getPrimaryColor(context), 
-                      0.15
-                    ),
-                    borderRadius: BorderRadius.circular(AppConstants.radiusMedium),
-                  ),
-                  child: Container(
-                    width: 24,
-                    height: 24,
-                    child: MiniOpalSphere(
-                      color: DesignTokens.getPrimaryColor(context),
-                      size: 24,
-                    ),
-                  ),
+            // Compact app branding
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: DesignTokens.getColorWithOpacity(
+                  DesignTokens.getPrimaryColor(context), 
+                  0.1
                 ),
-                const SizedBox(width: AppConstants.spacing16),
-                Expanded(
-                  child: Tooltip(
-                    message: 'You can create one journal entry per day to encourage mindful reflection',
-                    child: ResponsiveText(
-                      'Spiral Journal',
-                      baseFontSize: DesignTokens.fontSizeXXXL,
-                      fontWeight: DesignTokens.fontWeightBold,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(
+                Icons.auto_stories_rounded,
+                color: DesignTokens.getPrimaryColor(context),
+                size: 20,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Spiral Journal',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
                       color: DesignTokens.getTextPrimary(context),
                     ),
                   ),
-                ),
-                const CompactAnalysisCounter(),
-              ],
+                  Text(
+                    dateFormatter.format(now),
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: DesignTokens.getTextTertiary(context),
+                    ),
+                  ),
+                ],
+              ),
             ),
-            const SizedBox(height: AppConstants.spacing8),
-            ResponsiveText(
-              dateFormatter.format(now),
-              baseFontSize: DesignTokens.fontSizeM,
-              fontWeight: DesignTokens.fontWeightRegular,
-              color: DesignTokens.getTextTertiary(context),
-            ),
+            const CompactAnalysisCounter(),
           ],
         ),
         
-        const SizedBox(height: AppConstants.spacing32),
+        const SizedBox(height: 24),
         
-        // Greeting
-        ResponsiveText(
-          'Hi $_userName, how are you feeling today?',
-          baseFontSize: DesignTokens.fontSizeXXL,
-          fontWeight: DesignTokens.fontWeightSemiBold,
-          color: DesignTokens.getTextPrimary(context),
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-        ),
-        
-        const SizedBox(height: AppConstants.spacing16),
-        
-        // Analysis Status Widget
-        AnalysisStatusWidget(
-          onAnalysisComplete: refreshJournalScreenState,
-        ),
-        
-        const SizedBox(height: AppConstants.spacing24),
-        
-        // Conditional: Show emotional state visualization or mood selector + journal input
-        _showingSnapshot && _savedEntry != null
-          ? Column(
-              children: [
-                // Your Emotional State Visualization
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Title with sparkle icon
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.auto_awesome,
-                          color: DesignTokens.getPrimaryColor(context),
-                          size: 24,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Your Emotional State Visualization',
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: DesignTokens.getTextPrimary(context),
-                          ),
-                        ),
-                      ],
+        // Conditional greeting and analysis status - only show when no analysis is complete
+        Consumer<JournalProvider>(
+          builder: (context, journalProvider, child) {
+            final todaysAnalyzedEntry = _getTodaysAnalyzedEntrySync(journalProvider);
+            final hasAnalyzedEntry = todaysAnalyzedEntry != null && 
+                                   todaysAnalyzedEntry.isAnalyzed && 
+                                   todaysAnalyzedEntry.aiAnalysis != null;
+            
+            if (hasAnalyzedEntry) {
+              // Skip greeting when analysis is complete - minimal spacing
+              return const SizedBox(height: 8);
+            } else {
+              // Compact greeting and analysis status
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Streamlined greeting
+                  Text(
+                    'Hi $_userName, how are you feeling today?',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w600,
+                      color: DesignTokens.getTextPrimary(context),
+                      height: 1.3,
                     ),
-                    const SizedBox(height: 16),
-                    // Simplified Emotional State Preview (to avoid animation crashes)
-                    Container(
-                      height: 300,
-                      decoration: BoxDecoration(
-                        gradient: DesignTokens.getCardGradient(context),
-                        borderRadius: BorderRadius.circular(16),
+                  ),
+                  
+                  const SizedBox(height: 16),
+                  
+                  // Analysis Status Widget
+                  AnalysisStatusWidget(
+                    onAnalysisComplete: refreshJournalScreenState,
+                  ),
+                  
+                  const SizedBox(height: 20),
+                ],
+              );
+            }
+          },
+        ),
+        
+        // Conditional: Show Mind Reflection if analyzed, snapshot if pending, or input tools if no entry
+        Consumer<JournalProvider>(
+          builder: (context, journalProvider, child) {
+            // Check if today's entry has been analyzed by AI
+            final todaysAnalyzedEntry = _getTodaysAnalyzedEntrySync(journalProvider);
+            
+            if (todaysAnalyzedEntry != null && todaysAnalyzedEntry.isAnalyzed && todaysAnalyzedEntry.aiAnalysis != null) {
+              // Show enhanced Mind Reflection when entry is analyzed - maximized space
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Enhanced Mind Reflection Card - give it prominence
+                  const MindReflectionCard(),
+                  const SizedBox(height: 12),
+                  // Subtle info text
+                  Center(
+                    child: Text(
+                      'Visit Mirror tab for full analysis',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: DesignTokens.getTextSecondary(context).withValues(alpha: 0.7),
                       ),
-                      child: Padding(
-                        padding: const EdgeInsets.all(20),
-                        child: Column(
-                          children: [
-                            // Mood chips display
-                            Wrap(
-                              spacing: 8,
-                              runSpacing: 8,
-                              children: _savedEntry!.moods.map((mood) => Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                decoration: BoxDecoration(
-                                  color: _getMoodColor(mood).withValues(alpha: 0.2),
-                                  borderRadius: BorderRadius.circular(16),
-                                  border: Border.all(color: _getMoodColor(mood)),
-                                ),
-                                child: Text(
-                                  mood,
-                                  style: TextStyle(
-                                    color: _getMoodColor(mood),
-                                    fontWeight: FontWeight.w500,
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ],
+              );
+            } else if (_showingSnapshot && _savedEntry != null) {
+              // Show snapshot while analysis is pending
+              return Column(
+                children: [
+                  // Your Emotional State Visualization
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Title with sparkle icon
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.auto_awesome,
+                            color: DesignTokens.getPrimaryColor(context),
+                            size: 24,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Your Emotional State Visualization',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: DesignTokens.getTextPrimary(context),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      // Simplified Emotional State Preview (to avoid animation crashes)
+                      Container(
+                        height: 300,
+                        decoration: BoxDecoration(
+                          gradient: DesignTokens.getCardGradient(context),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(20),
+                          child: Column(
+                            children: [
+                              // Mood chips display
+                              Wrap(
+                                spacing: 8,
+                                runSpacing: 8,
+                                children: _savedEntry!.moods.map((mood) => Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                  decoration: BoxDecoration(
+                                    color: _getMoodColor(mood).withValues(alpha: 0.2),
+                                    borderRadius: BorderRadius.circular(16),
+                                    border: Border.all(color: _getMoodColor(mood)),
                                   ),
-                                ),
-                              )).toList(),
-                            ),
-                            const SizedBox(height: 20),
-                            Icon(
-                              Icons.psychology_outlined,
-                              size: 48,
-                              color: DesignTokens.getTextSecondary(context),
-                            ),
-                            const SizedBox(height: 16),
-                            Text(
-                              'Your emotional state is being analyzed',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w500,
-                                color: DesignTokens.getTextPrimary(context),
+                                  child: Text(
+                                    mood,
+                                    style: TextStyle(
+                                      color: _getMoodColor(mood),
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                )).toList(),
                               ),
-                              textAlign: TextAlign.center,
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'Visit your Mirror tab to see the full animated visualization of your emotional patterns!',
-                              style: TextStyle(
-                                fontSize: 14,
+                              const SizedBox(height: 20),
+                              Icon(
+                                Icons.psychology_outlined,
+                                size: 48,
                                 color: DesignTokens.getTextSecondary(context),
                               ),
-                              textAlign: TextAlign.center,
-                            ),
-                          ],
+                              const SizedBox(height: 16),
+                              Text(
+                                'Your emotional state is being analyzed',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w500,
+                                  color: DesignTokens.getTextPrimary(context),
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                'Visit your Mirror tab to see the full animated visualization of your emotional patterns!',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: DesignTokens.getTextSecondary(context),
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
+                          ),
                         ),
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 24),
-                TextButton(
-                  onPressed: _resetToInputMode,
-                  child: const Text('Write Another Entry Tomorrow'),
-                ),
-              ],
-            )
-          : Column(
-              children: [
-                // Mood Selector
-                MoodSelector(
-                  selectedMoods: _selectedMoods,
-                  onMoodChanged: (moods) {
-                    if (mounted) {
-                      setState(() {
-                        _selectedMoods.clear();
-                        _selectedMoods.addAll(moods);
-                      });
-                    }
-                  },
-                ),
-                
-                const SizedBox(height: AppConstants.spacing24),
-                
-                // Journal Input
-                Consumer<JournalProvider>(
-                  builder: (context, journalProvider, child) {
-                    return JournalInput(
-                      controller: _journalController,
-                      onChanged: (text) {
-                        // Handle text changes if needed
-                      },
-                      onSave: _saveEntry,
-                      isSaving: journalProvider.isLoading,
-                      onAutoSave: _saveDraftContent,
-                      draftContent: _draftContent,
-                    );
-                  },
-                ),
-              ],
-            ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                  TextButton(
+                    onPressed: _resetToInputMode,
+                    child: const Text('Write Another Entry Tomorrow'),
+                  ),
+                ],
+              );
+            } else {
+              // Show input tools when no entry exists today - optimized spacing
+              return Column(
+                children: [
+                  // Mood Selector
+                  MoodSelector(
+                    selectedMoods: _selectedMoods,
+                    onMoodChanged: (moods) {
+                      if (mounted) {
+                        setState(() {
+                          _selectedMoods.clear();
+                          _selectedMoods.addAll(moods);
+                        });
+                      }
+                    },
+                  ),
+                  
+                  const SizedBox(height: 20),
+                  
+                  // Journal Input
+                  JournalInput(
+                    controller: _journalController,
+                    onChanged: (text) {
+                      // Handle text changes if needed
+                    },
+                    onSave: _saveEntry,
+                    isSaving: journalProvider.isLoading,
+                    onAutoSave: _saveDraftContent,
+                    draftContent: _draftContent,
+                  ),
+                ],
+              );
+            }
+          },
+        ),
         
-        const SizedBox(height: AppConstants.spacing24),
+        const SizedBox(height: 20),
         
-        // Mind Reflection Card
-        const MindReflectionCard(),
-        
-        const SizedBox(height: AppConstants.spacing24),
-        
-        // Your Cores Card
+        // Your Cores Card - always show
         const YourCoresCard(),
       ],
     );
@@ -795,13 +860,12 @@ class _JournalScreenState extends State<JournalScreen> {
           color: DesignTokens.getPrimaryColor(context),
           backgroundColor: DesignTokens.getBackgroundPrimary(context),
           child: SingleChildScrollView(
-            padding: const EdgeInsets.all(AppConstants.largePadding),
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 120), // Optimized padding - more space for content
             physics: const AlwaysScrollableScrollPhysics(), // Ensure pull-to-refresh works even when content doesn't fill screen
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _buildNormalJournalInput(),
-                const SizedBox(height: 100), // Extra space for bottom navigation
               ],
             ),
           ),

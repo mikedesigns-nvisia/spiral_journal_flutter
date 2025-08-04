@@ -176,7 +176,7 @@ class AIServiceManager {
       _currentConfig = config;
       
       if (kDebugMode) {
-        debugPrint('AIServiceManager: Initialized with modern Claude provider (3.7 Sonnet)');
+        debugPrint('AIServiceManager: Initialized with Claude 3 Haiku provider');
       }
     } catch (error) {
       debugPrint('AIServiceManager _enableAIAnalysis error: $error');

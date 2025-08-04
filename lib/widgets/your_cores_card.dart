@@ -633,11 +633,13 @@ class _YourCoresCardState extends State<YourCoresCard>
                                 ),
                                 SizedBox(height: DesignTokens.spaceXS),
                                 Text(
-                                  core.resonanceDepth.displayName,
+                                  core.description,
                                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                    color: coreColor,
-                                    fontWeight: FontWeight.w500,
+                                    color: DesignTokens.getTextSecondary(context),
+                                    fontWeight: FontWeight.w400,
                                   ),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                               ],
                             ),

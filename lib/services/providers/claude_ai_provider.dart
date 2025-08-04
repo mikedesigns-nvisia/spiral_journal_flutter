@@ -8,22 +8,19 @@ import '../../models/core.dart';
 import '../ai_service_interface.dart';
 import '../ai_cache_service.dart';
 
-/// Modern Claude AI Provider implementing the latest Anthropic API standards
+/// Modern Claude AI Provider optimized for cost-effective analysis with Haiku
 /// 
 /// Features:
-/// - Claude 4 model support with fallback to 3.7 Sonnet
-/// - Extended thinking capabilities for deeper analysis
-/// - Proper system prompting from workspace configuration
+/// - Claude 3 Haiku model for fast, efficient analysis
+/// - Token-optimized prompts for concise responses
 /// - Modern error handling and response tracking
-/// - Configurable model selection and parameters
+/// - Cost-effective emotional intelligence analysis
 class ClaudeAIProvider implements AIServiceInterface {
   final AIServiceConfig _config;
   bool _isConfigured = false;
   
-  // Modern Claude models (ordered by preference)
-  static const String _premiumModel = 'claude-3-haiku-20240307'; // Using Haiku for all requests
-  static const String _defaultModel = 'claude-3-haiku-20240307'; // Using Haiku for all requests
-  static const String _fallbackModel = 'claude-3-haiku-20240307'; // Cost-effective fallback
+  // Haiku model for all requests
+  static const String _haikuModel = 'claude-3-haiku-20240307';
   
   // API configuration
   static const String _apiVersion = '2023-06-01'; // Stable version
@@ -33,13 +30,12 @@ class ClaudeAIProvider implements AIServiceInterface {
   static const int _maxRetries = 3;
   static const Duration _retryDelay = Duration(seconds: 2);
   
-  // Rate limiting
+  // Rate limiting and debouncing
   DateTime? _lastApiCall;
-  static const Duration _minApiInterval = Duration(milliseconds: 500);
+  static const Duration _minApiInterval = Duration(milliseconds: 500); // Minimum 500ms between calls
   
   // Request tracking
   String? _lastRequestId;
-  String? _lastOrganizationId;
 
   ClaudeAIProvider(this._config);
 
@@ -60,8 +56,8 @@ class ClaudeAIProvider implements AIServiceInterface {
       }
       
       // Updated validation for current Anthropic API key format
-      if (!apiKey.startsWith('sk-ant-api03-') || apiKey.length < 50) {
-        throw Exception('Invalid Claude API key format. Expected format: sk-ant-api03-... with minimum 50 characters');
+      if (!apiKey.startsWith('sk-ant-') || apiKey.length < 40) {
+        throw Exception('Invalid Claude API key format. Expected format: sk-ant-... with minimum 40 characters');
       }
       
       _isConfigured = true;
@@ -82,7 +78,7 @@ class ClaudeAIProvider implements AIServiceInterface {
           'anthropic-version': '2023-06-01',
         },
         body: jsonEncode({
-          'model': 'claude-3-haiku-20240307',
+          'model': _haikuModel,
           'max_tokens': 10,
           'messages': [
             {
@@ -180,70 +176,11 @@ class ClaudeAIProvider implements AIServiceInterface {
     return await _callClaudeAPIWithFallback(prompt);
   }
 
-  Future<String> _makeApiRequest(String prompt) async {
-    final model = _selectOptimalModel();
-    final requestBody = _buildRequestBody(model, prompt);
-    
-    final response = await http.post(
-      Uri.parse('https://api.anthropic.com/v1/messages'),
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': _config.apiKey,
-        'anthropic-version': _apiVersion,
-      },
-      body: jsonEncode(requestBody),
-    ).timeout(
-      _requestTimeout,
-      onTimeout: () => throw TimeoutException('Claude API request timed out', _requestTimeout),
-    );
 
-    _lastApiCall = DateTime.now();
-    
-    // Extract response headers for tracking
-    _lastRequestId = response.headers['request-id'];
-    _lastOrganizationId = response.headers['anthropic-organization-id'];
-    
-    if (kDebugMode && _lastRequestId != null) {
-      debugPrint('Claude API Request ID: $_lastRequestId');
-    }
 
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      if (data['content'] != null && data['content'].isNotEmpty) {
-        return data['content'][0]['text'];
-      } else {
-        throw FormatException('Invalid response structure from Claude API');
-      }
-    } else {
-      throw HttpException(
-        'Claude API error: ${response.statusCode} - ${response.body}',
-        uri: Uri.parse('https://api.anthropic.com/v1/messages'),
-      );
-    }
-  }
-
-  /// Select the optimal Claude model based on configuration and availability
-  String _selectOptimalModel() {
-    // Try Claude 4 first for premium analysis, fallback to 3.5 Sonnet
-    return _premiumModel;
-  }
-
-  /// Try with fallback model if premium model fails
+  /// Direct call to Haiku model - no fallback needed
   Future<String> _callClaudeAPIWithFallback(String prompt) async {
-    try {
-      // First try with premium model (Claude 4)
-      return await _callClaudeAPIWithModel(prompt, _premiumModel);
-    } catch (e) {
-      debugPrint('Premium model failed, trying fallback: $e');
-      try {
-        // Fallback to Claude 3.5 Sonnet
-        return await _callClaudeAPIWithModel(prompt, _defaultModel);
-      } catch (e2) {
-        debugPrint('Default model failed, trying final fallback: $e2');
-        // Final fallback to Haiku
-        return await _callClaudeAPIWithModel(prompt, _fallbackModel);
-      }
-    }
+    return await _callClaudeAPIWithModel(prompt, _haikuModel);
   }
 
   /// Make API call with specific model
@@ -311,7 +248,6 @@ class ClaudeAIProvider implements AIServiceInterface {
     
     // Extract response headers for tracking
     _lastRequestId = response.headers['request-id'];
-    _lastOrganizationId = response.headers['anthropic-organization-id'];
     
     if (kDebugMode && _lastRequestId != null) {
       debugPrint('Claude API Request ID: $_lastRequestId (Model: $model)');
@@ -345,7 +281,7 @@ class ClaudeAIProvider implements AIServiceInterface {
     final body = <String, dynamic>{
       'model': model,
       'max_tokens': _getMaxTokensForModel(model),
-      'temperature': 1.0, // High creativity for comprehensive emotional analysis
+      'temperature': 0.7, // Balanced creativity and consistency for Haiku
       'system': _getSystemPrompt(),
       'messages': [
         {
@@ -355,36 +291,16 @@ class ClaudeAIProvider implements AIServiceInterface {
       ],
     };
 
-    // Add Extended Thinking for Claude 4 models (if supported)
-    if (_supportsExtendedThinking(model)) {
-      body['thinking'] = {
-        'type': 'enabled',
-        'budget_tokens': 2048, // Reasonable budget for emotional analysis
-      };
-    }
+    // Extended Thinking not supported by Haiku - removed for cost optimization
 
     return body;
   }
 
-  /// Get maximum tokens based on model capabilities
+  /// Get maximum tokens - optimized for Haiku cost efficiency
   int _getMaxTokensForModel(String model) {
-    if (model.contains('claude-sonnet-4') || model.contains('claude-opus-4')) {
-      return 20000; // Match workspace implementation for comprehensive analysis
-    } else if (model.contains('claude-3-5-sonnet')) {
-      return 8000; // High token limit for detailed analysis
-    } else if (model.contains('claude-3-haiku')) {
-      return 500; // Optimized for cost efficiency - reduced from 4096
-    } else {
-      return 4000; // Fallback models get reasonable limit
-    }
+    return 2000; // Optimal balance of quality and cost for Haiku
   }
 
-  /// Check if model supports Extended Thinking
-  bool _supportsExtendedThinking(String model) {
-    return model.contains('claude-sonnet-4') || 
-           model.contains('claude-opus-4') || 
-           model.contains('claude-3-7-sonnet');
-  }
 
 
 
@@ -474,169 +390,79 @@ class ClaudeAIProvider implements AIServiceInterface {
   }
 
   String _getSystemPrompt() {
-    return '''You are an AI emotional intelligence analyst for Spiral Journal, a personal growth app. Your role is to analyze journal entries and provide insights that help users understand their emotional patterns and personality development.
+    return '''You are an AI emotional analyst for Spiral Journal. Analyze journal entries and provide concise emotional insights.
 
-IMPORTANT: You must ALWAYS respond with ONLY a valid JSON object. Do not include any explanatory text before or after the JSON. Do not wrap the JSON in markdown code blocks.
+IMPORTANT: Respond ONLY with valid JSON. No extra text or markdown blocks.
 
-## Core Personality Framework
+## Six Personality Cores:
+1. **Optimism** - Hope, positive outlook
+2. **Resilience** - Bouncing back, adaptability  
+3. **Self-Awareness** - Emotional understanding, reflection
+4. **Creativity** - Innovation, problem-solving
+5. **Social Connection** - Relationships, empathy
+6. **Growth Mindset** - Learning, embracing challenges
 
-The app tracks six personality cores:
-1. **Optimism** - Hope, positive outlook, resilience in face of challenges
-2. **Resilience** - Ability to bounce back, adaptability, emotional strength  
-3. **Self-Awareness** - Understanding of emotions, self-reflection, mindfulness
-4. **Creativity** - Innovation, artistic expression, problem-solving approaches
-5. **Social Connection** - Relationships, empathy, community engagement
-6. **Growth Mindset** - Learning orientation, embracing challenges, continuous improvement
-
-## Required Response Format
-
-You MUST respond with a valid JSON object containing exactly this structure:
-
-```json
+## Required JSON Format:
 {
   "primary_emotions": ["emotion1", "emotion2"],
   "emotional_intensity": 0.65,
-  "growth_indicators": ["indicator1", "indicator2", "indicator3"],
+  "growth_indicators": ["indicator1", "indicator2"],
   "core_adjustments": {
     "Optimism": 0.1,
-    "Resilience": 0.05,
+    "Resilience": 0.0,
     "Self-Awareness": 0.2,
     "Creativity": 0.0,
-    "Social Connection": 0.05,
+    "Social Connection": 0.0,
     "Growth Mindset": 0.1
   },
   "mind_reflection": {
-    "title": "Emotional Pattern Analysis",
-    "summary": "A compassionate 2-3 sentence summary of the user's emotional state and growth",
-    "insights": ["Specific insight 1", "Specific insight 2", "Specific insight 3"]
+    "title": "Brief Emotional Theme",
+    "summary": "1-2 encouraging sentences about growth",
+    "insights": ["Insight 1", "Insight 2"]
   },
   "emotional_patterns": [
     {
       "category": "Pattern Category",
       "title": "Pattern Title", 
-      "description": "Detailed description of the emotional pattern observed",
+      "description": "Brief pattern description",
       "type": "growth"
     }
   ],
-  "entry_insight": "A brief, encouraging insight about this specific journal entry"
+  "entry_insight": "Brief encouraging insight"
 }
-```
 
-## Analysis Guidelines
+## Guidelines:
+- Core adjustments: -0.5 to +0.5 (small, evidence-based changes)
+- Emotional intensity: 0.0-1.0 scale (0.5 = typical daily reflection)
+- Keep all text brief and impactful
+- Focus on strongest emotional patterns
+- Always encouraging and growth-focused
+- Return valid JSON only
 
-### Core Adjustments (-0.5 to +0.5):
-- **Optimism**: Look for gratitude, hope, positive language, silver linings
-- **Resilience**: Identify overcoming challenges, adapting to change, emotional recovery
-- **Self-Awareness**: Notice emotional recognition, self-reflection, mindfulness
-- **Creativity**: Find novel solutions, artistic expression, innovative thinking
-- **Social Connection**: Observe relationships, empathy, community involvement
-- **Growth Mindset**: Detect learning from mistakes, embracing challenges, curiosity
-
-### Emotional Intensity (0.0-1.0 scale):
-**IMPORTANT**: Use 0.0 to 1.0 scale, NOT 0-10. Examples:
-- 0.1-0.3: Low intensity (calm, peaceful entries)
-- 0.4-0.6: Medium intensity (typical daily reflection)
-- 0.7-0.9: High intensity (strong emotions, significant events)
-- 1.0: Maximum intensity (life-changing events, extreme emotions)
-
-### Growth Indicators:
-Identify 2-4 specific areas where the user is showing personal development or positive patterns. These become `coresRepresented` in the app and are displayed in the UI as "Cores Represented".
-
-### Mind Reflection:
-- **Title**: Create an engaging title that captures the main emotional theme
-- **Summary**: 2-3 encouraging sentences about their emotional journey  
-- **Insights**: 3 specific, actionable insights based on the entry content
-
-### Emotional Patterns:
-Identify recurring themes or behaviors. Types can be: "growth", "challenge", "awareness", "connection", "creativity"
-
-## Critical Requirements:
-
-1. **Evidence-Based**: Only adjust cores that are clearly demonstrated in the entry
-2. **Realistic Changes**: Core adjustments should be small (-0.5 to +0.5)
-3. **Encouraging Tone**: Always supportive and growth-focused
-4. **Specific References**: Insights should reference actual content from the entry
-5. **Balanced Analysis**: Not every core needs adjustment; some may remain at 0.0
-6. **Correct Intensity Scale**: Use 0.0-1.0 scale for emotional_intensity
-7. **JSON Only**: Return ONLY the JSON object, no additional text
-8. **All Fields Required**: Include ALL fields shown in the format, even if values are 0 or empty arrays
-9. **Valid JSON**: Ensure proper JSON syntax with quoted keys and comma separators
-
-## Example Analysis:
-
-**Input**: "Today was challenging at work, but I managed to find a creative solution to the problem that's been bothering me for weeks. I realized that instead of getting frustrated, I could approach it from a completely different angle. I'm proud of how I handled the stress and turned it into something productive."
-
-**Output**:
-```json
-{
-  "primary_emotions": ["pride", "satisfaction", "determination"],
-  "emotional_intensity": 0.7,
-  "growth_indicators": ["problem-solving", "emotional regulation", "creative thinking"],
-  "core_adjustments": {
-    "Optimism": 0.2,
-    "Resilience": 0.3,
-    "Self-Awareness": 0.1,
-    "Creativity": 0.4,
-    "Social Connection": 0.0,
-    "Growth Mindset": 0.2
-  },
-  "mind_reflection": {
-    "title": "Creative Problem-Solving Breakthrough",
-    "summary": "You've shown remarkable growth in transforming challenges into opportunities. Your ability to shift perspective and find innovative solutions demonstrates real emotional maturity and creative thinking.",
-    "insights": [
-      "Your creative approach to workplace challenges shows growing problem-solving skills",
-      "Managing stress by reframing problems demonstrates strong emotional regulation", 
-      "Taking pride in your accomplishments builds confidence and resilience"
-    ]
-  },
-  "emotional_patterns": [
-    {
-      "category": "Problem-Solving",
-      "title": "Creative Challenge Resolution",
-      "description": "You're developing a pattern of approaching obstacles with innovative thinking rather than frustration",
-      "type": "growth"
-    }
-  ],
-  "entry_insight": "Your ability to transform workplace stress into creative solutions shows real emotional intelligence and growth mindset development."
-}
-```
-
-## Data Storage Notes:
-
-The app stores analysis data in the following structure:
-- `primary_emotions` → `EmotionalAnalysis.primaryEmotions`
-- `emotional_intensity` → `EmotionalAnalysis.emotionalIntensity` (0.0-1.0)
-- `growth_indicators` → `EmotionalAnalysis.keyThemes` 
-- `entry_insight` → `EmotionalAnalysis.personalizedInsight`
-- `core_adjustments` → Used to update personality cores in database
-- `mind_reflection` → Processed by UI but not stored directly in database
-- `emotional_patterns` → Processed by EmotionalAnalyzer for pattern recognition
-
-## Additional Notes for Haiku Model:
-- Keep insights concise but meaningful (1-2 sentences each)
-- Focus on the most significant emotional patterns
-- Ensure all text fields are brief and impactful
-- Prioritize quality over quantity in pattern detection
-- Generate varied insights to avoid repetition across similar entries
-- Use different phrasing and perspectives for similar emotional states
-
-Now analyze the following journal entry and provide insights in the exact format specified above.''';
+Analyze this journal entry:''';
   }
 
   String _buildAnalysisPrompt(JournalEntry entry) {
+    // Truncate content to 500 characters for cost optimization
+    final truncatedContent = entry.content.length > 500 
+        ? '${entry.content.substring(0, 500)}...'
+        : entry.content;
+    
     return '''
 JOURNAL ENTRY:
 Date: ${entry.formattedDate} (${entry.dayOfWeek})
 Selected Moods: ${entry.moods.join(', ')}
-Content: "${entry.content}"
+Content: "$truncatedContent"
 ''';
   }
 
   String _buildInsightPrompt(List<JournalEntry> entries) {
+    // Limit to max 10 entries for cost optimization
+    final limitedEntries = entries.take(10).toList();
     final moodCounts = <String, int>{};
-    final totalWords = entries.fold(0, (sum, entry) => sum + entry.content.split(' ').length);
+    final totalWords = limitedEntries.fold(0, (sum, entry) => sum + entry.content.split(' ').length);
     
-    for (final entry in entries) {
+    for (final entry in limitedEntries) {
       for (final mood in entry.moods) {
         moodCounts[mood] = (moodCounts[mood] ?? 0) + 1;
       }
@@ -648,12 +474,12 @@ Content: "${entry.content}"
     return '''
 Generate a compassionate monthly insight based on these journal entries:
 
-Total entries: ${entries.length}
-Average words per entry: ${totalWords / entries.length}
+Total entries: ${limitedEntries.length}
+Average words per entry: ${totalWords / limitedEntries.length}
 Top moods: ${topMoods.take(3).map((e) => '${e.key} (${e.value}x)').join(', ')}
 
 Recent entries preview:
-${entries.take(3).map((e) => '${e.formattedDate}: ${e.preview}').join('\n')}
+${limitedEntries.take(3).map((e) => '${e.formattedDate}: ${e.preview}').join('\n')}
 
 Provide a warm, encouraging 2-3 sentence insight that:
 1. Acknowledges their journaling consistency
@@ -913,7 +739,7 @@ Please provide a JSON response with this structure:
 Provide core_strengths as small incremental values (-0.5 to +0.5) for each entry, and aggregated_core_updates as the sum of all individual increments.
 ''';
 
-      final response = await _makeApiRequestWithModel(prompt, _defaultModel);
+      final response = await _makeApiRequestWithModel(prompt, _haikuModel);
 
       return _parseAnalysisResponse(response);
     } catch (e) {

@@ -70,8 +70,8 @@ class EmotionalMirrorProvider extends ChangeNotifier {
     // Map mood balance to intensity (0.0 to 1.0)
     final intensity = ((moodOverview.moodBalance + 1.0) / 2.0).clamp(0.0, 1.0);
     
-    // Use emotional variety as confidence indicator
-    final confidence = moodOverview.emotionalVariety.clamp(0.0, 1.0);
+    // Use high confidence for AI-analyzed data (since we're using Haiku AI analysis)
+    final confidence = 0.85; // High confidence for aggregated AI analysis
     
     return EmotionalState.create(
       emotion: primaryMood,
