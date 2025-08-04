@@ -7,20 +7,23 @@ import '../../models/journal_entry.dart';
 import '../../models/core.dart';
 import '../ai_service_interface.dart';
 import '../ai_cache_service.dart';
+import '../../config/ai_model_config.dart';
 
-/// Modern Claude AI Provider optimized for cost-effective analysis with Haiku
+/// Modern Claude AI Provider with flexible model configuration
 /// 
 /// Features:
-/// - Claude 3 Haiku model for fast, efficient analysis
-/// - Token-optimized prompts for concise responses
+/// - Configurable AI models via AIModelConfig
+/// - Automatic model selection based on strategy
+/// - Token-optimized prompts for efficient responses
 /// - Modern error handling and response tracking
-/// - Cost-effective emotional intelligence analysis
+/// - Cost tracking and optimization
 class ClaudeAIProvider implements AIServiceInterface {
   final AIServiceConfig _config;
   bool _isConfigured = false;
   
-  // Haiku model for all requests
-  static const String _haikuModel = 'claude-3-haiku-20240307';
+  // Model configuration
+  AIModelConfig? _currentModel;
+  ModelSelectionStrategy _strategy = ModelSelectionStrategy.defaultOnly;
   
   // API configuration
   static const String _apiVersion = '2023-06-01'; // Stable version
@@ -37,7 +40,15 @@ class ClaudeAIProvider implements AIServiceInterface {
   // Request tracking
   String? _lastRequestId;
 
-  ClaudeAIProvider(this._config);
+  ClaudeAIProvider(this._config) {
+    _initializeModel();
+  }
+  
+  /// Initialize the model configuration
+  Future<void> _initializeModel() async {
+    _currentModel = await AIModelManager.getSelectedModel();
+    _strategy = await AIModelManager.getStrategy();
+  }
 
   @override
   AIProvider get provider => AIProvider.enabled;
@@ -70,6 +81,11 @@ class ClaudeAIProvider implements AIServiceInterface {
   @override
   Future<void> testConnection() async {
     try {
+      // Ensure model is initialized
+      if (_currentModel == null) {
+        await _initializeModel();
+      }
+      
       final response = await http.post(
         Uri.parse('https://api.anthropic.com/v1/messages'),
         headers: {
@@ -78,7 +94,7 @@ class ClaudeAIProvider implements AIServiceInterface {
           'anthropic-version': '2023-06-01',
         },
         body: jsonEncode({
-          'model': _haikuModel,
+          'model': _currentModel!.modelId,
           'max_tokens': 10,
           'messages': [
             {
@@ -112,9 +128,15 @@ class ClaudeAIProvider implements AIServiceInterface {
         return cachedAnalysis;
       }
 
+      // Select optimal model for this entry
+      final model = await AIModelManager.selectOptimalModel(
+        content: entry.content,
+        strategy: _strategy,
+      );
+      
       // Make API call if not cached
       final prompt = _buildAnalysisPrompt(entry);
-      final response = await _callClaudeAPI(prompt);
+      final response = await _callClaudeAPIWithModel(prompt, model);
       final analysis = _parseAnalysisResponse(response);
       
       // Cache the successful analysis
@@ -141,9 +163,16 @@ class ClaudeAIProvider implements AIServiceInterface {
         return cachedInsight;
       }
 
+      // Select optimal model for insights (may use better model)
+      final combinedContent = entries.map((e) => e.content).join(' ');
+      final model = await AIModelManager.selectOptimalModel(
+        content: combinedContent,
+        strategy: _strategy,
+      );
+      
       // Make API call if not cached
       final prompt = _buildInsightPrompt(entries);
-      final response = await _callClaudeAPI(prompt);
+      final response = await _callClaudeAPIWithModel(prompt, model);
       final insight = _extractInsightFromResponse(response);
       
       // Cache the successful insight (shorter expiration for insights)
@@ -171,20 +200,13 @@ class ClaudeAIProvider implements AIServiceInterface {
   }
 
   // Private methods with comprehensive error handling
-  Future<String> _callClaudeAPI(String prompt) async {
-    // Use the fallback mechanism that tries multiple models
-    return await _callClaudeAPIWithFallback(prompt);
+  /// Call API with specific model configuration
+  Future<String> _callClaudeAPIWithModel(String prompt, AIModelConfig model) async {
+    return await _callClaudeAPIWithModelId(prompt, model.modelId, model);
   }
 
-
-
-  /// Direct call to Haiku model - no fallback needed
-  Future<String> _callClaudeAPIWithFallback(String prompt) async {
-    return await _callClaudeAPIWithModel(prompt, _haikuModel);
-  }
-
-  /// Make API call with specific model
-  Future<String> _callClaudeAPIWithModel(String prompt, String model) async {
+  /// Make API call with specific model ID and configuration
+  Future<String> _callClaudeAPIWithModelId(String prompt, String modelId, AIModelConfig modelConfig) async {
     // Rate limiting
     await _enforceRateLimit();
 
@@ -192,7 +214,7 @@ class ClaudeAIProvider implements AIServiceInterface {
     Exception? lastException;
     for (int attempt = 1; attempt <= _maxRetries; attempt++) {
       try {
-        final response = await _makeApiRequestWithModel(prompt, model);
+        final response = await _makeApiRequestWithModel(prompt, modelId, modelConfig);
         return response;
       } on SocketException catch (e) {
         lastException = _handleNetworkError(e, attempt);
@@ -228,8 +250,8 @@ class ClaudeAIProvider implements AIServiceInterface {
     );
   }
 
-  Future<String> _makeApiRequestWithModel(String prompt, String model) async {
-    final requestBody = _buildRequestBody(model, prompt);
+  Future<String> _makeApiRequestWithModel(String prompt, String modelId, AIModelConfig modelConfig) async {
+    final requestBody = _buildRequestBody(modelId, prompt, modelConfig);
     
     final response = await http.post(
       Uri.parse('https://api.anthropic.com/v1/messages'),
@@ -250,7 +272,7 @@ class ClaudeAIProvider implements AIServiceInterface {
     _lastRequestId = response.headers['request-id'];
     
     if (kDebugMode && _lastRequestId != null) {
-      debugPrint('Claude API Request ID: $_lastRequestId (Model: $model)');
+      debugPrint('Claude API Request ID: $_lastRequestId (Model: $modelId)');
     }
 
     if (response.statusCode == 200) {
@@ -261,7 +283,11 @@ class ClaudeAIProvider implements AIServiceInterface {
         final usage = data['usage'] as Map<String, dynamic>?;
         
         if (kDebugMode && usage != null) {
-          debugPrint('🔢 Token usage - Input: ${usage['input_tokens']}, Output: ${usage['output_tokens']}');
+          final inputTokens = usage['input_tokens'] as int? ?? 0;
+          final outputTokens = usage['output_tokens'] as int? ?? 0;
+          final cost = modelConfig.calculateCost(inputTokens, outputTokens);
+          debugPrint('🔢 Token usage - Input: $inputTokens, Output: $outputTokens');
+          debugPrint('💰 Estimated cost: \$${cost.toStringAsFixed(4)}');
         }
         
         return responseText;
@@ -277,11 +303,11 @@ class ClaudeAIProvider implements AIServiceInterface {
   }
 
   /// Build the request body with modern Claude API parameters
-  Map<String, dynamic> _buildRequestBody(String model, String prompt) {
+  Map<String, dynamic> _buildRequestBody(String modelId, String prompt, AIModelConfig modelConfig) {
     final body = <String, dynamic>{
-      'model': model,
-      'max_tokens': _getMaxTokensForModel(model),
-      'temperature': 0.7, // Balanced creativity and consistency for Haiku
+      'model': modelId,
+      'max_tokens': modelConfig.maxTokens,
+      'temperature': modelConfig.temperature,
       'system': _getSystemPrompt(),
       'messages': [
         {
@@ -296,9 +322,22 @@ class ClaudeAIProvider implements AIServiceInterface {
     return body;
   }
 
-  /// Get maximum tokens - optimized for Haiku cost efficiency
-  int _getMaxTokensForModel(String model) {
-    return 2000; // Optimal balance of quality and cost for Haiku
+  /// Get model configuration for display
+  AIModelConfig get currentModel => _currentModel ?? AIModels.defaultModel;
+  
+  /// Set model selection strategy
+  Future<void> setModelStrategy(ModelSelectionStrategy strategy) async {
+    _strategy = strategy;
+    await AIModelManager.setStrategy(strategy);
+  }
+  
+  /// Manually set the model to use
+  Future<void> setModel(String modelId) async {
+    final model = AIModels.getById(modelId);
+    if (model != null && model.isEnabled) {
+      _currentModel = model;
+      await AIModelManager.setSelectedModel(modelId);
+    }
   }
 
 
@@ -739,7 +778,9 @@ Please provide a JSON response with this structure:
 Provide core_strengths as small incremental values (-0.5 to +0.5) for each entry, and aggregated_core_updates as the sum of all individual increments.
 ''';
 
-      final response = await _makeApiRequestWithModel(prompt, _haikuModel);
+      // Use current model for batch analysis
+      final model = _currentModel ?? AIModels.defaultModel;
+      final response = await _makeApiRequestWithModel(prompt, model.modelId, model);
 
       return _parseAnalysisResponse(response);
     } catch (e) {
