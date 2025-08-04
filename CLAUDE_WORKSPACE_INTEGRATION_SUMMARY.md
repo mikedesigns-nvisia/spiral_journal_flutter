@@ -11,13 +11,13 @@ Successfully integrated the Claude Workspace implementation into the Spiral Jour
 **File**: `lib/services/providers/claude_ai_provider.dart`
 
 **Key Improvements**:
-- **Claude 4 Model Support**: Primary model `claude-sonnet-4-20250514` for premium analysis
-- **Intelligent Fallback System**: Automatic fallback to Claude 3.5 Sonnet, then Haiku if needed
+- **Claude 3 Haiku Model**: Single model `claude-3-haiku-20240307` for all analysis
+- **Simplified Architecture**: No fallback system needed with single model approach
 - **Workspace-Compatible System Prompt**: Comprehensive emotional intelligence analysis prompt
 - **Enhanced API Parameters**: 
   - Temperature: 1.0 (high creativity for varied insights)
-  - Max Tokens: 20,000 for Claude 4, 8,000 for 3.5 Sonnet
-- **Extended Thinking Support**: Enabled for Claude 4 models with 2048 token budget
+  - Max Tokens: 2,000 for Haiku (cost-optimized)
+- **Optimized Prompts**: Concise prompts designed for Haiku efficiency
 
 ### 2. System Prompt Integration
 
@@ -56,10 +56,10 @@ Successfully integrated the Claude Workspace implementation into the Spiral Jour
 
 ### 4. Advanced Error Handling & Fallbacks
 
-**Multi-Model Fallback Chain**:
-1. **Primary**: Claude 4 (claude-sonnet-4-20250514)
-2. **Secondary**: Claude 3.5 Sonnet (claude-3-5-sonnet-20241022)
-3. **Tertiary**: Claude 3 Haiku (claude-3-haiku-20240307)
+**Single Model Implementation**:
+- **Haiku Only**: Claude 3 Haiku (claude-3-haiku-20240307)
+- **No Fallback**: Simplified error handling without model switching
+- **Consistent Performance**: Predictable response times and costs
 
 **Error Handling**:
 - Network connection failures with retry logic
@@ -90,8 +90,8 @@ import anthropic
 client = anthropic.Anthropic(api_key="my_api_key")
 
 message = client.messages.create(
-    model="claude-sonnet-4-20250514",
-    max_tokens=20000,
+    model="claude-3-haiku-20240307",
+    max_tokens=2000,
     temperature=1,
     system="[Enhanced System Prompt]",
     messages=[{"role": "user", "content": "{{JOURNAL_ENTRY}}"}]

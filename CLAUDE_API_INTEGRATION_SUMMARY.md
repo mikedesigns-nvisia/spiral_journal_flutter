@@ -47,8 +47,8 @@ Your app uses a **hybrid approach** with both legacy and modern providers:
 - Environment variable integration
 
 ### Modern Provider (`ClaudeAIProvider`)
-- Latest Claude API features (Claude 4, 3.5 Sonnet, Haiku)
-- Extended Thinking capabilities
+- Claude 3 Haiku for all operations
+- Simplified implementation without Extended Thinking
 - Advanced error handling and retry logic
 - Caching integration
 
@@ -57,7 +57,7 @@ Your app uses a **hybrid approach** with both legacy and modern providers:
 1. **Environment Loading**: API key loaded from `.env` file
 2. **Secure Storage**: Key encrypted using Flutter Secure Storage
 3. **API Calls**: Direct HTTP requests to `https://api.anthropic.com/v1/messages`
-4. **Model Selection**: Automatic fallback from Claude 4 → 3.5 Sonnet → Haiku
+4. **Single Model**: Claude 3 Haiku for consistent performance
 5. **Response Processing**: JSON parsing with comprehensive error handling
 6. **Caching**: Intelligent caching to reduce API costs
 
