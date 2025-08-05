@@ -6,7 +6,7 @@ import '../models/core.dart';
 import '../database/journal_dao.dart';
 import '../database/core_dao.dart';
 import 'ai_service_manager.dart';
-import 'background_ai_processor.dart';
+// Background AI processor removed - using local fallback processing
 import 'offline_queue_service.dart';
 
 /// Central service for managing journal entries and emotional core operations.
@@ -52,17 +52,14 @@ class JournalService {
   final JournalDao _journalDao = JournalDao();
   final CoreDao _coreDao = CoreDao();
   final AIServiceManager _aiManager = AIServiceManager();
-  final BackgroundAIProcessor _aiProcessor = BackgroundAIProcessor();
+  // Background AI processor removed - using local fallback processing
   final OfflineQueueService _offlineQueue = OfflineQueueService();
 
   // Initialize the service (call this on app startup)
   Future<void> initialize() async {
     try {
       await _coreDao.initializeDefaultCores();
-      await _aiProcessor.initialize(
-        aiServiceManager: _aiManager,
-        journalService: this,
-      );
+      // Background AI processor initialization removed - using local fallback processing
       await _offlineQueue.initialize();
     } catch (e) {
       debugPrint('JournalService initialize error: $e');
@@ -488,34 +485,26 @@ class JournalService {
   }
 
   // Background AI processing methods
-  Future<void> queueEntryForAnalysis(JournalEntry entry, {
-    ProcessingPriority priority = ProcessingPriority.normal,
-  }) async {
-    await _aiProcessor.queueEntryAnalysis(
-      entry,
-      priority: priority,
-      onComplete: (result) async {
-        // Update entry with analysis result
-        await updateEntryWithAnalysis(entry.id, result);
-      },
-      onError: (error) {
-        debugPrint('Background AI analysis failed for entry ${entry.id}: $error');
-      },
-    );
+  Future<void> queueEntryForAnalysis(JournalEntry entry) async {
+    // Queue entry analysis removed - using direct local fallback processing
+    try {
+      final result = await _aiManager.analyzeJournalEntry(entry);
+      await updateEntryWithAnalysis(entry.id, result);
+    } catch (e) {
+      debugPrint('Error in direct entry analysis: $e');
+    }
   }
 
   Future<void> queueBatchAnalysis(List<JournalEntry> entries) async {
-    await _aiProcessor.queueBatchAnalysis(
-      entries,
-      onBatchComplete: (results) async {
-        // Update entries with analysis results
-        for (int i = 0; i < entries.length && i < results.length; i++) {
-          if (!results[i].containsKey('error')) {
-            await updateEntryWithAnalysis(entries[i].id, results[i]);
-          }
-        }
-      },
-    );
+    // Batch analysis removed - using direct local fallback processing
+    for (final entry in entries) {
+      try {
+        final result = await _aiManager.analyzeJournalEntry(entry);
+        await updateEntryWithAnalysis(entry.id, result);
+      } catch (e) {
+        debugPrint('Error in direct batch entry analysis for ${entry.id}: $e');
+      }
+    }
   }
 
   Future<void> updateEntryWithAnalysis(String entryId, Map<String, dynamic> analysis) async {
@@ -558,24 +547,25 @@ class JournalService {
 
   // Performance and resource management
   void pauseBackgroundProcessing() {
-    _aiProcessor.pauseProcessing();
+    // Background processing pause removed - using direct local fallback processing
   }
 
   void resumeBackgroundProcessing() {
-    _aiProcessor.resumeProcessing();
+    // Background processing resume removed - using direct local fallback processing
   }
 
   void clearProcessingQueue() {
-    _aiProcessor.clearQueue();
+    // Processing queue clearing removed - using direct local fallback processing
   }
 
   Map<String, dynamic> getProcessingMetrics() {
-    return _aiProcessor.performanceMetrics;
+    // Processing metrics removed - using direct local fallback processing
+    return {};
   }
 
   // Dispose method for cleanup
   Future<void> dispose() async {
-    await _aiProcessor.dispose();
+    // Background AI processor disposal removed - using direct local fallback processing
   }
 
   // Utility methods for UI

@@ -7,7 +7,10 @@ import '../../models/journal_entry.dart';
 import '../../models/core.dart';
 import '../ai_service_interface.dart';
 import '../ai_cache_service.dart';
+import '../ai_service_error_tracker.dart';
 import '../../config/ai_model_config.dart';
+import '../network/network_error_handler.dart';
+import '../network/network_health_monitor.dart';
 
 /// Modern Claude AI Provider with flexible model configuration
 /// 
@@ -62,18 +65,39 @@ class ClaudeAIProvider implements AIServiceInterface {
   @override
   Future<void> setApiKey(String apiKey) async {
     try {
+      debugPrint('🔑 ClaudeAIProvider: Setting API key...');
+      
       if (apiKey.isEmpty) {
-        throw Exception('API key cannot be empty');
+        final error = Exception('API key cannot be empty');
+        AIServiceErrorTracker.logError(
+          'setApiKey',
+          error,
+          context: {'keyLength': 0},
+          provider: 'ClaudeAIProvider',
+        );
+        throw error;
       }
       
       // Updated validation for current Anthropic API key format
       if (!apiKey.startsWith('sk-ant-') || apiKey.length < 40) {
-        throw Exception('Invalid Claude API key format. Expected format: sk-ant-... with minimum 40 characters');
+        final error = Exception('Invalid Claude API key format. Expected format: sk-ant-... with minimum 40 characters');
+        AIServiceErrorTracker.logError(
+          'setApiKey',
+          error,
+          context: {
+            'keyLength': apiKey.length,
+            'keyPrefix': apiKey.length > 10 ? apiKey.substring(0, 10) : apiKey,
+            'expectedFormat': 'sk-ant-...',
+          },
+          provider: 'ClaudeAIProvider',
+        );
+        throw error;
       }
       
       _isConfigured = true;
+      debugPrint('✅ ClaudeAIProvider: API key configured successfully');
     } catch (e) {
-      debugPrint('ClaudeAIProvider setApiKey error: $e');
+      debugPrint('❌ ClaudeAIProvider setApiKey error: $e');
       rethrow;
     }
   }
@@ -81,35 +105,87 @@ class ClaudeAIProvider implements AIServiceInterface {
   @override
   Future<void> testConnection() async {
     try {
+      debugPrint('🔗 ClaudeAIProvider: Testing connection...');
+      
       // Ensure model is initialized
       if (_currentModel == null) {
+        debugPrint('🔧 ClaudeAIProvider: Initializing model for connection test...');
         await _initializeModel();
       }
       
-      final response = await http.post(
-        Uri.parse('https://api.anthropic.com/v1/messages'),
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': _config.apiKey,
-          'anthropic-version': '2023-06-01',
-        },
-        body: jsonEncode({
-          'model': _currentModel!.modelId,
-          'max_tokens': 10,
-          'messages': [
-            {
-              'role': 'user',
-              'content': 'Hello',
-            }
-          ],
-        }),
-      );
+      // Use network error handler for robust connection testing
+      await NetworkErrorHandler.handleNetworkRequest<http.Response>(
+        () async {
+          final startTime = DateTime.now();
+          final response = await http.post(
+            Uri.parse('https://api.anthropic.com/v1/messages'),
+            headers: {
+              'Content-Type': 'application/json',
+              'x-api-key': _config.apiKey,
+              'anthropic-version': '2023-06-01',
+            },
+            body: jsonEncode({
+              'model': _currentModel!.modelId,
+              'max_tokens': 10,
+              'messages': [
+                {
+                  'role': 'user',
+                  'content': 'Hello',
+                }
+              ],
+            }),
+          );
 
-      if (response.statusCode != 200) {
-        throw Exception('API test failed: ${response.statusCode} - ${response.body}');
-      }
+          final duration = DateTime.now().difference(startTime);
+          
+          if (response.statusCode != 200) {
+            final error = Exception('API test failed: ${response.statusCode} - ${response.body}');
+            AIServiceErrorTracker.logError(
+              'testConnection',
+              error,
+              context: {
+                'statusCode': response.statusCode,
+                'responseBody': response.body,
+                'model': _currentModel!.modelId,
+                'duration': duration.inMilliseconds,
+              },
+              provider: 'ClaudeAIProvider',
+            );
+            throw error;
+          }
+          
+          debugPrint('✅ ClaudeAIProvider: Connection test successful (${duration.inMilliseconds}ms)');
+          return response;
+        },
+        operation: 'claude_connection_test',
+      );
+      
+    } on NetworkException catch (e) {
+      debugPrint('❌ ClaudeAIProvider testConnection network error: $e');
+      AIServiceErrorTracker.logError(
+        'testConnection',
+        e,
+        context: {
+          'model': _currentModel?.modelId,
+          'isConfigured': _isConfigured,
+          'networkErrorType': e.type.name,
+          'errno': e.errno,
+          'isRetryable': e.isRetryable,
+        },
+        provider: 'ClaudeAIProvider',
+      );
+      rethrow;
     } catch (e) {
-      debugPrint('ClaudeAIProvider testConnection error: $e');
+      debugPrint('❌ ClaudeAIProvider testConnection error: $e');
+      AIServiceErrorTracker.logError(
+        'testConnection',
+        e,
+        context: {
+          'model': _currentModel?.modelId,
+          'isConfigured': _isConfigured,
+        },
+        provider: 'ClaudeAIProvider',
+      );
       rethrow;
     }
   }
@@ -117,14 +193,27 @@ class ClaudeAIProvider implements AIServiceInterface {
   @override
   Future<Map<String, dynamic>> analyzeJournalEntry(JournalEntry entry) async {
     if (!isEnabled) {
+      debugPrint('⚠️  ClaudeAIProvider: Service not enabled, using fallback analysis');
+      AIServiceErrorTracker.logFallback(
+        'Service not enabled',
+        'ClaudeAIProvider',
+        context: {
+          'isConfigured': _isConfigured,
+          'apiKeyEmpty': _config.apiKey.isEmpty,
+          'entryId': entry.id,
+        },
+      );
       return _fallbackAnalysis(entry);
     }
 
     try {
+      debugPrint('🧠 ClaudeAIProvider: Analyzing journal entry ${entry.id}...');
+      
       // Check cache first using the dedicated cache service
       final cacheService = AICacheService();
       final cachedAnalysis = await cacheService.getCachedAnalysis(entry);
       if (cachedAnalysis != null) {
+        debugPrint('💾 ClaudeAIProvider: Using cached analysis for entry ${entry.id}');
         return cachedAnalysis;
       }
 
@@ -134,17 +223,48 @@ class ClaudeAIProvider implements AIServiceInterface {
         strategy: _strategy,
       );
       
+      debugPrint('🤖 ClaudeAIProvider: Using model ${model.modelId} for analysis');
+      
       // Make API call if not cached
       final prompt = _buildAnalysisPrompt(entry);
+      final startTime = DateTime.now();
       final response = await _callClaudeAPIWithModel(prompt, model);
+      final duration = DateTime.now().difference(startTime);
+      
+      debugPrint('⏱️  ClaudeAIProvider: API call completed in ${duration.inMilliseconds}ms');
+      
       final analysis = _parseAnalysisResponse(response);
       
       // Cache the successful analysis
       await cacheService.cacheAnalysis(entry, analysis);
       
+      debugPrint('✅ ClaudeAIProvider: Analysis completed successfully for entry ${entry.id}');
       return analysis;
-    } catch (error) {
-      debugPrint('ClaudeAIProvider analyzeJournalEntry error: $error');
+    } catch (error, stackTrace) {
+      debugPrint('❌ ClaudeAIProvider analyzeJournalEntry error: $error');
+      AIServiceErrorTracker.logError(
+        'analyzeJournalEntry',
+        error,
+        stackTrace: stackTrace,
+        context: {
+          'entryId': entry.id,
+          'entryLength': entry.content.length,
+          'moods': entry.moods,
+          'model': _currentModel?.modelId,
+          'strategy': _strategy.toString(),
+        },
+        provider: 'ClaudeAIProvider',
+      );
+      
+      AIServiceErrorTracker.logFallback(
+        'Analysis failed: ${error.toString()}',
+        'ClaudeAIProvider',
+        context: {
+          'entryId': entry.id,
+          'errorType': error.runtimeType.toString(),
+        },
+      );
+      
       return _fallbackAnalysis(entry);
     }
   }
@@ -152,14 +272,26 @@ class ClaudeAIProvider implements AIServiceInterface {
   @override
   Future<String> generateMonthlyInsight(List<JournalEntry> entries) async {
     if (!isEnabled) {
+      debugPrint('⚠️  ClaudeAIProvider: Service not enabled, using fallback insight');
+      AIServiceErrorTracker.logFallback(
+        'Service not enabled for monthly insight',
+        'ClaudeAIProvider',
+        context: {
+          'entriesCount': entries.length,
+          'isConfigured': _isConfigured,
+        },
+      );
       return _fallbackMonthlyInsight(entries);
     }
 
     try {
+      debugPrint('📊 ClaudeAIProvider: Generating monthly insight for ${entries.length} entries...');
+      
       // Check cache first using the dedicated cache service
       final cacheService = AICacheService();
       final cachedInsight = await cacheService.getCachedMonthlyInsight(entries);
       if (cachedInsight != null) {
+        debugPrint('💾 ClaudeAIProvider: Using cached monthly insight');
         return cachedInsight;
       }
 
@@ -170,17 +302,46 @@ class ClaudeAIProvider implements AIServiceInterface {
         strategy: _strategy,
       );
       
+      debugPrint('🤖 ClaudeAIProvider: Using model ${model.modelId} for monthly insight');
+      
       // Make API call if not cached
       final prompt = _buildInsightPrompt(entries);
+      final startTime = DateTime.now();
       final response = await _callClaudeAPIWithModel(prompt, model);
+      final duration = DateTime.now().difference(startTime);
+      
+      debugPrint('⏱️  ClaudeAIProvider: Monthly insight API call completed in ${duration.inMilliseconds}ms');
+      
       final insight = _extractInsightFromResponse(response);
       
       // Cache the successful insight (shorter expiration for insights)
       await cacheService.cacheMonthlyInsight(entries, insight, expiration: Duration(hours: 6));
       
+      debugPrint('✅ ClaudeAIProvider: Monthly insight generated successfully');
       return insight;
-    } catch (error) {
-      debugPrint('ClaudeAIProvider generateMonthlyInsight error: $error');
+    } catch (error, stackTrace) {
+      debugPrint('❌ ClaudeAIProvider generateMonthlyInsight error: $error');
+      AIServiceErrorTracker.logError(
+        'generateMonthlyInsight',
+        error,
+        stackTrace: stackTrace,
+        context: {
+          'entriesCount': entries.length,
+          'totalContentLength': entries.fold(0, (sum, e) => sum + e.content.length),
+          'model': _currentModel?.modelId,
+        },
+        provider: 'ClaudeAIProvider',
+      );
+      
+      AIServiceErrorTracker.logFallback(
+        'Monthly insight generation failed: ${error.toString()}',
+        'ClaudeAIProvider',
+        context: {
+          'entriesCount': entries.length,
+          'errorType': error.runtimeType.toString(),
+        },
+      );
+      
       return _fallbackMonthlyInsight(entries);
     }
   }
@@ -191,10 +352,36 @@ class ClaudeAIProvider implements AIServiceInterface {
     List<EmotionalCore> currentCores,
   ) async {
     try {
+      debugPrint('🎯 ClaudeAIProvider: Calculating core updates for entry ${entry.id}...');
+      
       final analysis = await analyzeJournalEntry(entry);
-      return _mapAnalysisToCoreUpdates(analysis, currentCores);
-    } catch (error) {
-      debugPrint('ClaudeAIProvider calculateCoreUpdates error: $error');
+      final updates = _mapAnalysisToCoreUpdates(analysis, currentCores);
+      
+      debugPrint('✅ ClaudeAIProvider: Core updates calculated: ${updates.length} cores affected');
+      return updates;
+    } catch (error, stackTrace) {
+      debugPrint('❌ ClaudeAIProvider calculateCoreUpdates error: $error');
+      AIServiceErrorTracker.logError(
+        'calculateCoreUpdates',
+        error,
+        stackTrace: stackTrace,
+        context: {
+          'entryId': entry.id,
+          'coresCount': currentCores.length,
+          'coreNames': currentCores.map((c) => c.name).toList(),
+        },
+        provider: 'ClaudeAIProvider',
+      );
+      
+      AIServiceErrorTracker.logFallback(
+        'Core updates calculation failed: ${error.toString()}',
+        'ClaudeAIProvider',
+        context: {
+          'entryId': entry.id,
+          'errorType': error.runtimeType.toString(),
+        },
+      );
+      
       return _fallbackCoreUpdates(entry, currentCores);
     }
   }
@@ -253,17 +440,24 @@ class ClaudeAIProvider implements AIServiceInterface {
   Future<String> _makeApiRequestWithModel(String prompt, String modelId, AIModelConfig modelConfig) async {
     final requestBody = _buildRequestBody(modelId, prompt, modelConfig);
     
-    final response = await http.post(
-      Uri.parse('https://api.anthropic.com/v1/messages'),
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': _config.apiKey,
-        'anthropic-version': _apiVersion,
+    // Use NetworkErrorHandler for robust API requests with DNS error handling
+    final response = await NetworkErrorHandler.handleNetworkRequest<http.Response>(
+      () async {
+        return await http.post(
+          Uri.parse('https://api.anthropic.com/v1/messages'),
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': _config.apiKey,
+            'anthropic-version': _apiVersion,
+          },
+          body: jsonEncode(requestBody),
+        ).timeout(
+          _requestTimeout,
+          onTimeout: () => throw TimeoutException('Claude API request timed out', _requestTimeout),
+        );
       },
-      body: jsonEncode(requestBody),
-    ).timeout(
-      _requestTimeout,
-      onTimeout: () => throw TimeoutException('Claude API request timed out', _requestTimeout),
+      timeout: _requestTimeout,
+      operation: 'claude_api_request',
     );
 
     _lastApiCall = DateTime.now();
@@ -356,64 +550,114 @@ class ClaudeAIProvider implements AIServiceInterface {
 
   // Error handling methods
   Exception _handleNetworkError(SocketException e, int attempt) {
-    return AIServiceException(
+    final error = AIServiceException(
       'Network connection failed (attempt $attempt/$_maxRetries)',
       type: AIErrorType.network,
       isRetryable: true,
       originalError: e,
     );
+    
+    AIServiceErrorTracker.logError(
+      'networkError',
+      error,
+      context: {
+        'attempt': attempt,
+        'maxRetries': _maxRetries,
+        'address': e.address?.toString(),
+        'port': e.port,
+        'osError': e.osError?.toString(),
+      },
+      provider: 'ClaudeAIProvider',
+    );
+    
+    return error;
   }
 
   Exception _handleHttpError(HttpException e, int attempt) {
     final statusCode = _extractStatusCode(e.message);
+    AIServiceException error;
     
     if (statusCode == 401) {
-      return AIServiceException(
+      error = AIServiceException(
         'Invalid API key or authentication failed',
         type: AIErrorType.authentication,
         isRetryable: false,
         originalError: e,
       );
     } else if (statusCode == 429) {
-      return AIServiceException(
+      error = AIServiceException(
         'Rate limit exceeded (attempt $attempt/$_maxRetries)',
         type: AIErrorType.rateLimit,
         isRetryable: true,
         originalError: e,
       );
     } else if (statusCode != null && statusCode >= 500) {
-      return AIServiceException(
+      error = AIServiceException(
         'Claude API server error (attempt $attempt/$_maxRetries)',
         type: AIErrorType.serverError,
         isRetryable: true,
         originalError: e,
       );
     } else {
-      return AIServiceException(
+      error = AIServiceException(
         'Claude API client error: ${e.message}',
         type: AIErrorType.clientError,
         isRetryable: false,
         originalError: e,
       );
     }
+    
+    AIServiceErrorTracker.logError(
+      'httpError',
+      error,
+      context: {
+        'statusCode': statusCode,
+        'attempt': attempt,
+        'maxRetries': _maxRetries,
+        'message': e.message,
+        'uri': e.uri?.toString(),
+        'isRetryable': error.isRetryable,
+        'errorType': error.type.toString(),
+      },
+      provider: 'ClaudeAIProvider',
+    );
+    
+    return error;
   }
 
   Exception _handleGenericError(dynamic e, int attempt) {
+    AIServiceException error;
+    
     if (e is TimeoutException) {
-      return AIServiceException(
+      error = AIServiceException(
         'Request timeout (attempt $attempt/$_maxRetries)',
         type: AIErrorType.timeout,
         isRetryable: true,
         originalError: e,
       );
     } else {
-      return AIServiceException(
+      error = AIServiceException(
         'Unexpected error: ${e.toString()} (attempt $attempt/$_maxRetries)',
         type: AIErrorType.unknown,
         isRetryable: true,
         originalError: e,
       );
     }
+    
+    AIServiceErrorTracker.logError(
+      'genericError',
+      error,
+      context: {
+        'attempt': attempt,
+        'maxRetries': _maxRetries,
+        'errorType': e.runtimeType.toString(),
+        'isTimeout': e is TimeoutException,
+        'timeout': e is TimeoutException ? e.duration?.toString() : null,
+      },
+      provider: 'ClaudeAIProvider',
+    );
+    
+    return error;
   }
 
   int? _extractStatusCode(String message) {

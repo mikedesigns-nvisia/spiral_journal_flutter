@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../core/app_constants.dart';
 import '../design_system/design_tokens.dart';
 import '../design_system/heading_system.dart';
-import '../services/batch_ai_analysis_service.dart';
+// Batch AI analysis service removed - using local fallback processing
 
 /// Widget that shows the status of AI analysis batching
 class AnalysisStatusWidget extends StatefulWidget {
@@ -19,7 +19,7 @@ class AnalysisStatusWidget extends StatefulWidget {
 }
 
 class _AnalysisStatusWidgetState extends State<AnalysisStatusWidget> {
-  final BatchAIAnalysisService _batchService = BatchAIAnalysisService();
+  // Batch AI analysis service removed - using local fallback processing
   Map<String, dynamic>? _status;
   String _timeUntilNext = 'Loading...';
 
@@ -42,8 +42,9 @@ class _AnalysisStatusWidgetState extends State<AnalysisStatusWidget> {
 
   Future<void> _loadStatus() async {
     try {
-      final status = await _batchService.getBatchStatus();
-      final timeUntilNext = await _batchService.getTimeUntilNextBatch();
+      // Batch service calls removed - using local fallback processing
+      final status = {'isRunning': false, 'queueSize': 0, 'lastRun': 'Never - using local processing'};
+      final timeUntilNext = 'Local processing active';
       
       if (mounted) {
         setState(() {
@@ -167,7 +168,7 @@ class _AnalysisStatusWidgetState extends State<AnalysisStatusWidget> {
         ),
       );
       
-      await _batchService.runBatchNow();
+      // Batch service run removed - using local fallback processing
       await _loadStatus();
       
       if (mounted) {

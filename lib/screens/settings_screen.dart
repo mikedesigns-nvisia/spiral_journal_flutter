@@ -11,6 +11,7 @@ import 'package:spiral_journal/services/settings_service.dart';
 // PIN auth service import removed - using biometrics-only authentication
 import 'package:spiral_journal/models/user_preferences.dart';
 import 'package:spiral_journal/screens/ai_settings_screen.dart';
+// AI diagnostic screen removed - using local fallback processing
 import 'package:spiral_journal/utils/sample_data_generator.dart';
 import 'package:spiral_journal/services/accessibility_service.dart';
 import 'package:spiral_journal/services/journal_service.dart';
@@ -19,6 +20,7 @@ import 'package:spiral_journal/widgets/testflight_feedback_widget.dart';
 import 'package:spiral_journal/widgets/offline_queue_status_widget.dart';
 import 'package:spiral_journal/widgets/animated_card.dart';
 import 'package:spiral_journal/widgets/animated_button.dart';
+// Debug screens removed - using local fallback processing
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -285,6 +287,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     _resetCores,
                     isDestructive: true,
                   ),
+                  // AI Diagnostics removed - using local fallback processing
+                  /*_buildActionItem(
+                    Icons.bug_report,
+                    'AI Diagnostics',
+                    'Debug and troubleshoot AI integration issues (removed)',
+                    () {},
+                  ),*/
                   _buildActionItem(
                     Icons.delete_forever,
                     'Clear All Data',
@@ -325,6 +334,28 @@ class _SettingsScreenState extends State<SettingsScreen> {
               
               const SizedBox(height: 24),
               
+              // Production Debugging Tools
+              _buildSettingsSection(
+                'Debugging Tools',
+                [
+                  // Debug screens removed - using local fallback processing
+                  /*_buildActionItem(
+                    Icons.terminal,
+                    'Debug Console',
+                    'Debug commands removed - using local processing',
+                    () {},
+                  ),
+                  _buildActionItem(
+                    Icons.help_center,
+                    'Troubleshooting Guide',
+                    'Troubleshooting removed - local processing is stable',
+                    () {},
+                  ),*/
+                ],
+              ),
+              
+              const SizedBox(height: 24),
+              
               // TestFlight Feedback
               _buildSettingsSection(
                 'TestFlight Feedback',
@@ -354,6 +385,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ),
                       ),
                     ),
+                    // AI Diagnostics removed - using local fallback processing
+                    /*_buildActionItem(
+                      Icons.bug_report,
+                      'AI Diagnostics',
+                      'AI diagnostics removed - using stable local processing',
+                      () {},
+                    ),*/
+                    // Debug screens removed - using local fallback processing
+                    /*_buildActionItem(
+                      Icons.terminal,
+                      'Debug Console',
+                      'Debug commands removed - using local processing',
+                      () {},
+                    ),
+                    _buildActionItem(
+                      Icons.help_center,
+                      'Troubleshooting Guide',
+                      'Troubleshooting removed - local processing is stable',
+                      () {},
+                    ),*/
                     // Sample data generation removed for TestFlight
                     // Will be re-enabled for development builds
                   ],

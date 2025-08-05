@@ -3,8 +3,40 @@
 class EnvironmentConfig {
   static const Environment current = Environment.development;
   
-  // Claude API Configuration (injected at build time via --dart-define)
-  static const String claudeApiKey = String.fromEnvironment('CLAUDE_API_KEY', defaultValue: '');
+  // Claude API Configuration - loaded from .env file or dart-define
+  static String get claudeApiKey {
+    // First try to get from ProductionEnvironmentLoader (loaded from .env file)
+    try {
+      final envKey = _getFromProductionLoader();
+      if (envKey != null && envKey.isNotEmpty) {
+        return envKey;
+      }
+    } catch (e) {
+      // If ProductionEnvironmentLoader fails, continue to dart-define fallback
+    }
+    
+    // Fallback to dart-define (build-time injection)
+    return const String.fromEnvironment('CLAUDE_API_KEY', defaultValue: '');
+  }
+  
+  // Helper method to get API key from ProductionEnvironmentLoader
+  static String? _getFromProductionLoader() {
+    try {
+      // Import ProductionEnvironmentLoader dynamically to avoid circular dependencies
+      // This will be resolved by ensuring ProductionEnvironmentLoader is loaded first
+      return _productionEnvironmentLoaderApiKey;
+    } catch (e) {
+      return null;
+    }
+  }
+  
+  // Static field to hold the API key from ProductionEnvironmentLoader
+  static String? _productionEnvironmentLoaderApiKey;
+  
+  // Method to set the API key from ProductionEnvironmentLoader
+  static void setClaudeApiKeyFromLoader(String? apiKey) {
+    _productionEnvironmentLoaderApiKey = apiKey;
+  }
   
   // Daily Journal & Usage Limits
   static const int monthlyAnalysisLimit = 30; // One per day for 30 days

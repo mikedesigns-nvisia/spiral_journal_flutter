@@ -6,12 +6,13 @@ import '../models/journal_entry.dart';
 import '../models/core.dart' hide EmotionalPattern;
 import '../config/environment.dart';
 import 'ai_service_interface.dart';
-import 'providers/claude_ai_provider.dart';
+import 'ai_service_error_tracker.dart';
+import 'production_environment_loader.dart';
 import 'providers/fallback_provider.dart';
+import 'providers/enhanced_fallback_provider.dart';
 import 'dev_config_service.dart';
 import 'emotional_analyzer.dart';
 import 'core_evolution_engine.dart';
-// import 'haiku_prompt_optimizer.dart';
 import 'offline_queue_service.dart';
 
 /// Manages AI service providers and coordinates AI-powered analysis operations.
@@ -109,100 +110,170 @@ class AIServiceManager {
   // Initialize with saved configuration
   Future<void> initialize() async {
     try {
+      debugPrint('🔧 AIServiceManager: Starting initialization...');
+      
+      // CRITICAL: Ensure environment is loaded before proceeding
+      debugPrint('📋 Ensuring environment variables are loaded...');
+      await ProductionEnvironmentLoader.ensureLoaded();
+      final envStatus = ProductionEnvironmentLoader.getStatus();
+      debugPrint('📋 Environment status: ${envStatus.toString()}');
+      
       final prefs = await SharedPreferences.getInstance();
       final isAIEnabled = prefs.getBool('ai_enabled') ?? true; // Default to enabled
+      debugPrint('📋 AI enabled preference: $isAIEnabled');
       
       // Initialize network monitoring
+      debugPrint('📋 Initializing network monitoring...');
       await _initializeNetworkMonitoring();
+      debugPrint('✅ Network monitoring initialized');
       
+      // PRIORITY CHANGE: Always use local fallback as primary, regardless of user preference
+      debugPrint('📋 Prioritizing local fallback processing...');
+      await _enableAIAnalysis(); // Now uses enhanced fallback as primary
+      debugPrint('✅ Local fallback processing prioritized with provider: $currentProvider');
+      
+      // Note: User AI preference is maintained for potential future features
       if (isAIEnabled) {
-        await _enableAIAnalysis();
+        debugPrint('📋 User prefers AI analysis, but local fallback is prioritized for performance');
       } else {
-        await _disableAIAnalysis();
+        debugPrint('📋 User prefers local analysis, aligning with prioritized approach');
       }
-    } catch (error) {
-      debugPrint('AIServiceManager initialize error: $error');
+      
+      debugPrint('🎉 AIServiceManager initialization completed successfully');
+    } catch (error, stackTrace) {
+      debugPrint('❌ AIServiceManager initialize error: $error');
+      debugPrint('Stack trace: $stackTrace');
+      
+      // Log the error for debugging
+      _logInitializationError('initialize', error, stackTrace);
+      
       // Fallback to disabled if initialization fails
+      debugPrint('🔄 Falling back to disabled AI analysis due to initialization error');
       await _disableAIAnalysis();
     }
   }
 
-  // Enable AI analysis with built-in or development API key
+  // Enable local fallback analysis (prioritized over AI API)
   Future<void> _enableAIAnalysis() async {
     try {
-      String apiKey = _builtInClaudeApiKey;
+      debugPrint('🔧 _enableAIAnalysis: Prioritizing local fallback processing...');
       
-      // In development mode, check for dev API key (fallback to env if secure storage fails)
+      // PRIORITY CHANGE: Start with enhanced fallback provider
+      debugPrint('📋 Using enhanced local fallback processing as primary method');
+      final config = AIServiceConfig(provider: AIProvider.disabled, apiKey: '');
+      _currentService = EnhancedFallbackProvider(config);
+      _currentConfig = config;
+      
+      debugPrint('✅ Local fallback analysis prioritized successfully');
+      debugPrint('   Provider: ${config.provider}');
+      debugPrint('   Service type: ${_currentService.runtimeType}');
+      debugPrint('   Analysis: Deep local emotional intelligence (primary)');
+      
+      // Log provider selection decision
+      _logProviderSelection(AIProvider.disabled, 'Local fallback prioritized for efficiency and reliability');
+      
+      // Optional: Still check for AI capability but don't use it as primary
+      await _checkAICapabilitySecondary();
+      
+    } catch (error, stackTrace) {
+      debugPrint('❌ _enableAIAnalysis error: $error');
+      debugPrint('Stack trace: $stackTrace');
+      
+      // Log the error for debugging
+      _logInitializationError('_enableAIAnalysis', error, stackTrace);
+      
+      // Even on error, use basic fallback
+      debugPrint('🔄 Using basic fallback due to error');
+      await _disableAIAnalysis();
+    }
+  }
+
+  // Check AI capability as secondary option (for future use or diagnostics)
+  Future<void> _checkAICapabilitySecondary() async {
+    try {
+      debugPrint('🔍 Checking AI capability as secondary option...');
+      
+      // Ensure environment is loaded first
+      await ProductionEnvironmentLoader.ensureLoaded();
+      
+      String apiKey = _builtInClaudeApiKey;
+      String keySource = 'Built-in Environment';
+      
+      debugPrint('📋 Initial API key from environment: ${apiKey.isNotEmpty ? "${apiKey.substring(0, 20)}..." : "empty"}');
+      
+      // If no API key from environment, check ProductionEnvironmentLoader directly
+      if (apiKey.isEmpty) {
+        final loaderKey = ProductionEnvironmentLoader.getClaudeApiKey();
+        if (loaderKey != null && loaderKey.isNotEmpty) {
+          apiKey = loaderKey;
+          keySource = 'ProductionEnvironmentLoader';
+          debugPrint('📋 Found API key from ProductionEnvironmentLoader');
+        }
+      }
+      
+      // In development mode, check for dev API key
       if (DevConfigService.isDevMode) {
+        debugPrint('📋 Development mode detected, checking for dev API key...');
         try {
           final devService = DevConfigService();
           final devApiKey = await devService.getDevClaudeApiKey();
           if (devApiKey != null && devApiKey.isNotEmpty) {
             apiKey = devApiKey;
+            keySource = 'DevConfigService';
+            debugPrint('✅ Found dev API key from secure storage');
           }
         } catch (e) {
-          // If secure storage fails, use environment variable directly
-          debugPrint('Dev config failed, using environment API key: $e');
-          apiKey = _builtInClaudeApiKey;
+          debugPrint('⚠️  Dev config failed: $e');
         }
       }
 
-      // Debug logging for API key
-      if (kDebugMode) {
-        debugPrint('AIServiceManager: Using API key: ${apiKey.isNotEmpty ? "${apiKey.substring(0, 20)}..." : "empty"}');
-      }
-
-      final config = AIServiceConfig(
-        provider: AIProvider.enabled,
-        apiKey: apiKey,
-      );
-
-      final service = ClaudeAIProvider(config);
-      
-      // Only test connection if we have a real API key
-      if (apiKey.isNotEmpty && apiKey.startsWith('sk-ant-')) {
-        await service.setApiKey(apiKey);
-        await service.testConnection();
-        if (kDebugMode) {
-          debugPrint('AIServiceManager: Claude API connection test successful');
+      if (apiKey.isNotEmpty) {
+        // Validate API key format
+        final keyValidation = _validateApiKeyFormat(apiKey);
+        if (keyValidation.isValid) {
+          debugPrint('📋 AI capability available but not prioritized (key source: $keySource)');
+          debugPrint('   Local fallback remains primary for performance and reliability');
+        } else {
+          debugPrint('📋 AI key found but invalid format - local fallback remains primary');
         }
       } else {
-        if (kDebugMode) {
-          debugPrint('AIServiceManager: No valid API key found, skipping connection test');
-        }
+        debugPrint('📋 No AI key found - local fallback is the only option');
       }
-
-      _currentService = service;
-      _currentConfig = config;
       
-      if (kDebugMode) {
-        debugPrint('AIServiceManager: Initialized with Claude 3 Haiku provider');
-      }
     } catch (error) {
-      debugPrint('AIServiceManager _enableAIAnalysis error: $error');
-      // If Claude fails, fallback to basic analysis
-      await _disableAIAnalysis();
+      debugPrint('⚠️  AI capability check failed: $error (local fallback unaffected)');
     }
   }
 
-  // Disable AI analysis and use basic mood-based analysis
+  // Disable AI analysis and use enhanced local analysis
   Future<void> _disableAIAnalysis() async {
+    debugPrint('🔧 _disableAIAnalysis: Configuring enhanced fallback provider...');
+    
     final config = AIServiceConfig(provider: AIProvider.disabled, apiKey: '');
-    _currentService = FallbackProvider(config);
+    _currentService = EnhancedFallbackProvider(config);
     _currentConfig = config;
+    
+    debugPrint('✅ Enhanced fallback provider configured');
+    debugPrint('   Provider: ${config.provider}');
+    debugPrint('   Service type: ${_currentService.runtimeType}');
+    debugPrint('   Analysis: Deep local emotional intelligence');
+    
+    // Log provider selection decision
+    _logProviderSelection(AIProvider.disabled, 'Using enhanced fallback provider for sophisticated local analysis');
   }
 
-  // Toggle AI analysis on/off (user-facing setting)
+  // Toggle AI analysis on/off (user-facing setting) - Now always uses local fallback
   Future<void> setAIEnabled(bool enabled) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool('ai_enabled', enabled);
       
-      if (enabled) {
-        await _enableAIAnalysis();
-      } else {
-        await _disableAIAnalysis();
-      }
+      // PRIORITY CHANGE: Always use local fallback regardless of setting
+      debugPrint('📋 User AI preference set to: $enabled');
+      debugPrint('📋 Maintaining local fallback processing as primary method');
+      await _enableAIAnalysis(); // Always uses enhanced fallback now
+      
+      debugPrint('✅ Service configured with local fallback processing (user preference: $enabled)');
     } catch (e) {
       debugPrint('AIServiceManager setAIEnabled error: $e');
       rethrow;
@@ -725,6 +796,308 @@ class AIServiceManager {
     }
   }
   
+  // =============================================================================
+  // DIAGNOSTIC METHODS
+  // =============================================================================
+  
+  /// Get detailed status of the AI service for debugging
+  Future<DetailedServiceStatus> getDetailedStatus() async {
+    try {
+      debugPrint('🔍 Getting detailed AI service status...');
+      
+      // Environment status (assuming ProductionEnvironmentLoader exists)
+      final envStatus = _getEnvironmentStatus();
+      
+      // Service configuration
+      final isConfigured = this.isConfigured;
+      final currentProvider = this.currentProvider;
+      final currentService = this.currentService;
+      
+      // API key status
+      final apiKeyStatus = await _getApiKeyStatus();
+      
+      // Connection test
+      ConnectionTestResult? connectionTest;
+      try {
+        await testCurrentService();
+        connectionTest = ConnectionTestResult.success('Connection test passed');
+      } catch (e) {
+        connectionTest = ConnectionTestResult.failed('Connection test failed: $e');
+      }
+      
+      // Provider analysis
+      final providerAnalysis = _analyzeProviderSelection();
+      
+      final status = DetailedServiceStatus(
+        timestamp: DateTime.now(),
+        environmentStatus: envStatus,
+        isServiceConfigured: isConfigured,
+        currentProvider: currentProvider,
+        currentServiceType: currentService.runtimeType.toString(),
+        apiKeyStatus: apiKeyStatus,
+        connectionTest: connectionTest,
+        providerAnalysis: providerAnalysis,
+        availableProviders: availableProviders,
+      );
+      
+      debugPrint('📊 Service status: ${status.summary}');
+      return status;
+      
+    } catch (e, stackTrace) {
+      debugPrint('❌ Failed to get detailed status: $e');
+      debugPrint('Stack trace: $stackTrace');
+      
+      return DetailedServiceStatus.error(
+        error: e.toString(),
+        stackTrace: stackTrace.toString(),
+      );
+    }
+  }
+  
+  /// Initialize with comprehensive diagnostics and logging
+  Future<void> initializeWithDiagnostics() async {
+    try {
+      debugPrint('🔧 AIServiceManager: Starting diagnostic initialization...');
+      
+      // Step 1: Ensure environment is loaded (if ProductionEnvironmentLoader exists)
+      debugPrint('📋 Step 1: Loading environment variables...');
+      try {
+        // Try to load environment if the loader exists
+        final envStatus = _getEnvironmentStatus();
+        debugPrint('✅ Environment status: ${envStatus.isLoaded ? "loaded" : "not loaded"}');
+        if (envStatus.hasClaudeApiKey) {
+          debugPrint('✅ Claude API key found: ${envStatus.claudeApiKeyPreview}');
+        } else {
+          debugPrint('❌ Claude API key not found');
+        }
+      } catch (e) {
+        debugPrint('⚠️  Environment loading check failed: $e');
+      }
+      
+      // Step 2: Initialize the service
+      debugPrint('📋 Step 2: Initializing AI service...');
+      await initialize();
+      debugPrint('✅ AI service initialized');
+      
+      // Step 3: Validate configuration
+      debugPrint('📋 Step 3: Validating configuration...');
+      final status = await getDetailedStatus();
+      debugPrint('📊 Final status:');
+      debugPrint('   Service configured: ${status.isServiceConfigured}');
+      debugPrint('   Current provider: ${status.currentProvider}');
+      debugPrint('   Service type: ${status.currentServiceType}');
+      debugPrint('   API key valid: ${status.apiKeyStatus.isValid}');
+      debugPrint('   Connection: ${status.connectionTest?.isSuccess ?? false ? "success" : "failed"}');
+      
+      // Step 4: Log provider analysis
+      debugPrint('📋 Step 4: Provider analysis...');
+      debugPrint('   ${status.providerAnalysis.summary}');
+      if (status.providerAnalysis.warnings.isNotEmpty) {
+        for (final warning in status.providerAnalysis.warnings) {
+          debugPrint('   ⚠️  $warning');
+        }
+      }
+      
+      debugPrint('🎉 Diagnostic initialization completed');
+      
+    } catch (e, stackTrace) {
+      debugPrint('❌ AIServiceManager diagnostic initialization failed: $e');
+      debugPrint('Stack trace: $stackTrace');
+      
+      // Log the error for debugging
+      _logInitializationError('initializeWithDiagnostics', e, stackTrace);
+      
+      rethrow;
+    }
+  }
+  
+  // =============================================================================
+  // DIAGNOSTIC HELPER METHODS
+  // =============================================================================
+  
+  /// Get environment status (simplified version if ProductionEnvironmentLoader not available)
+  EnvironmentStatus _getEnvironmentStatus() {
+    try {
+      final claudeKey = _builtInClaudeApiKey;
+      return EnvironmentStatus(
+        isLoaded: true,
+        variableCount: claudeKey.isNotEmpty ? 1 : 0,
+        hasClaudeApiKey: claudeKey.isNotEmpty && claudeKey.startsWith('sk-ant-'),
+        claudeApiKeyPreview: claudeKey.isNotEmpty && claudeKey.length > 20 
+            ? '${claudeKey.substring(0, 20)}...' 
+            : claudeKey,
+      );
+    } catch (e) {
+      return EnvironmentStatus(
+        isLoaded: false,
+        variableCount: 0,
+        hasClaudeApiKey: false,
+        claudeApiKeyPreview: null,
+      );
+    }
+  }
+  
+  /// Get API key status with detailed validation
+  Future<ApiKeyStatus> _getApiKeyStatus() async {
+    try {
+      // Check built-in key first
+      final builtInKey = _builtInClaudeApiKey;
+      if (builtInKey.isNotEmpty) {
+        final validation = _validateApiKeyFormat(builtInKey);
+        if (validation.isValid) {
+          return ApiKeyStatus.valid('Built-in Environment', validation.preview);
+        } else {
+          return ApiKeyStatus.invalid('Built-in Environment', validation.preview, validation.issues);
+        }
+      }
+      
+      // Check dev config service if in dev mode
+      if (DevConfigService.isDevMode) {
+        try {
+          final devService = DevConfigService();
+          final devApiKey = await devService.getDevClaudeApiKey();
+          if (devApiKey != null && devApiKey.isNotEmpty) {
+            final validation = _validateApiKeyFormat(devApiKey);
+            if (validation.isValid) {
+              return ApiKeyStatus.valid('DevConfigService', validation.preview);
+            } else {
+              return ApiKeyStatus.invalid('DevConfigService', validation.preview, validation.issues);
+            }
+          }
+        } catch (e) {
+          debugPrint('⚠️  Dev config service failed: $e');
+        }
+      }
+      
+      return ApiKeyStatus.notFound();
+      
+    } catch (e) {
+      return ApiKeyStatus.error(e.toString());
+    }
+  }
+  
+  /// Validate API key format and properties
+  ApiKeyValidation _validateApiKeyFormat(String apiKey) {
+    final issues = <String>[];
+    
+    // Check format
+    if (!apiKey.startsWith('sk-ant-')) {
+      issues.add('Does not start with sk-ant-');
+    }
+    
+    // Check length
+    if (apiKey.length < 50) {
+      issues.add('Too short (${apiKey.length} chars, expected 50+)');
+    }
+    
+    // Check for placeholder values
+    if (apiKey.contains('your_api_key_here') || apiKey == 'sk-ant-placeholder') {
+      issues.add('Appears to be a placeholder value');
+    }
+    
+    final preview = apiKey.length > 20 ? '${apiKey.substring(0, 20)}...' : apiKey;
+    
+    return ApiKeyValidation(
+      isValid: issues.isEmpty,
+      preview: preview,
+      issues: issues,
+    );
+  }
+  
+  /// Analyze provider selection logic
+  ProviderAnalysis _analyzeProviderSelection() {
+    final warnings = <String>[];
+    final info = <String>[];
+    
+    final provider = currentProvider;
+    final service = currentService;
+    
+    // Check provider type
+    if (provider == AIProvider.disabled) {
+      warnings.add('Provider is disabled - using fallback analysis only');
+    }
+    
+    // Check service type vs provider
+    if (provider == AIProvider.enabled && service.runtimeType.toString() != 'ClaudeAIProvider') {
+      warnings.add('Provider is enabled but service is not ClaudeAIProvider');
+    }
+    
+    if (provider == AIProvider.disabled && service.runtimeType.toString() != 'FallbackProvider') {
+      warnings.add('Provider is disabled but service is not FallbackProvider');
+    }
+    
+    // Check environment vs provider
+    final envStatus = _getEnvironmentStatus();
+    if (envStatus.hasClaudeApiKey && provider == AIProvider.disabled) {
+      warnings.add('API key is available but provider is disabled');
+    }
+    
+    if (!envStatus.hasClaudeApiKey && provider == AIProvider.enabled) {
+      warnings.add('Provider is enabled but no API key is available');
+    }
+    
+    // Add info about current state
+    info.add('Current provider: $provider');
+    info.add('Current service: ${service.runtimeType}');
+    info.add('API key available: ${envStatus.hasClaudeApiKey}');
+    
+    String summary;
+    if (warnings.isEmpty) {
+      summary = 'Provider selection appears correct';
+    } else {
+      summary = 'Provider selection has ${warnings.length} issue(s)';
+    }
+    
+    return ProviderAnalysis(
+      summary: summary,
+      warnings: warnings,
+      info: info,
+    );
+  }
+  
+  /// Log provider selection decisions for debugging
+  void _logProviderSelection(AIProvider selectedProvider, String reason) {
+    debugPrint('🎯 Provider Selection Decision:');
+    debugPrint('   Selected: $selectedProvider');
+    debugPrint('   Reason: $reason');
+    debugPrint('   Service type: ${_currentService?.runtimeType ?? "none"}');
+    
+    // Track fallback events
+    if (selectedProvider == AIProvider.disabled && _currentConfig?.provider != AIProvider.disabled) {
+      AIServiceErrorTracker.logFallback(
+        reason,
+        'ClaudeAIProvider',
+        context: {
+          'previousProvider': _currentConfig?.provider.toString(),
+          'newProvider': selectedProvider.toString(),
+          'serviceType': _currentService?.runtimeType.toString(),
+        },
+      );
+    }
+  }
+  
+  /// Log initialization errors for debugging
+  void _logInitializationError(String operation, dynamic error, StackTrace? stackTrace) {
+    debugPrint('❌ Initialization Error in $operation:');
+    debugPrint('   Error: $error');
+    if (stackTrace != null && kDebugMode) {
+      debugPrint('   Stack trace: $stackTrace');
+    }
+    
+    // Track initialization errors
+    AIServiceErrorTracker.logError(
+      operation,
+      error,
+      stackTrace: stackTrace,
+      context: {
+        'currentProvider': _currentConfig?.provider.toString(),
+        'isConfigured': _currentService?.isConfigured,
+        'serviceType': _currentService?.runtimeType.toString(),
+      },
+      provider: 'AIServiceManager',
+    );
+  }
+
   /// Dispose of resources
   void dispose() {
     _disposeNetworkMonitoring();
@@ -1580,4 +1953,203 @@ class ComprehensiveAnalysisResult {
       'analysis_timestamp': analysisTimestamp.toIso8601String(),
     };
   }
+}
+// =============================================================================
+// DIAGNOSTIC SUPPORT CLASSES
+// =============================================================================
+
+/// Detailed service status for comprehensive debugging
+class DetailedServiceStatus {
+  final DateTime timestamp;
+  final EnvironmentStatus environmentStatus;
+  final bool isServiceConfigured;
+  final AIProvider currentProvider;
+  final String currentServiceType;
+  final ApiKeyStatus apiKeyStatus;
+  final ConnectionTestResult? connectionTest;
+  final ProviderAnalysis providerAnalysis;
+  final List<AIProvider> availableProviders;
+  final String? error;
+  final String? stackTrace;
+  
+  DetailedServiceStatus({
+    required this.timestamp,
+    required this.environmentStatus,
+    required this.isServiceConfigured,
+    required this.currentProvider,
+    required this.currentServiceType,
+    required this.apiKeyStatus,
+    this.connectionTest,
+    required this.providerAnalysis,
+    required this.availableProviders,
+    this.error,
+    this.stackTrace,
+  });
+  
+  DetailedServiceStatus.error({
+    required String error,
+    String? stackTrace,
+  }) : timestamp = DateTime.now(),
+       environmentStatus = EnvironmentStatus(
+         isLoaded: false,
+         variableCount: 0,
+         hasClaudeApiKey: false,
+       ),
+       isServiceConfigured = false,
+       currentProvider = AIProvider.disabled,
+       currentServiceType = 'unknown',
+       apiKeyStatus = ApiKeyStatus.error(error),
+       connectionTest = null,
+       providerAnalysis = ProviderAnalysis(
+         summary: 'Error occurred during status check',
+         warnings: [error],
+         info: [],
+       ),
+       availableProviders = [],
+       error = error,
+       stackTrace = stackTrace;
+  
+  /// Quick summary of the status
+  String get summary {
+    if (error != null) return 'Error: $error';
+    
+    final parts = <String>[];
+    parts.add('Env: ${environmentStatus.isLoaded ? "✅" : "❌"}');
+    parts.add('Service: ${isServiceConfigured ? "✅" : "❌"}');
+    parts.add('API Key: ${apiKeyStatus.isValid ? "✅" : "❌"}');
+    parts.add('Provider: $currentProvider');
+    
+    return parts.join(' | ');
+  }
+  
+  /// Check if everything is working correctly
+  bool get isHealthy {
+    return error == null &&
+           environmentStatus.isLoaded &&
+           isServiceConfigured &&
+           apiKeyStatus.isValid &&
+           currentProvider == AIProvider.enabled &&
+           currentServiceType.contains('ClaudeAIProvider') &&
+           (connectionTest?.isSuccess ?? false);
+  }
+  
+  Map<String, dynamic> toJson() => {
+    'timestamp': timestamp.toIso8601String(),
+    'environmentStatus': environmentStatus.toJson(),
+    'isServiceConfigured': isServiceConfigured,
+    'currentProvider': currentProvider.toString(),
+    'currentServiceType': currentServiceType,
+    'apiKeyStatus': apiKeyStatus.toJson(),
+    'connectionTest': connectionTest?.toJson(),
+    'providerAnalysis': providerAnalysis.toJson(),
+    'availableProviders': availableProviders.map((p) => p.toString()).toList(),
+    'error': error,
+    'stackTrace': stackTrace,
+    'summary': summary,
+    'isHealthy': isHealthy,
+  };
+}
+
+/// API key validation status
+class ApiKeyStatus {
+  final bool isValid;
+  final String? source;
+  final String? preview;
+  final List<String> issues;
+  final String? error;
+  
+  ApiKeyStatus.valid(this.source, this.preview) 
+      : isValid = true, issues = [], error = null;
+  
+  ApiKeyStatus.invalid(this.source, this.preview, this.issues) 
+      : isValid = false, error = null;
+  
+  ApiKeyStatus.notFound() 
+      : isValid = false, source = null, preview = null, 
+        issues = ['API key not found'], error = null;
+  
+  ApiKeyStatus.error(String errorMessage) 
+      : isValid = false, source = null, preview = null, 
+        issues = ['Error checking API key'], error = errorMessage;
+  
+  Map<String, dynamic> toJson() => {
+    'isValid': isValid,
+    'source': source,
+    'preview': preview,
+    'issues': issues,
+    'error': error,
+  };
+}
+
+/// Connection test result
+class ConnectionTestResult {
+  final bool isSuccess;
+  final String message;
+  final DateTime timestamp;
+  
+  ConnectionTestResult.success(String message) 
+      : message = message, isSuccess = true, timestamp = DateTime.now();
+  
+  ConnectionTestResult.failed(String message) 
+      : message = message, isSuccess = false, timestamp = DateTime.now();
+  
+  Map<String, dynamic> toJson() => {
+    'isSuccess': isSuccess,
+    'message': message,
+    'timestamp': timestamp.toIso8601String(),
+  };
+}
+
+/// Provider selection analysis
+class ProviderAnalysis {
+  final String summary;
+  final List<String> warnings;
+  final List<String> info;
+  
+  ProviderAnalysis({
+    required this.summary,
+    required this.warnings,
+    required this.info,
+  });
+  
+  Map<String, dynamic> toJson() => {
+    'summary': summary,
+    'warnings': warnings,
+    'info': info,
+  };
+}
+
+/// Environment status for debugging
+class EnvironmentStatus {
+  final bool isLoaded;
+  final int variableCount;
+  final bool hasClaudeApiKey;
+  final String? claudeApiKeyPreview;
+  
+  EnvironmentStatus({
+    required this.isLoaded,
+    required this.variableCount,
+    required this.hasClaudeApiKey,
+    this.claudeApiKeyPreview,
+  });
+  
+  Map<String, dynamic> toJson() => {
+    'isLoaded': isLoaded,
+    'variableCount': variableCount,
+    'hasClaudeApiKey': hasClaudeApiKey,
+    'claudeApiKeyPreview': claudeApiKeyPreview,
+  };
+}
+
+/// API key validation result
+class ApiKeyValidation {
+  final bool isValid;
+  final String preview;
+  final List<String> issues;
+  
+  ApiKeyValidation({
+    required this.isValid,
+    required this.preview,
+    required this.issues,
+  });
 }

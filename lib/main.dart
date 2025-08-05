@@ -15,7 +15,6 @@ import 'package:spiral_journal/screens/core_library_screen.dart';
 
 import 'package:spiral_journal/services/journal_service.dart';
 import 'package:spiral_journal/services/ai_service_manager.dart';
-import 'package:spiral_journal/services/batch_ai_analysis_service.dart';
 import 'package:spiral_journal/services/ios_background_scheduler.dart';
 import 'package:spiral_journal/services/profile_service.dart';
 import 'package:spiral_journal/services/app_initializer.dart';
@@ -31,6 +30,8 @@ import 'package:spiral_journal/providers/emotional_mirror_provider.dart';
 import 'package:spiral_journal/utils/app_error_handler.dart';
 import 'package:spiral_journal/config/api_key_setup.dart';
 import 'package:spiral_journal/config/local_config.dart';
+import 'package:spiral_journal/services/production_environment_loader.dart';
+// Debug services removed - using local fallback processing
 import 'package:spiral_journal/widgets/app_background.dart';
 import 'package:spiral_journal/utils/ios_theme_enforcer.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -41,7 +42,10 @@ void main() async {
   // Initialize error handling system first
   AppErrorHandler.initialize();
   
-  // Environment variables are now injected at build time via --dart-define
+  // CRITICAL: Load environment variables from .env file BEFORE any service initialization
+  debugPrint('🔧 Loading environment variables from .env file...');
+  await ProductionEnvironmentLoader.ensureLoaded();
+  debugPrint('✅ Environment variables loaded successfully');
   
   // Initialize local configuration system (replaces Firebase)
   await LocalConfig.initialize();
@@ -136,17 +140,50 @@ Future<void> _initializeLocalAnalytics() async {
 /// Initialize non-critical background services
 Future<void> _initializeBackgroundServices() async {
   try {
-    // Initialize services in parallel for better performance
-    await Future.wait([
-      JournalService().initialize(),
-      AIServiceManager().initialize(),
-      BatchAIAnalysisService().initialize(),
-      IOSBackgroundScheduler().initialize(),
-    ]);
+    // Initialize services sequentially to ensure proper dependency order
+    debugPrint('🔧 Initializing background services...');
     
-    debugPrint('Background services initialized successfully');
+    // Initialize JournalService first (no dependencies)
+    debugPrint('📋 Initializing JournalService...');
+    await JournalService().initialize();
+    debugPrint('✅ JournalService initialized');
+    
+    // Initialize AIServiceManager (depends on environment being loaded)
+    debugPrint('📋 Initializing AIServiceManager...');
+    try {
+      await AIServiceManager().initialize();
+      debugPrint('✅ AIServiceManager initialized successfully');
+    } catch (e) {
+      debugPrint('⚠️  AIServiceManager initialization failed: $e');
+      debugPrint('   App will continue with fallback AI analysis');
+      // Don't rethrow - app can continue without AI
+    }
+    
+    // BatchAIAnalysisService initialization removed - using local fallback processing
+    debugPrint('📋 Local fallback processing prioritized - batch AI analysis disabled');
+    debugPrint('✅ Local processing is active and ready');
+    
+    // Initialize IOSBackgroundScheduler (independent)
+    debugPrint('📋 Initializing IOSBackgroundScheduler...');
+    try {
+      await IOSBackgroundScheduler().initialize();
+      debugPrint('✅ IOSBackgroundScheduler initialized');
+    } catch (e) {
+      debugPrint('⚠️  IOSBackgroundScheduler initialization failed: $e');
+      // Don't rethrow - app can continue without background scheduling
+    }
+    
+    // Debug Command Service initialization removed - using local fallback processing
+    debugPrint('📋 Debug services disabled - local fallback processing prioritized');
+    debugPrint('✅ Production-ready local processing active');
+    
+    // Troubleshooting Guide Service initialization removed - using local fallback processing
+    debugPrint('📋 Troubleshooting services disabled - local fallback processing prioritized');
+    debugPrint('✅ Streamlined initialization complete');
+    
+    debugPrint('✅ Background services initialization completed');
   } catch (e) {
-    debugPrint('Background service initialization error: $e');
+    debugPrint('❌ Critical background service initialization error: $e');
     // Log error but don't crash the app
     AnalyticsService().logError('background_init_error', context: e.toString());
   }

@@ -55,6 +55,9 @@ dependencies:
   # Network connectivity monitoring
   connectivity_plus: ^6.0.5
   
+  # Enhanced logging with iOS support
+  logger: ^2.4.0
+  
   # Sensors for gyroscope-based lighting
   sensors_plus: ^4.0.2
   
