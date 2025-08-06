@@ -865,7 +865,7 @@ class _EmotionalJourneyTimelineCardState extends State<EmotionalJourneyTimelineC
     if (!achievedTypes.contains('connection')) {
       upcoming.add({
         'type': 'connection',
-        'title': 'Emotional Intelligence',
+        'title': 'Emotional Awareness',
         'description': 'Identify and track 10 different emotions',
         'progress': 0.6, // Placeholder - would calculate based on emotion diversity
         'requirement': 'Explore diverse emotions',

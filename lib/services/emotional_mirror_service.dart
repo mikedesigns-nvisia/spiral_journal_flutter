@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import '../models/journal_entry.dart';
 import '../models/core.dart';
+import '../models/journal_emotional_pattern.dart';
 import '../models/emotional_mirror_data.dart';
 import '../repositories/journal_repository.dart';
 import '../repositories/journal_repository_impl.dart';
@@ -20,6 +21,19 @@ class EmotionalMirrorService {
   final CoreLibraryService _coreLibraryService = CoreLibraryService();
   final EmotionalAnalyzer _emotionalAnalyzer = EmotionalAnalyzer();
 
+  // Helper method to get primary emotions from journal entry (using manual moods)
+  List<String> _getPrimaryEmotions(JournalEntry entry) {
+    return entry.moods; // Use manually selected moods as emotions
+  }
+
+  // Helper method to get emotional intensity from entry content
+  double _getEmotionalIntensity(JournalEntry entry) {
+    // Simple heuristic based on content length and mood count
+    final contentIntensity = (entry.content.length / 1000.0).clamp(0.0, 0.5);
+    final moodIntensity = (entry.moods.length / 5.0).clamp(0.0, 0.5);
+    return (contentIntensity + moodIntensity).clamp(0.0, 1.0);
+  }
+
   /// Get comprehensive emotional mirror data
   Future<EmotionalMirrorData> getEmotionalMirrorData({
     int daysBack = 30,
@@ -31,7 +45,7 @@ class EmotionalMirrorService {
       final entries = await _journalRepository.getEntriesByDateRange(startDate, endDate);
       
       // Get analyzed entries only
-      final analyzedEntries = entries.where((entry) => entry.isAnalyzed && entry.aiAnalysis != null).toList();
+      final analyzedEntries = entries; // All entries are processed locally
       
       // Get current cores
       final cores = await _coreLibraryService.getAllCores();
@@ -93,10 +107,9 @@ class EmotionalMirrorService {
         }
         
         // Count AI-detected moods
-        if (entry.aiAnalysis != null) {
-          for (final emotion in entry.aiAnalysis!.primaryEmotions) {
-            aiMoodCounts[emotion] = (aiMoodCounts[emotion] ?? 0) + 1;
-          }
+        // Process manually selected moods as emotions
+        for (final emotion in _getPrimaryEmotions(entry)) {
+          aiMoodCounts[emotion] = (aiMoodCounts[emotion] ?? 0) + 1;
         }
       }
       
@@ -132,13 +145,7 @@ class EmotionalMirrorService {
       for (final entry in entries) {
         final dayKey = DateTime(entry.date.year, entry.date.month, entry.date.day);
         
-        double intensity = 0.5; // Default neutral intensity
-        
-        if (entry.aiAnalysis != null) {
-          intensity = entry.aiAnalysis!.emotionalIntensity;
-        } else if (entry.emotionalIntensity != null) {
-          intensity = entry.emotionalIntensity!;
-        }
+        double intensity = _getEmotionalIntensity(entry);
         
         dailyIntensities[dayKey] ??= [];
         dailyIntensities[dayKey]!.add(intensity);
@@ -183,13 +190,8 @@ class EmotionalMirrorService {
         
         double sentiment = 0.0; // Default neutral sentiment
         
-        if (entry.aiAnalysis != null) {
-          // Use AI analysis if available
-          sentiment = _calculateSentimentFromEmotions(entry.aiAnalysis!.primaryEmotions);
-        } else {
-          // Calculate from manual moods
-          sentiment = _calculateSentimentFromMoods(entry.moods);
-        }
+        // Calculate from manual moods
+        sentiment = _calculateSentimentFromMoods(entry.moods);
         
         dailySentiments[dayKey] ??= [];
         dailySentiments[dayKey]!.add(sentiment);
@@ -278,9 +280,9 @@ class EmotionalMirrorService {
     int intensityCount = 0;
 
     for (final entry in entries) {
-      if (entry.aiAnalysis != null) {
-        allEmotions.addAll(entry.aiAnalysis!.primaryEmotions);
-        totalIntensity += entry.aiAnalysis!.emotionalIntensity;
+      if (true) {
+        allEmotions.addAll(_getPrimaryEmotions(entry));
+        totalIntensity += _getEmotionalIntensity(entry);
         intensityCount++;
       }
     }
@@ -335,8 +337,8 @@ class EmotionalMirrorService {
     int neutralCount = 0;
 
     for (final entry in entries) {
-      if (entry.aiAnalysis != null) {
-        final sentiment = _calculateSentimentFromEmotions(entry.aiAnalysis!.primaryEmotions);
+      if (true) {
+        final sentiment = _calculateSentimentFromEmotions(_getPrimaryEmotions(entry));
         if (sentiment > 0.1) {
           positiveCount++;
         } else if (sentiment < -0.1) {
@@ -379,15 +381,11 @@ class EmotionalMirrorService {
     // Create a set to track unique insights and avoid duplicates
     final uniqueInsights = <String>{};
     
-    // Analyze recent AI insights with deduplication
-    final recentInsights = entries
-        .where((entry) => entry.aiAnalysis?.personalizedInsight != null)
-        .map((entry) => entry.aiAnalysis!.personalizedInsight!)
-        .where((insight) => insight.trim().isNotEmpty)
-        .toList();
+    // Generate content-based insights instead of showing journal snippets
+    final contentInsights = _generateContentBasedInsights(entries);
     
-    // Add diverse AI insights by checking for similarity
-    for (final insight in recentInsights) {
+    // Add diverse content insights by checking for similarity
+    for (final insight in contentInsights) {
       if (_isInsightUnique(insight, uniqueInsights) && uniqueInsights.length < 2) {
         uniqueInsights.add(insight);
       }
@@ -457,8 +455,7 @@ class EmotionalMirrorService {
     // Analyze emotional intensity trends
     final recentEntries = entries.take(7).toList();
     final intensities = recentEntries
-        .where((e) => e.aiAnalysis?.emotionalIntensity != null)
-        .map((e) => e.aiAnalysis!.emotionalIntensity)
+        .map((e) => _getEmotionalIntensity(e))
         .toList();
     
     if (intensities.length >= 3) {
@@ -566,8 +563,8 @@ class EmotionalMirrorService {
     int challengingCount = 0;
     
     for (final entry in entries) {
-      if (entry.aiAnalysis?.primaryEmotions.isNotEmpty == true) {
-        for (final emotion in entry.aiAnalysis!.primaryEmotions) {
+      if (entry.moods.isNotEmpty) {
+        for (final emotion in _getPrimaryEmotions(entry)) {
           if (positiveEmotions.contains(emotion.toLowerCase())) {
             positiveCount++;
           } else if (challengingEmotions.contains(emotion.toLowerCase())) {
@@ -591,6 +588,66 @@ class EmotionalMirrorService {
     }
   }
 
+  /// Generate meaningful insights based on journal content analysis
+  List<String> _generateContentBasedInsights(List<JournalEntry> entries) {
+    final insights = <String>[];
+    if (entries.isEmpty) return insights;
+
+    // Analyze today's entry if available
+    final todayEntry = entries.firstOrNull;
+    if (todayEntry != null) {
+      // Analyze emotional depth
+      final emotions = _getPrimaryEmotions(todayEntry);
+      if (emotions.length > 2) {
+        insights.add('You\'re experiencing complex emotional layers today, demonstrating heightened emotional awareness.');
+      }
+      
+      // Analyze mood combinations
+      if (todayEntry.moods.contains('grateful') && todayEntry.moods.any((m) => ['tired', 'stressed', 'anxious'].contains(m))) {
+        insights.add('Finding gratitude alongside challenging emotions shows emotional resilience and maturity.');
+      }
+      
+      // Content length insight
+      if (todayEntry.content.length > 200) {
+        insights.add('Your detailed reflection today indicates deep emotional processing and self-exploration.');
+      } else if (todayEntry.content.length < 50) {
+        insights.add('Even brief check-ins contribute to your emotional awareness journey.');
+      }
+    }
+
+    // Weekly pattern insights
+    if (entries.length >= 3) {
+      final recentMoods = entries.take(7).expand((e) => e.moods).toList();
+      final moodFrequency = <String, int>{};
+      for (final mood in recentMoods) {
+        moodFrequency[mood] = (moodFrequency[mood] ?? 0) + 1;
+      }
+      
+      final topMood = moodFrequency.entries.reduce((a, b) => a.value > b.value ? a : b).key;
+      if (moodFrequency[topMood]! >= 3) {
+        insights.add('$topMood has been a recurring theme this week, worth exploring deeper.');
+      }
+      
+      // Emotional variety insight
+      final uniqueMoods = recentMoods.toSet().length;
+      if (uniqueMoods > 10) {
+        insights.add('Your emotional vocabulary is expanding, showing nuanced self-awareness.');
+      }
+    }
+
+    // Time-based insights
+    final morningEntries = entries.where((e) => e.createdAt.hour < 12).length;
+    final eveningEntries = entries.where((e) => e.createdAt.hour >= 18).length;
+    
+    if (morningEntries > eveningEntries * 2) {
+      insights.add('Morning journaling seems to be your preferred reflection time.');
+    } else if (eveningEntries > morningEntries * 2) {
+      insights.add('Evening reflections help you process the day\'s experiences.');
+    }
+
+    return insights;
+  }
+
   double _calculateSelfAwarenessScore(List<JournalEntry> entries, List<EmotionalCore> cores) {
     if (entries.isEmpty) return 0.3;
 
@@ -600,14 +657,14 @@ class EmotionalMirrorService {
     score += (entries.length / 30.0).clamp(0.0, 0.3); // Up to 30% for consistency
 
     // Score from AI analysis usage
-    final analyzedCount = entries.where((entry) => entry.isAnalyzed).length;
+    final analyzedCount = entries.length; // All entries are processed locally
     score += (analyzedCount / entries.length) * 0.3; // Up to 30% for AI analysis
 
     // Score from emotional variety
     final allEmotions = <String>{};
     for (final entry in entries) {
-      if (entry.aiAnalysis != null) {
-        allEmotions.addAll(entry.aiAnalysis!.primaryEmotions);
+      if (true) {
+        allEmotions.addAll(_getPrimaryEmotions(entry));
       }
     }
     score += (allEmotions.length / 15.0).clamp(0.0, 0.2); // Up to 20% for emotional variety
@@ -701,10 +758,10 @@ class EmotionalMirrorService {
     }
 
     // AI analysis milestone
-    final firstAnalyzed = entries.where((entry) => entry.isAnalyzed).toList();
+    final firstAnalyzed = entries; // All entries are processed locally
     if (firstAnalyzed.isNotEmpty) {
       milestones.add(JourneyMilestone(
-        title: 'First AI Analysis',
+        title: 'First Processing',
         description: 'Started receiving personalized insights',
         date: firstAnalyzed.first.date,
         type: 'growth',

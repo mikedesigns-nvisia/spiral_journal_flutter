@@ -250,7 +250,7 @@ class _JournalHistoryScreenState extends State<JournalHistoryScreen> {
                                 ),
                               ),
                             ],
-                            if (entry.isAnalyzed) ...[
+                            if (entry.moods.isNotEmpty) ...[
                               const SizedBox(width: 8),
                               Container(
                                 padding: const EdgeInsets.symmetric(
@@ -434,8 +434,8 @@ class _JournalHistoryScreenState extends State<JournalHistoryScreen> {
                 const SizedBox(height: 16),
               ],
 
-              // AI Analysis Section
-              if (entry.isAnalyzed && entry.aiAnalysis != null) ...[
+              // Processing Analysis Section
+              if (entry.moods.isNotEmpty) ...[
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
@@ -457,7 +457,7 @@ class _JournalHistoryScreenState extends State<JournalHistoryScreen> {
                           ),
                           const SizedBox(width: 8),
                           Text(
-                            'AI Analysis',
+                            'Local Processing',
                             style:
                                 Theme.of(context).textTheme.bodyLarge?.copyWith(
                                       fontWeight: FontWeight.w600,
@@ -468,95 +468,61 @@ class _JournalHistoryScreenState extends State<JournalHistoryScreen> {
                       ),
                       const SizedBox(height: 12),
 
-                      // Personal Insight
-                      if (entry.aiAnalysis!.personalizedInsight != null &&
-                          entry
-                              .aiAnalysis!.personalizedInsight!.isNotEmpty) ...[
-                        Text(
-                          'Personal Insight:',
-                          style:
-                              Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          entry.aiAnalysis!.personalizedInsight!,
-                          style: Theme.of(context).textTheme.bodySmall,
-                        ),
-                        const SizedBox(height: 12),
-                      ],
+                      // Personal Reflection
+                      Text(
+                        'Personal Reflection:',
+                        style:
+                            Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Thank you for taking time to reflect and journal.',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                      const SizedBox(height: 12),
 
-                      // AI Detected Emotions
-                      if (entry.aiAnalysis!.primaryEmotions.isNotEmpty) ...[
-                        Text(
-                          'AI Detected Emotions:',
-                          style:
-                              Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                        ),
-                        const SizedBox(height: 6),
-                        Wrap(
-                          spacing: 4,
-                          runSpacing: 4,
-                          children:
-                              entry.aiAnalysis!.primaryEmotions.map((emotion) {
-                            return Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 8, vertical: 3),
-                              decoration: BoxDecoration(
-                                color: AppTheme.getMoodColor(emotion),
-                                borderRadius: BorderRadius.circular(10),
+                      // Selected Moods
+                      Text(
+                        'Selected Moods:',
+                        style:
+                            Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                ),
+                      ),
+                      const SizedBox(height: 6),
+                      Wrap(
+                        spacing: 4,
+                        runSpacing: 4,
+                        children:
+                            entry.moods.map((mood) {
+                          return Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: AppTheme.getMoodColor(mood),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Text(
+                              mood,
+                              style: HeadingSystem.getLabelSmall(context)
+                                  .copyWith(
+                                fontWeight: FontWeight.w500,
+                                color: Colors.white,
                               ),
-                              child: Text(
-                                emotion,
-                                style: HeadingSystem.getLabelSmall(context)
-                                    .copyWith(
-                                  fontWeight: FontWeight.w500,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            );
-                          }).toList(),
-                        ),
-                        const SizedBox(height: 12),
-                      ],
-
-                      // Key Themes
-                      if (entry.aiAnalysis!.keyThemes.isNotEmpty) ...[
-                        Text(
-                          'Key Themes:',
-                          style:
-                              Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                        ),
-                        const SizedBox(height: 6),
-                        ...entry.aiAnalysis!.keyThemes.map((theme) {
-                          return Padding(
-                            padding: const EdgeInsets.only(bottom: 2),
-                            child: Row(
-                              children: [
-                                Icon(
-                                  Icons.circle,
-                                  size: 4,
-                                  color: AppTheme.getTextSecondary(context),
-                                ),
-                                const SizedBox(width: 6),
-                                Expanded(
-                                  child: Text(
-                                    theme,
-                                    style:
-                                        Theme.of(context).textTheme.bodySmall,
-                                  ),
-                                ),
-                              ],
                             ),
                           );
-                        }),
-                        const SizedBox(height: 12),
-                      ],
+                        }).toList(),
+                      ),
+                      const SizedBox(height: 12),
+
+                      // Processing Theme
+                      Text(
+                        'Theme: Self-reflection',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                      const SizedBox(height: 12),
 
                       // Emotional Intensity
                       Row(
@@ -569,7 +535,7 @@ class _JournalHistoryScreenState extends State<JournalHistoryScreen> {
                                     ),
                           ),
                           Text(
-                            '${(entry.aiAnalysis!.emotionalIntensity * 10).toStringAsFixed(1)}/10',
+                            '${((entry.moods.length / 5.0).clamp(0.0, 1.0) * 10).toStringAsFixed(1)}/10',
                             style: Theme.of(context).textTheme.bodySmall,
                           ),
                         ],
@@ -577,9 +543,9 @@ class _JournalHistoryScreenState extends State<JournalHistoryScreen> {
 
                       const SizedBox(height: 8),
 
-                      // Analysis timestamp
+                      // Processing timestamp
                       Text(
-                        'Analyzed: ${DateFormat('MMM d, h:mm a').format(entry.aiAnalysis!.analyzedAt)}',
+                        'Processed: ${DateFormat('MMM d, h:mm a').format(entry.updatedAt)}',
                         style: HeadingSystem.getLabelSmall(context).copyWith(
                           color: AppTheme.getTextTertiary(context),
                         ),

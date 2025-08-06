@@ -279,7 +279,7 @@ class _MindReflectionCardState extends State<MindReflectionCard>
     // Note: We can't get context here, so we'll check journal provider differently
     final recentEntries = journalProvider.entries.take(5).toList();
     final hasRecentEmotionalData = recentEntries.any((entry) => 
-      entry.isAnalyzed && entry.aiAnalysis != null && entry.aiAnalysis!.primaryEmotions.isNotEmpty);
+      entry.moods.isNotEmpty);
     
     if (hasRecentEmotionalData) {
       return 'Based on your recent emotional state';
@@ -309,11 +309,11 @@ class _MindReflectionCardState extends State<MindReflectionCard>
     final List<Map<String, dynamic>> emotionData = [];
     
     for (final entry in recentEntries) {
-      if (entry.isAnalyzed && entry.aiAnalysis != null && entry.aiAnalysis!.primaryEmotions.isNotEmpty) {
-        for (final emotion in entry.aiAnalysis!.primaryEmotions) {
+      if (entry.moods.isNotEmpty) {
+        for (final emotion in entry.moods) {
           emotionData.add({
             'emotion': emotion,
-            'intensity': entry.aiAnalysis!.emotionalIntensity,
+            'intensity': 0.5, // Default intensity for manual moods
             'date': entry.date,
           });
         }

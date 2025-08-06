@@ -80,7 +80,7 @@ class ExportData {
   ExportStatistics get statistics {
     return ExportStatistics(
       totalEntries: journalEntries.length,
-      analyzedEntries: journalEntries.where((e) => e.isAnalyzed).length,
+      analyzedEntries: journalEntries.where((e) => e.moods.isNotEmpty).length,
       totalCores: emotionalCores.length,
       activeCores: emotionalCores.where((c) => c.currentLevel > 0).length,
       dateRange: journalEntries.isNotEmpty

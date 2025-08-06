@@ -335,7 +335,7 @@ class _JournalToCoreFlowAnimationState extends State<JournalToCoreFlowAnimation>
                     const SizedBox(width: DesignTokens.spacing2),
                     
                     Text(
-                      'AI Analysis',
+                      'Processing',
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         fontWeight: FontWeight.w600,
                         color: DesignTokens.primaryColor,

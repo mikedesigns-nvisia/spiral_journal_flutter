@@ -5,6 +5,7 @@ import 'package:spiral_journal/theme/app_theme.dart';
 import 'package:spiral_journal/widgets/app_background.dart';
 import 'package:spiral_journal/services/navigation_flow_controller.dart';
 import 'package:spiral_journal/design_system/heading_system.dart';
+import 'package:spiral_journal/services/app_info_service.dart';
 
 class SplashScreen extends StatefulWidget {
   final Duration displayDuration;
@@ -23,6 +24,7 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen> {
+  final AppInfoService _appInfoService = AppInfoService();
   Timer? _timer;
   bool _hasCompleted = false;
 
@@ -30,7 +32,16 @@ class _SplashScreenState extends State<SplashScreen> {
   void initState() {
     super.initState();
     debugPrint('SplashScreen: Initializing with duration: ${widget.displayDuration.inSeconds}s');
+    _initializeAppInfo();
     _startTimer();
+  }
+  
+  Future<void> _initializeAppInfo() async {
+    try {
+      await _appInfoService.initialize();
+    } catch (e) {
+      debugPrint('SplashScreen: Failed to initialize app info: $e');
+    }
   }
 
   @override
@@ -164,7 +175,7 @@ class _SplashScreenState extends State<SplashScreen> {
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   // Main app title
-                  HeadingSystem.pageHeading(context, 'Spiral Journal'),
+                  HeadingSystem.pageHeading(context, _appInfoService.appName),
                   
                   const SizedBox(height: 16),
                   

@@ -161,8 +161,8 @@ class JournalProvider with ChangeNotifier {
       // Refresh entries for current year immediately
       await loadEntriesForYear(_selectedYear);
       
-      // Note: AI analysis is now handled by batch processing service
-      debugPrint('JournalProvider: Entry created successfully. AI analysis will be handled in batch.');
+      // Note: Analysis is now handled by batch processing service
+      debugPrint('JournalProvider: Entry created successfully. Analysis will be handled in batch.');
       
       return true;
     } catch (e) {
@@ -485,10 +485,9 @@ class JournalProvider with ChangeNotifier {
     // Update entry in local lists
     final entryIndex = _entries.indexWhere((e) => e.id == entryId);
     if (entryIndex != -1) {
-      // Create updated entry with analysis
+      // Update entry - analysis simplified for local processing
       final updatedEntry = _entries[entryIndex].copyWith(
-        aiAnalysis: EmotionalAnalysis.fromJson(analysis),
-        isAnalyzed: true,
+        updatedAt: DateTime.now(), // Just update the timestamp
       );
       _entries[entryIndex] = updatedEntry;
       

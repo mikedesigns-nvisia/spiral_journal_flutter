@@ -7,6 +7,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:crypto/crypto.dart';
 import 'migrations/schema_migration_v3.dart';
 import 'migrations/schema_migration_v4.dart';
+import 'migrations/schema_migration_v6.dart';
 import '../utils/database_exceptions.dart';
 
 /// Result class for database clearing operations
@@ -75,7 +76,7 @@ class DatabaseHelper {
       
       return await openDatabase(
         path,
-        version: 5, // Increment version for resonance depth system
+        version: 6, // Increment version for AI field removal
         onCreate: _onCreate,
         onUpgrade: _onUpgrade,
       );
@@ -108,8 +109,8 @@ class DatabaseHelper {
   }
 
   Future<void> _onCreate(Database db, int version) async {
-    // Create tables with enhanced schema (version 4 with AI analysis fields)
-    // Journal entries table with AI analysis support
+    // Create tables with simplified schema (version 6 without AI analysis fields)
+    // Journal entries table focused on local processing
     await db.execute('''
       CREATE TABLE journal_entries (
         id TEXT PRIMARY KEY,
@@ -122,13 +123,7 @@ class DatabaseHelper {
         updatedAt TEXT NOT NULL,
         isSynced INTEGER NOT NULL DEFAULT 1,
         metadata TEXT NOT NULL DEFAULT '{}',
-        aiAnalysis TEXT,
-        isAnalyzed INTEGER NOT NULL DEFAULT 0,
-        draftContent TEXT,
-        aiDetectedMoods TEXT NOT NULL DEFAULT '[]',
-        emotionalIntensity REAL,
-        keyThemes TEXT NOT NULL DEFAULT '[]',
-        personalizedInsight TEXT
+        draftContent TEXT
       )
     ''');
 
@@ -210,15 +205,11 @@ class DatabaseHelper {
       )
     ''');
 
-    // Create comprehensive indexes for better query performance
+    // Create indexes for better query performance (simplified for local processing)
     await db.execute('CREATE INDEX idx_journal_entries_date ON journal_entries(date)');
     await db.execute('CREATE INDEX idx_journal_entries_created_at ON journal_entries(createdAt)');
     await db.execute('CREATE INDEX idx_journal_entries_moods ON journal_entries(moods)');
-    await db.execute('CREATE INDEX idx_journal_entries_analyzed ON journal_entries(isAnalyzed)');
     await db.execute('CREATE INDEX idx_journal_entries_content_fts ON journal_entries(content)');
-    await db.execute('CREATE INDEX idx_journal_entries_ai_moods ON journal_entries(aiDetectedMoods)');
-    await db.execute('CREATE INDEX idx_journal_entries_intensity ON journal_entries(emotionalIntensity)');
-    await db.execute('CREATE INDEX idx_journal_entries_themes ON journal_entries(keyThemes)');
     await db.execute('CREATE INDEX idx_monthly_summaries_year_month ON monthly_summaries(year, month)');
   }
 
@@ -237,6 +228,11 @@ class DatabaseHelper {
     if (oldVersion < 5 && newVersion >= 5) {
       // Migrate from version 4 to version 5 (resonance depth system)
       await _migrateToResonanceDepthSystem(db);
+    }
+    
+    if (oldVersion < 6 && newVersion >= 6) {
+      // Migrate from version 5 to version 6 (remove AI analysis fields)
+      await SchemaMigrationV6.migrate(db);
     }
   }
 
@@ -258,7 +254,9 @@ class DatabaseHelper {
       
       // Add last_updated column if it doesn't exist
       if (!columnNames.contains('last_updated')) {
-        await txn.execute('ALTER TABLE emotional_cores ADD COLUMN last_updated TEXT DEFAULT (datetime(\'now\'))');
+        await txn.execute('ALTER TABLE emotional_cores ADD COLUMN last_updated TEXT');
+        // Update existing rows with current timestamp
+        await txn.execute('UPDATE emotional_cores SET last_updated = datetime(\'now\') WHERE last_updated IS NULL');
       }
       
       if (!columnNames.contains('current_level')) {

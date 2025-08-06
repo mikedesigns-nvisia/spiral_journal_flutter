@@ -4,14 +4,14 @@ import '../design_system/design_tokens.dart';
 import '../design_system/heading_system.dart';
 // Batch AI analysis service removed - using local fallback processing
 
-/// Widget that shows the status of AI analysis batching
+/// Widget that shows the status of local processing
 class AnalysisStatusWidget extends StatefulWidget {
-  /// Optional callback when analysis completes
-  final VoidCallback? onAnalysisComplete;
+  /// Optional callback when processing completes
+  final VoidCallback? onProcessingComplete;
   
   const AnalysisStatusWidget({
     super.key,
-    this.onAnalysisComplete,
+    this.onProcessingComplete,
   });
 
   @override
@@ -181,7 +181,7 @@ class _AnalysisStatusWidgetState extends State<AnalysisStatusWidget> {
         );
         
         // Notify parent that analysis is complete
-        widget.onAnalysisComplete?.call();
+        widget.onProcessingComplete?.call();
       }
     } catch (e) {
       if (mounted) {

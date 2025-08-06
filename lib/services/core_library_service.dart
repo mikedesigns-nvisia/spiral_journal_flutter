@@ -21,6 +21,7 @@ class CoreLibraryService {
   static const String _insightsKey = 'core_insights';
   
   final CoreDao _coreDao = CoreDao();
+  List<EmotionalCore>? _lastCachedCores;
 
   // Core configuration for all six personality cores
   static const Map<String, CoreConfig> _coreConfigs = {
@@ -96,6 +97,7 @@ class CoreLibraryService {
       
       if (dbCores.isNotEmpty) {
         debugPrint('CoreLibraryService: Successfully loaded ${dbCores.length} cores from database');
+        _lastCachedCores = dbCores;
         return dbCores;
       }
       
@@ -109,6 +111,7 @@ class CoreLibraryService {
       
       if (initializedCores.isNotEmpty) {
         debugPrint('CoreLibraryService: Successfully initialized ${initializedCores.length} cores in database');
+        _lastCachedCores = initializedCores;
         return initializedCores;
       }
       
@@ -324,6 +327,20 @@ class CoreLibraryService {
       return _generateGrowthRecommendations(cores);
     } catch (e) {
       debugPrint('CoreLibraryService getGrowthRecommendations error: $e');
+      return [];
+    }
+  }
+
+  /// Get the top resonating cores (highest level cores)
+  List<EmotionalCore> getTopResonatingCores(int count) {
+    try {
+      // Use sync version for immediate UI needs
+      final cores = _lastCachedCores ?? _createInitialCores();
+      final activeCores = cores.where((core) => core.currentLevel > 0.1).toList();
+      activeCores.sort((a, b) => b.currentLevel.compareTo(a.currentLevel));
+      return activeCores.take(count).toList();
+    } catch (e) {
+      debugPrint('CoreLibraryService getTopResonatingCores error: $e');
       return [];
     }
   }

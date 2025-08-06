@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import '../models/journal_entry.dart';
 import '../models/core.dart' hide EmotionalPattern;
+import '../models/journal_emotional_pattern.dart';
 import '../config/environment.dart';
 import 'ai_service_interface.dart';
 import 'ai_service_error_tracker.dart';
@@ -671,17 +672,8 @@ class AIServiceManager {
     }
   }
 
-  /// Identify emotional patterns across multiple entries
-  Future<List<JournalEmotionalPattern>> identifyEmotionalPatterns(
-    List<JournalEntry> entries,
-  ) async {
-    try {
-      return _emotionalAnalyzer.identifyPatterns(entries);
-    } catch (e) {
-      debugPrint('AIServiceManager identifyEmotionalPatterns error: $e');
-      return [];
-    }
-  }
+  /// Identify emotional patterns across multiple entries (removed - using local processing)
+  /// This method has been simplified for local processing
 
   /// Get initial core set for new users
   List<EmotionalCore> getInitialEmotionalCores() {
@@ -705,14 +697,13 @@ class AIServiceManager {
       // Calculate core updates with network awareness
       final coreUpdates = await calculateCoreUpdates(entry, currentCores, isCritical: isCritical);
       
-      // Identify patterns
-      final patterns = await identifyEmotionalPatterns([...recentEntries, entry]);
+      // Pattern identification removed for local processing
       
       return ComprehensiveAnalysisResult(
         emotionalAnalysis: emotionalAnalysis,
         updatedCores: updatedCores,
         coreUpdates: coreUpdates,
-        emotionalPatterns: patterns,
+        // emotionalPatterns parameter removed
         analysisTimestamp: DateTime.now(),
       );
     } catch (e) {
@@ -722,7 +713,7 @@ class AIServiceManager {
         emotionalAnalysis: _emotionalAnalyzer.processAnalysis({}, entry),
         updatedCores: currentCores,
         coreUpdates: {},
-        emotionalPatterns: [],
+        // emotionalPatterns parameter removed
         analysisTimestamp: DateTime.now(),
       );
     }
@@ -1928,14 +1919,14 @@ class ComprehensiveAnalysisResult {
   final EmotionalAnalysisResult emotionalAnalysis;
   final List<EmotionalCore> updatedCores;
   final Map<String, double> coreUpdates;
-  final List<JournalEmotionalPattern> emotionalPatterns;
+  // emotionalPatterns removed for local processing
   final DateTime analysisTimestamp;
 
   ComprehensiveAnalysisResult({
     required this.emotionalAnalysis,
     required this.updatedCores,
     required this.coreUpdates,
-    required this.emotionalPatterns,
+    // emotionalPatterns parameter removed
     required this.analysisTimestamp,
   });
 
@@ -1944,12 +1935,7 @@ class ComprehensiveAnalysisResult {
       'emotional_analysis': emotionalAnalysis.toJson(),
       'updated_cores': updatedCores.map((core) => core.toJson()).toList(),
       'core_updates': coreUpdates,
-      'emotional_patterns': emotionalPatterns.map((pattern) => {
-        'category': pattern.category,
-        'title': pattern.title,
-        'description': pattern.description,
-        'type': pattern.type,
-      }).toList(),
+      // emotional_patterns removed for local processing
       'analysis_timestamp': analysisTimestamp.toIso8601String(),
     };
   }

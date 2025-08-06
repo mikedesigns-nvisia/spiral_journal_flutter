@@ -4,14 +4,14 @@ import 'dart:math' as math;
 import 'package:spiral_journal/design_system/design_tokens.dart';
 import 'package:spiral_journal/design_system/responsive_layout.dart';
 
-class AnalysisCounterWidget extends StatefulWidget {
-  const AnalysisCounterWidget({super.key});
+class ProcessingCounterWidget extends StatefulWidget {
+  const ProcessingCounterWidget({super.key});
 
   @override
-  State<AnalysisCounterWidget> createState() => _AnalysisCounterWidgetState();
+  State<ProcessingCounterWidget> createState() => _ProcessingCounterWidgetState();
 }
 
-class _AnalysisCounterWidgetState extends State<AnalysisCounterWidget>
+class _ProcessingCounterWidgetState extends State<ProcessingCounterWidget>
     with TickerProviderStateMixin {
   Timer? _timer;
   late AnimationController _pulseController;

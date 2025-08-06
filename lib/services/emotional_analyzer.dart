@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import '../models/journal_entry.dart';
 import '../models/core_resonance_data.dart';
+import '../models/journal_emotional_pattern.dart';
 
 /// Service for analyzing emotional patterns and extracting structured insights from AI responses.
 /// 

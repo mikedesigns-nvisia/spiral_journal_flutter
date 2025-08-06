@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../design_system/design_tokens.dart';
 import '../design_system/component_library.dart';
+import '../services/app_info_service.dart';
 import '../services/data_export_service.dart';
 import '../services/settings_service.dart';
 import '../services/secure_data_deletion_service.dart';
@@ -30,6 +31,7 @@ class _PrivacyDashboardScreenState extends State<PrivacyDashboardScreen> {
   final DataExportService _exportService = DataExportService();
   final SettingsService _settingsService = SettingsService();
   final SecureDataDeletionService _deletionService = SecureDataDeletionService();
+  final AppInfoService _appInfoService = AppInfoService();
   
   // Data statistics
   int _journalEntryCount = 0;
@@ -54,6 +56,7 @@ class _PrivacyDashboardScreenState extends State<PrivacyDashboardScreen> {
     
     try {
       await _exportService.initialize();
+      await _appInfoService.initialize();
       
       // Try to get journal statistics from actual repositories
       try {
@@ -62,8 +65,8 @@ class _PrivacyDashboardScreenState extends State<PrivacyDashboardScreen> {
         final allEntries = await journalRepository.getAllEntries();
         _journalEntryCount = allEntries.length;
         
-        // Count analyzed entries (those with AI analysis)
-        _analyzedEntryCount = allEntries.where((entry) => entry.aiAnalysis != null).length;
+        // Count processed entries (simplified for local processing)
+        _analyzedEntryCount = allEntries.length; // All entries are processed locally
         
         // Calculate approximate data size
         _totalDataSize = await _calculateDataSize(allEntries, []);
@@ -218,7 +221,7 @@ class _PrivacyDashboardScreenState extends State<PrivacyDashboardScreen> {
           ),
           SizedBox(height: DesignTokens.spaceM),
           Text(
-            'Spiral Journal is designed with privacy-first principles. All your data is stored '
+            '${_appInfoService.appName} is designed with privacy-first principles. All your data is stored '
             'locally on your device and encrypted for security. You have complete control over '
             'your information.',
             style: DesignTokens.getTextStyle(

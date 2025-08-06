@@ -77,83 +77,81 @@ class _ResonanceDepthVisualizerState extends State<ResonanceDepthVisualizer>
       return _buildCompactView(depth, color);
     }
     
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        AnimatedBuilder(
-          animation: _pulseAnimation,
-          builder: (context, child) {
-            return Transform.scale(
-              scale: widget.core.isTransitioning 
-                ? (1.0 + _pulseAnimation.value * 0.05) // More pronounced when transitioning
-                : (1.0 + _pulseAnimation.value * 0.01), // Subtle breathing effect always
-              child: Container(
-                width: widget.size,
-                height: widget.size,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(widget.size / 2),
-                  boxShadow: widget.core.isTransitioning ? [
-                    BoxShadow(
-                      color: color.withOpacity(0.3),
-                      blurRadius: 8,
-                      spreadRadius: 2,
+    return Flexible(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Flexible(
+            child: AnimatedBuilder(
+              animation: _pulseAnimation,
+              builder: (context, child) {
+                return Transform.scale(
+                  scale: widget.core.isTransitioning 
+                    ? (1.0 + _pulseAnimation.value * 0.02) // Reduced from 0.05
+                    : (1.0 + _pulseAnimation.value * 0.005), // Reduced from 0.01
+                  child: Container(
+                    width: widget.size,
+                    height: widget.size,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(widget.size / 2),
+                      boxShadow: widget.core.isTransitioning ? [
+                        BoxShadow(
+                          color: color.withOpacity(0.2), // Reduced from 0.3
+                          blurRadius: 6, // Reduced from 8
+                          spreadRadius: 1, // Reduced from 2
+                        ),
+                      ] : null,
                     ),
-                  ] : null,
-                ),
-                child: CustomPaint(
-                  painter: ResonanceDepthPainter(
-                    depth: depth,
-                    progress: widget.core.depthProgress,
-                    color: color,
-                    isTransitioning: widget.core.isTransitioning,
+                    child: _buildSimplifiedSphere(color, depth),
                   ),
-                  child: Center(
-                    child: _buildSphere(color, depth),
-                  ),
-                ),
-              ),
-            );
-          },
-        ),
-        if (widget.showLabel) ...[
-          SizedBox(height: DesignTokens.spaceM),
-          Text(
-            depth.displayName,
-            style: HeadingSystem.getTitleMedium(context)?.copyWith(
-              color: color,
-              fontWeight: FontWeight.w600,
-              fontSize: widget.isCompact ? 14 : 16,
+                );
+              },
             ),
-            textAlign: TextAlign.center,
           ),
-          if (widget.showProgress && depth != ResonanceDepth.transcendent) ...[
+          if (widget.showLabel) ...[
             SizedBox(height: DesignTokens.spaceS),
-            _buildProgressIndicator(color),
-          ],
-          if (widget.core.isTransitioning) ...[
-            SizedBox(height: DesignTokens.spaceS),
-            Container(
-              padding: EdgeInsets.symmetric(
-                horizontal: DesignTokens.spaceS,
-                vertical: DesignTokens.spaceXS,
+            Text(
+              depth.displayName,
+              style: HeadingSystem.getTitleMedium(context)?.copyWith(
+                color: color,
+                fontWeight: FontWeight.w600,
+                fontSize: widget.isCompact ? 12 : 14,
               ),
-              decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(DesignTokens.radiusS),
-                border: Border.all(color: color.withOpacity(0.3)),
-              ),
-              child: Text(
-                'Transitioning',
-                style: HeadingSystem.getBodySmall(context)?.copyWith(
-                  color: color,
-                  fontSize: 10,
-                  fontWeight: FontWeight.w500,
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            if (widget.showProgress && depth != ResonanceDepth.transcendent) ...[
+              SizedBox(height: DesignTokens.spaceXS),
+              _buildProgressIndicator(color),
+            ],
+            if (widget.core.isTransitioning) ...[
+              SizedBox(height: DesignTokens.spaceXS),
+              Container(
+                padding: EdgeInsets.symmetric(
+                  horizontal: DesignTokens.spaceS,
+                  vertical: DesignTokens.spaceXS,
+                ),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(DesignTokens.radiusS),
+                  border: Border.all(color: color.withOpacity(0.3)),
+                ),
+                child: Text(
+                  'Transitioning',
+                  style: HeadingSystem.getBodySmall(context)?.copyWith(
+                    color: color,
+                    fontSize: 8,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
-            ),
+            ],
           ],
         ],
-      ],
+      ),
     );
   }
   
@@ -251,7 +249,7 @@ class _ResonanceDepthVisualizerState extends State<ResonanceDepthVisualizer>
     }
   }
   
-  Widget _buildSphere(Color color, ResonanceDepth depth, {double? size}) {
+  Widget _buildSimplifiedSphere(Color color, ResonanceDepth depth, {double? size}) {
     final sphereSize = size ?? widget.size * 0.6;
     final isDormant = depth == ResonanceDepth.dormant;
     
@@ -260,195 +258,74 @@ class _ResonanceDepthVisualizerState extends State<ResonanceDepthVisualizer>
       height: sphereSize,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        // Translucent outer membrane (jellyfish-like shell)
+        // Simplified gradient
         gradient: RadialGradient(
-          center: const Alignment(-0.2, -0.3),
-          radius: 1.2,
+          center: const Alignment(-0.3, -0.3),
+          radius: 1.0,
           colors: [
-            Colors.white.withValues(alpha: isDormant ? 0.6 : 1.0),
-            Colors.white.withValues(alpha: isDormant ? 0.5 : 0.8),
-            _getComplementaryColor(color).withValues(alpha: isDormant ? 0.3 : 0.6),
-            color.withValues(alpha: isDormant ? 0.6 : 0.9),
+            Colors.white.withValues(alpha: isDormant ? 0.6 : 0.8),
+            color.withValues(alpha: isDormant ? 0.7 : 0.9),
             color.withValues(alpha: isDormant ? 0.8 : 1.0),
-            _getDarkerVariant(color).withValues(alpha: isDormant ? 0.6 : 0.9),
-            Colors.black.withValues(alpha: isDormant ? 0.15 : 0.3),
+            _getDarkerVariant(color).withValues(alpha: isDormant ? 0.6 : 0.8),
           ],
-          stops: const [0.0, 0.1, 0.25, 0.45, 0.7, 0.85, 1.0],
+          stops: const [0.0, 0.3, 0.7, 1.0],
         ),
+        // Simplified shadow
         boxShadow: [
-          // Translucent outer membrane glow
           BoxShadow(
-            color: color.withOpacity(isDormant ? 0.2 : 0.4),
-            blurRadius: sphereSize * 0.4,
-            spreadRadius: sphereSize * 0.1,
+            color: color.withOpacity(isDormant ? 0.15 : 0.25),
+            blurRadius: sphereSize * 0.2,
+            spreadRadius: sphereSize * 0.05,
           ),
-          // Inner shadow for depth
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.3),
-            blurRadius: sphereSize * 0.15,
-            spreadRadius: -sphereSize * 0.05,
-            offset: Offset(sphereSize * 0.08, sphereSize * 0.08),
-          ),
-          // Primary bioluminescent glow
-          BoxShadow(
-            color: color.withValues(alpha: isDormant ? 0.3 : 0.5),
-            blurRadius: sphereSize * 0.3,
-            spreadRadius: sphereSize * 0.08,
-          ),
-          // Secondary glow layer
-          BoxShadow(
-            color: color.withValues(alpha: isDormant ? 0.2 : 0.3),
-            blurRadius: sphereSize * 0.5,
-            spreadRadius: sphereSize * 0.15,
-          ),
-          // Outer atmospheric glow
-          BoxShadow(
-            color: color.withValues(alpha: isDormant ? 0.1 : 0.15),
-            blurRadius: sphereSize * 0.8,
-            spreadRadius: sphereSize * 0.25,
-          ),
-          // Enhanced glow effect for transitioning
-          if (widget.core.isTransitioning) ...[
-            BoxShadow(
-              color: color.withValues(alpha: 0.8),
-              blurRadius: sphereSize * 0.6,
-              spreadRadius: sphereSize * 0.2,
-            ),
-            BoxShadow(
-              color: Colors.white.withValues(alpha: 0.4),
-              blurRadius: sphereSize * 0.4,
-              spreadRadius: sphereSize * 0.1,
-            ),
-          ],
         ],
       ),
       child: Stack(
         children: [
-          // Bioluminescent flow layer (jellyfish-like internal movement)
-          Positioned.fill(
-            child: ClipOval(
-              child: CustomPaint(
-                painter: BioluminescentFlowPainter(
-                  coreColor: color,
-                  complementaryColor: _getComplementaryColor(color),
-                  flowPhase: _pulseAnimation.value * 2 * 3.14159,
-                  intensity: isDormant ? 0.3 : 1.0,
-                  isDormant: isDormant,
-                  breathingScale: 1.0 + _pulseAnimation.value * 0.1,
-                ),
-              ),
-            ),
-          ),
-          // Opal-like internal swirls (enhanced for jellyfish effect)
-          Positioned.fill(
-            child: ClipOval(
-              child: CustomPaint(
-                painter: OpalSwirliPainter(
-                  primaryColor: color,
-                  complementaryColor: _getComplementaryColor(color),
-                  animationValue: _pulseAnimation.value,
-                ),
-              ),
-            ),
-          ),
-          // Floating light particles (jellyfish bioluminescence)
-          ...List.generate(isDormant ? 3 : 6, (index) {
-            final progress = (_pulseAnimation.value + index * 0.3) % 1.0;
-            final radius = sphereSize / 2;
-            final baseAngle = (progress * 2 * 3.14159) + (index * 3.14159 / 3);
-            final orbitRadius = radius * (0.3 + (index % 3) * 0.1);
-            final waveOffset = sin(progress * 4 * 3.14159 + index) * 5;
-            
-            final x = radius + (orbitRadius + waveOffset) * cos(baseAngle);
-            final y = radius + (orbitRadius + waveOffset) * sin(baseAngle);
-            
-            final opacity = (sin(progress * 6 * 3.14159 + index) + 1) / 2 * (isDormant ? 0.2 : 0.4);
-            
-            return Positioned(
-              left: x - 2,
-              top: y - 2,
-              child: Container(
-                width: 4,
-                height: 4,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: color.withOpacity(opacity),
-                  boxShadow: [
-                    BoxShadow(
-                      color: color.withOpacity(opacity * 0.8),
-                      blurRadius: 6,
-                      spreadRadius: 1,
-                    ),
-                  ],
-                ),
-              ),
-            );
-          }),
-          // Organic bioluminescent nucleus (jellyfish-like core)
+          // Simple highlight
           Positioned(
-            top: sphereSize * 0.35,
-            left: sphereSize * 0.35,
-            child: Transform.scale(
-              scale: 1.0 + _pulseAnimation.value * (isDormant ? 0.05 : 0.1),
-              child: Container(
-                width: sphereSize * 0.3,
-                height: sphereSize * 0.3,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: color.withOpacity(isDormant ? 0.3 : 0.6),
-                      blurRadius: 15,
-                      spreadRadius: 3,
-                    ),
-                  ],
-                  gradient: RadialGradient(
-                    colors: [
-                      color.withOpacity(isDormant ? 0.6 : 0.8), // Start with the core color, not white
-                      color.withOpacity(isDormant ? 0.8 : 1.0),
-                      color.withOpacity(isDormant ? 0.4 : 0.6),
-                    ],
-                    stops: const [0.0, 0.4, 1.0],
-                  ),
-                ),
-              ),
-            ),
-          ),
-          // Subtle internal glow (replaces harsh highlights)
-          Positioned(
-            top: sphereSize * 0.2,
-            left: sphereSize * 0.2,
+            top: sphereSize * 0.15,
+            left: sphereSize * 0.15,
             child: Container(
-              width: sphereSize * 0.6,
-              height: sphereSize * 0.6,
+              width: sphereSize * 0.4,
+              height: sphereSize * 0.4,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 gradient: RadialGradient(
                   colors: [
-                    color.withValues(alpha: isDormant ? 0.1 : 0.2),
-                    color.withValues(alpha: isDormant ? 0.05 : 0.1),
+                    Colors.white.withValues(alpha: isDormant ? 0.3 : 0.5),
                     Colors.transparent,
                   ],
-                  stops: const [0.0, 0.6, 1.0],
+                  stops: const [0.0, 1.0],
                 ),
               ),
             ),
           ),
-          // Translucent membrane rim (jellyfish shell effect)
-          Positioned.fill(
+          // Core center
+          Center(
             child: Container(
+              width: sphereSize * 0.3,
+              height: sphereSize * 0.3,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                border: Border.all(
-                  color: color.withOpacity(isDormant ? 0.2 : 0.3),
-                  width: 1.0,
-                ),
+                color: color.withOpacity(isDormant ? 0.6 : 0.8),
+                boxShadow: [
+                  BoxShadow(
+                    color: color.withOpacity(0.3),
+                    blurRadius: 4,
+                    spreadRadius: 1,
+                  ),
+                ],
               ),
             ),
           ),
         ],
       ),
     );
+  }
+
+  // Keep original method for backward compatibility
+  Widget _buildSphere(Color color, ResonanceDepth depth, {double? size}) {
+    return _buildSimplifiedSphere(color, depth, size: size);
   }
   
   Color _getComplementaryColor(Color color) {

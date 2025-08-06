@@ -32,13 +32,23 @@ class _EmotionalStateVisualizationState extends State<EmotionalStateVisualizatio
     _animationController = AnimationController(
       duration: const Duration(seconds: 3),
       vsync: this,
-    )..repeat();
+    );
     
     _initializeParticles();
+    
+    // Start animation after widget is fully initialized
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _animationController.repeat();
+      }
+    });
   }
   
   @override
   void dispose() {
+    if (_animationController.isAnimating) {
+      _animationController.stop();
+    }
     _animationController.dispose();
     super.dispose();
   }
@@ -59,10 +69,19 @@ class _EmotionalStateVisualizationState extends State<EmotionalStateVisualizatio
             (random.nextDouble() - 0.5) * 2,
           ),
           size: random.nextDouble() * 6 + 3,
-          baseColor: _getParticleColor(random.nextDouble()),
+          baseColor: _getParticleColorDuringInit(random.nextDouble()),
         ),
       );
     }
+  }
+  
+  Color _getParticleColorDuringInit(double t) {
+    // Use default light theme colors during initialization
+    return Color.lerp(
+      DesignTokens.accentBlue,
+      DesignTokens.accentYellow,
+      t,
+    )!;
   }
   
   Color _getParticleColor(double t) {

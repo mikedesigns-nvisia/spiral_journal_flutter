@@ -11,8 +11,8 @@ class DesignTokens {
   // ============================================================================
   
   /// Primary brand colors - warm oranges and browns
-  static const Color primaryOrange = Color(0xFF865219);
-  static const Color primaryLight = Color(0xFFFDB876);
+  static const Color primaryOrange = Color(0xFF4A2E0F);
+  static const Color primaryLight = Color(0xFF8B5219);
   static const Color primaryDark = Color(0xFF6A3B01);
   
   /// Light theme background colors - warm creams with better contrast
@@ -46,7 +46,7 @@ class DesignTokens {
   static const Color moodContent = Color(0xFF7AACB3);
   static const Color moodUnsure = Color(0xFF8B7ED8);
   static const Color moodSad = Color(0xFFBA1A1A);
-  static const Color moodEnergetic = Color(0xFFEA8100);
+  static const Color moodEnergetic = Color(0xFF8B4513);
   
   /// Core personality colors (theme-agnostic)
   static const Color coreOptimist = Color(0xFFAFCACD);
@@ -56,7 +56,7 @@ class DesignTokens {
   static const Color coreRest = Color(0xFFB37A9B);
   
   /// Accent and utility colors
-  static const Color accentYellow = Color(0xFFFFDCBF);
+  static const Color accentYellow = Color(0xFF8B5A3C);
   static const Color accentBlue = Color(0xFF2196F3);
   static const Color accentGreen = Color(0xFF4C662B);
   static const Color accentRed = Color(0xFFBA1A1A);

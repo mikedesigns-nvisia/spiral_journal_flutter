@@ -12,8 +12,8 @@ import '../providers/journal_provider.dart';
 import '../services/core_navigation_context_service.dart';
 import '../services/accessibility_service.dart';
 import '../services/core_visual_consistency_service.dart';
-import '../services/gyroscope_lighting_service.dart';
 import '../widgets/resonance_depth_visualizer.dart';
+import '../widgets/simple_resonance_visualizer.dart';
 
 class CoreLibraryScreen extends StatefulWidget {
   final CoreNavigationContext? navigationContext;
@@ -35,13 +35,10 @@ class _CoreLibraryScreenState extends State<CoreLibraryScreen> with TickerProvid
   final CoreNavigationContextService _navigationService = CoreNavigationContextService();
   final AccessibilityService _accessibilityService = AccessibilityService();
   final CoreVisualConsistencyService _visualConsistencyService = CoreVisualConsistencyService();
-  final GyroscopeLightingService _gyroscopeService = GyroscopeLightingService();
   
-  // Animation controllers for orb animations
-  late List<AnimationController> _orbAnimationControllers;
-  late List<Animation<double>> _breathingAnimations;
-  late List<Animation<double>> _floatingAnimations;
-  late List<Animation<double>> _glowAnimations;
+  // Simplified animation controllers
+  late AnimationController _coreAnimationController;
+  late Animation<double> _coreAnimation;
   
   // Track recent updates for visual indicators
   final Set<String> _recentlyUpdatedCores = <String>{};
@@ -85,11 +82,8 @@ class _CoreLibraryScreenState extends State<CoreLibraryScreen> with TickerProvid
       ),
     );
     
-    // Initialize orb animations
-    _initializeOrbAnimations();
-    
-    // Initialize gyroscope lighting
-    _gyroscopeService.initialize();
+    // Initialize simplified core animations
+    _initializeCoreAnimations();
     
     // Initialize with navigation context if provided directly or check for stored context
     if (widget.navigationContext != null) {
@@ -114,58 +108,24 @@ class _CoreLibraryScreenState extends State<CoreLibraryScreen> with TickerProvid
     });
   }
   
-  void _initializeOrbAnimations() {
-    _orbAnimationControllers = [];
-    _breathingAnimations = [];
-    _floatingAnimations = [];
-    _glowAnimations = [];
+  void _initializeCoreAnimations() {
+    // Single simplified animation controller for all cores
+    _coreAnimationController = AnimationController(
+      duration: const Duration(seconds: 4),
+      vsync: this,
+    );
     
-    // Create 6 animation controllers with staggered animations
-    for (int i = 0; i < 6; i++) {
-      // Create controller with different duration for each orb to avoid synchronization
-      final controller = AnimationController(
-        duration: Duration(milliseconds: 3500 + (i * 300)), // 3.5-5s cycles
-        vsync: this,
-      );
-      
-      // Breathing animation (scale)
-      final breathingAnimation = Tween<double>(
-        begin: 0.95,
-        end: 1.05,
-      ).animate(CurvedAnimation(
-        parent: controller,
-        curve: Curves.easeInOut,
-      ));
-      
-      // Floating animation (vertical movement)
-      final floatingAnimation = Tween<double>(
-        begin: -5.0,
-        end: 5.0,
-      ).animate(CurvedAnimation(
-        parent: controller,
-        curve: Curves.easeInOut,
-      ));
-      
-      // Glow animation (blur intensity)
-      final glowAnimation = Tween<double>(
-        begin: 1.0,
-        end: 1.5,
-      ).animate(CurvedAnimation(
-        parent: controller,
-        curve: Curves.easeInOut,
-      ));
-      
-      _orbAnimationControllers.add(controller);
-      _breathingAnimations.add(breathingAnimation);
-      _floatingAnimations.add(floatingAnimation);
-      _glowAnimations.add(glowAnimation);
-      
-      // Start animation with delay to create staggered effect
-      Future.delayed(Duration(milliseconds: i * 200), () {
-        if (!_accessibilityService.reducedMotionMode) {
-          controller.repeat(reverse: true);
-        }
-      });
+    _coreAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _coreAnimationController,
+      curve: Curves.easeInOut,
+    ));
+    
+    // Only start animation if reduced motion is disabled
+    if (!_accessibilityService.reducedMotionMode) {
+      _coreAnimationController.repeat(reverse: true);
     }
   }
   
@@ -208,14 +168,7 @@ class _CoreLibraryScreenState extends State<CoreLibraryScreen> with TickerProvid
   void dispose() {
     _animationController.dispose();
     _updateAnimationController.dispose();
-    
-    // Dispose orb animation controllers
-    for (final controller in _orbAnimationControllers) {
-      controller.dispose();
-    }
-    
-    // Dispose gyroscope service
-    _gyroscopeService.dispose();
+    _coreAnimationController.dispose();
     
     super.dispose();
   }
@@ -656,117 +609,45 @@ class _CoreLibraryScreenState extends State<CoreLibraryScreen> with TickerProvid
               const SizedBox(height: 8),
             ],
             
-            // Resonance Depth Visualizer with animations
+            // Simplified Resonance Depth Visualizer
             Flexible(
               flex: 3,
               child: Center(
                 child: RepaintBoundary(
-                  child: index < _orbAnimationControllers.length 
-                    ? AnimatedBuilder(
-                        animation: Listenable.merge([
-                          _orbAnimationControllers[index],
-                          _breathingAnimations[index],
-                          _floatingAnimations[index],
-                          _glowAnimations[index],
-                        ]),
-                        builder: (context, child) {
-                      // Calculate animation values with dormant/active variations
+                  child: AnimatedBuilder(
+                    animation: _coreAnimation,
+                    builder: (context, child) {
                       final isDormant = core.currentLevel < 0.1;
-                      final breathingScale = isDormant 
-                          ? 0.98 + (_breathingAnimations[index].value - 0.95) * 0.4  // Smaller amplitude for dormant
-                          : _breathingAnimations[index].value;
-                      final floatingOffset = isDormant
-                          ? _floatingAnimations[index].value * 0.5  // Less movement for dormant
-                          : _floatingAnimations[index].value;
-                      final glowIntensity = isDormant
-                          ? 1.0 + (_glowAnimations[index].value - 1.0) * 0.3  // Dimmer glow for dormant
-                          : _glowAnimations[index].value;
+                      final animationValue = _accessibilityService.reducedMotionMode ? 0.0 : _coreAnimation.value;
                       
-                      return ListenableBuilder(
-                        listenable: _gyroscopeService,
-                        builder: (context, child) {
-                          // Get gyroscope-based lighting values
-                          final shadowOffset = _gyroscopeService.getShadowOffset(intensity: glowIntensity);
-                          final lightIntensity = _gyroscopeService.getLightIntensity();
-                          
-                          return Transform.translate(
-                            offset: Offset(0, floatingOffset),
-                            child: Transform.scale(
-                              scale: breathingScale,
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  boxShadow: [
-                                    // Main glow shadow with gyroscope-based offset
-                                    BoxShadow(
-                                      color: color.withValues(alpha: isDormant ? 0.15 : 0.25 * lightIntensity),
-                                      blurRadius: 20 * glowIntensity * lightIntensity,
-                                      spreadRadius: 5 * glowIntensity,
-                                      offset: shadowOffset,
-                                    ),
-                                    // Secondary glow for depth
-                                    BoxShadow(
-                                      color: color.withValues(alpha: isDormant ? 0.1 : 0.2 * lightIntensity),
-                                      blurRadius: 10 * glowIntensity,
-                                      spreadRadius: 2 * glowIntensity,
-                                      offset: shadowOffset * 0.5,
-                                    ),
-                                    // Rim lighting based on gyroscope angle
-                                    BoxShadow(
-                                      color: Colors.white.withValues(alpha: _gyroscopeService.getRimLightIntensity(0) * lightIntensity),
-                                      blurRadius: 15,
-                                      spreadRadius: 1,
-                                      offset: Offset(-shadowOffset.dx * 0.3, -shadowOffset.dy * 0.3),
-                                    ),
-                                  ],
-                                ),
-                                child: ResonanceDepthVisualizer(
-                                  core: core,
-                                  size: 100, // Increased from 80 to 100 for more prominence
-                                  showLabel: false,
-                                  showProgress: false,
-                                ),
-                              ),
-                            ),
-                          );
-                        },
-                      );
-                    },
-                  )
-                  : ListenableBuilder(
-                      listenable: _gyroscopeService,
-                      builder: (context, child) {
-                        final shadowOffset = _gyroscopeService.getShadowOffset();
-                        final lightIntensity = _gyroscopeService.getLightIntensity();
-                        final isDormant = core.currentLevel < 0.1;
-                        
-                        return Container(
+                      // Very subtle breathing effect only
+                      final breathingScale = isDormant 
+                          ? 1.0 + (animationValue * 0.01)  // Minimal for dormant
+                          : 1.0 + (animationValue * 0.02); // Still subtle for active
+                      
+                      return Transform.scale(
+                        scale: breathingScale,
+                        child: Container(
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
                             boxShadow: [
+                              // Single simplified glow
                               BoxShadow(
-                                color: color.withValues(alpha: isDormant ? 0.15 : 0.25 * lightIntensity),
-                                blurRadius: 20 * lightIntensity,
-                                spreadRadius: 5,
-                                offset: shadowOffset,
-                              ),
-                              BoxShadow(
-                                color: Colors.white.withValues(alpha: _gyroscopeService.getRimLightIntensity(0) * lightIntensity),
-                                blurRadius: 15,
-                                spreadRadius: 1,
-                                offset: Offset(-shadowOffset.dx * 0.3, -shadowOffset.dy * 0.3),
+                                color: color.withValues(alpha: isDormant ? 0.1 : 0.2),
+                                blurRadius: isDormant ? 8 : 12,
+                                spreadRadius: isDormant ? 1 : 2,
                               ),
                             ],
                           ),
-                          child: ResonanceDepthVisualizer(
+                          child: SimpleResonanceVisualizer(
                             core: core,
-                            size: 100,
-                            showLabel: false,
-                            showProgress: false,
+                            size: 80,
+                            animationValue: animationValue,
                           ),
-                        );
-                      },
-                    ),
+                        ),
+                      );
+                    },
+                  ),
                 ),
               ),
             ),
@@ -776,6 +657,7 @@ class _CoreLibraryScreenState extends State<CoreLibraryScreen> with TickerProvid
               flex: 2,
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   // Core name
                   Text(
@@ -788,7 +670,7 @@ class _CoreLibraryScreenState extends State<CoreLibraryScreen> with TickerProvid
                     overflow: TextOverflow.ellipsis,
                   ),
                   
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 2),
                   
                   // Resonance depth label
                   Text(
@@ -797,6 +679,8 @@ class _CoreLibraryScreenState extends State<CoreLibraryScreen> with TickerProvid
                       color: color,
                       fontWeight: FontWeight.w500,
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ],
               ),
@@ -808,6 +692,7 @@ class _CoreLibraryScreenState extends State<CoreLibraryScreen> with TickerProvid
                 flex: 1,
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     if (core.trend != 'stable')
                       Row(
@@ -821,29 +706,35 @@ class _CoreLibraryScreenState extends State<CoreLibraryScreen> with TickerProvid
                             size: 12,
                           ),
                           const SizedBox(width: 2),
-                          Text(
-                            core.trend.toUpperCase(),
-                            style: HeadingSystem.getLabelSmall(context)?.copyWith(
-                              color: trendColor,
-                              fontWeight: FontWeight.w500,
-                              fontSize: 9,
+                          Flexible(
+                            child: Text(
+                              core.trend.toUpperCase(),
+                              style: HeadingSystem.getLabelSmall(context)?.copyWith(
+                                color: trendColor,
+                                fontWeight: FontWeight.w500,
+                                fontSize: 9,
+                              ),
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
                         ],
                       ),
                     if (core.isTransitioning) ...[
-                      if (core.trend != 'stable') const SizedBox(height: 2),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-                        decoration: BoxDecoration(
-                          color: AppTheme.getAccentColor(context).withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          'Transitioning',
-                          style: HeadingSystem.getLabelSmall(context)?.copyWith(
-                            color: AppTheme.getAccentColor(context),
-                            fontSize: 8,
+                      if (core.trend != 'stable') const SizedBox(height: 1),
+                      Flexible(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                          decoration: BoxDecoration(
+                            color: AppTheme.getAccentColor(context).withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            'Transitioning',
+                            style: HeadingSystem.getLabelSmall(context)?.copyWith(
+                              color: AppTheme.getAccentColor(context),
+                              fontSize: 8,
+                            ),
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
                       ),
@@ -1632,35 +1523,7 @@ class _CoreDetailSheetState extends State<CoreDetailSheet> {
                       maxLines: 3,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    if (entry.isAnalyzed && entry.aiAnalysis != null) ...[
-                      const SizedBox(height: 8),
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: _getCoreColor(core.color).withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.psychology_rounded,
-                              color: _getCoreColor(core.color),
-                              size: 14,
-                            ),
-                            const SizedBox(width: 6),
-                            Expanded(
-                              child: Text(
-                                'AI detected themes related to ${core.name}',
-                                style: HeadingSystem.getLabelSmall(context).copyWith(
-                                  color: _getCoreColor(core.color),
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
+                    // AI analysis section removed for local processing
                   ],
                 ),
               )),
@@ -1735,12 +1598,9 @@ class _CoreDetailSheetState extends State<CoreDetailSheet> {
     // Check if the entry was created during a period when this core was growing
     final isFromGrowthPeriod = _isFromCoreGrowthPeriod(entry, core);
     
-    // If entry is analyzed, check if AI analysis mentions core-related themes
-    final hasAISupport = entry.isAnalyzed && 
-                       entry.aiAnalysis != null && 
-                       _aiAnalysisSupportsCore(entry.aiAnalysis!.toJson(), core);
+    // AI analysis support removed for local processing
     
-    return hasKeywords || isFromGrowthPeriod || hasAISupport;
+    return hasKeywords || isFromGrowthPeriod;
   }
 
   bool _isFromCoreGrowthPeriod(JournalEntry entry, EmotionalCore core) {

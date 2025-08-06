@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import '../models/journal_entry.dart';
+import '../models/emotional_analysis.dart';
 import '../repositories/journal_repository_impl.dart';
 
 /// Utility class for generating sample journal data for testing and demonstration
@@ -141,8 +142,7 @@ extension EmotionalAnalysisResultExtension on dynamic {
     return EmotionalAnalysis(
       primaryEmotions: emotions,
       emotionalIntensity: intensity / 10.0, // Convert to 0-1 scale
-      keyThemes: themes,
-      personalizedInsight: insight,
+      growthIndicators: themes,
       coreAdjustments: impacts,
       analyzedAt: DateTime.now(),
     );

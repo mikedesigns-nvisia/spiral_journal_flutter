@@ -26,7 +26,7 @@ class OnboardingSlide {
     return const OnboardingSlide(
       id: 'welcome',
       title: 'Welcome to Your Personal Growth Journey',
-      content: 'Spiral Journal helps you understand your emotions and track your personal growth through intelligent journaling. Write freely, discover patterns, and watch your emotional intelligence flourish.',
+      content: 'Spiral Journal helps you understand your emotions and track your personal growth through mindful journaling. Write freely, discover patterns, and develop greater self-awareness.',
       ctaText: 'Let\'s explore how it works',
       type: OnboardingSlideType.welcome,
       visualAsset: 'spiral_growth',
@@ -50,20 +50,20 @@ class OnboardingSlide {
     );
   }
 
-  factory OnboardingSlide.aiIntelligence() {
+  factory OnboardingSlide.emotionalTracking() {
     return const OnboardingSlide(
-      id: 'ai_intelligence',
-      title: 'Meet Your AI Emotional Intelligence Coach',
-      content: 'Our AI analyzes your writing to help you understand emotional patterns and personal growth. It\'s like having a thoughtful friend who remembers everything and helps you see the bigger picture.',
+      id: 'emotional_tracking',
+      title: 'Track Your Emotional Journey',
+      content: 'Discover patterns in your emotions and track your personal growth over time. Your journal entries help you build awareness of your inner world and recognize your progress.',
       keyPoints: [
-        'Powered by advanced Claude AI',
-        'Identifies emotional patterns',
-        'Tracks 6 personality cores',
-        'Provides personalized insights',
-        'Works offline when needed',
+        'Identify emotional patterns over time',
+        'Track 6 personality core areas',
+        'Visual insights into your growth',
+        'Build emotional self-awareness',
+        'See your progress unfold',
       ],
-      ctaText: 'Smart insights, just for you',
-      type: OnboardingSlideType.aiIntelligence,
+      ctaText: 'Understand your patterns',
+      type: OnboardingSlideType.emotionalTracking,
       visualAsset: 'brain_heart',
     );
   }
@@ -72,13 +72,13 @@ class OnboardingSlide {
     return const OnboardingSlide(
       id: 'how_it_works',
       title: 'How Your Journey Unfolds',
-      content: 'Write naturally whenever you feel like it. Our AI processes your entries overnight, so you wake up to fresh insights about your emotional patterns and growth.',
+      content: 'Write naturally whenever you feel like it. The app helps you track your emotional patterns and provides insights into your personal growth over time.',
       keyPoints: [
         'Write freely - no prompts or structure needed',
-        'AI analyzes your entries within 24 hours',
-        'Wake up to personalized insights',
-        'Track your emotional evolution over time',
-        'See patterns you might have missed',
+        'Track your moods and emotional patterns',
+        'Review your progress and insights',
+        'See your emotional evolution over time',
+        'Discover patterns in your growth',
       ],
       ctaText: 'I understand the process',
       type: OnboardingSlideType.howItWorks,
@@ -137,7 +137,7 @@ class OnboardingSlide {
     return [
       OnboardingSlide.welcome(),
       OnboardingSlide.privacy(),
-      OnboardingSlide.aiIntelligence(),
+      OnboardingSlide.emotionalTracking(),
       OnboardingSlide.howItWorks(),
       OnboardingSlide.accessibility(),
       OnboardingSlide.settings(),
@@ -149,7 +149,7 @@ class OnboardingSlide {
 enum OnboardingSlideType {
   welcome,
   privacy,
-  aiIntelligence,
+  emotionalTracking,
   howItWorks,
   accessibility,
   settings,

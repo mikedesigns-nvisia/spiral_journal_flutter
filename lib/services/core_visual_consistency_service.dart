@@ -16,7 +16,7 @@ class CoreVisualConsistencyService {
     
     return {
       'optimism': CoreColorScheme(
-        primary: const Color(0xFFFFB74D), // Warm orange
+        primary: const Color(0xFF8B5219), // Warm orange
         secondary: const Color(0xFFFFF3E0),
         accent: const Color(0xFFFF8F00),
         text: accessibleColors.onSurface,

@@ -82,6 +82,71 @@ class EmotionalMirrorProvider extends ChangeNotifier {
     );
   }
 
+  /// Get the secondary emotional state from the mirror data
+  EmotionalState? getSecondaryEmotionalState(BuildContext context) {
+    if (_mirrorData == null) return null;
+    
+    final moodOverview = _mirrorData!.moodOverview;
+    if (moodOverview.dominantMoods.length < 2) return null;
+    
+    // Create emotional state from the second most dominant mood
+    final secondaryMood = moodOverview.dominantMoods[1];
+    
+    // Secondary mood has slightly lower intensity
+    final intensity = ((moodOverview.moodBalance + 1.0) / 2.0 * 0.8).clamp(0.0, 1.0);
+    
+    // Slightly lower confidence for secondary mood
+    final confidence = 0.75;
+    
+    // Generate a description based on the relationship to primary mood
+    final primaryMood = moodOverview.dominantMoods.first;
+    final description = _generateSecondaryMoodDescription(primaryMood, secondaryMood);
+    
+    return EmotionalState.create(
+      emotion: secondaryMood,
+      intensity: intensity,
+      confidence: confidence,
+      context: context,
+      customDescription: description,
+    );
+  }
+
+  /// Generate a contextual description for the secondary mood
+  String _generateSecondaryMoodDescription(String primaryMood, String secondaryMood) {
+    // Create relationship-based descriptions
+    if (_areComplementaryMoods(primaryMood, secondaryMood)) {
+      return 'This emotion complements your $primaryMood state, creating emotional balance';
+    } else if (_areContrastingMoods(primaryMood, secondaryMood)) {
+      return 'This contrasting emotion suggests emotional complexity in your experience';
+    } else {
+      return 'A supporting emotion that enriches your overall emotional landscape';
+    }
+  }
+
+  bool _areComplementaryMoods(String mood1, String mood2) {
+    const complementaryPairs = [
+      ['happy', 'grateful'],
+      ['calm', 'content'],
+      ['excited', 'optimistic'],
+      ['peaceful', 'grateful'],
+    ];
+    
+    return complementaryPairs.any((pair) => 
+      (pair.contains(mood1.toLowerCase()) && pair.contains(mood2.toLowerCase())));
+  }
+
+  bool _areContrastingMoods(String mood1, String mood2) {
+    const positiveMoods = ['happy', 'excited', 'grateful', 'content', 'calm', 'peaceful', 'optimistic', 'joyful'];
+    const challengingMoods = ['sad', 'anxious', 'stressed', 'frustrated', 'worried', 'angry'];
+    
+    final isPositive1 = positiveMoods.contains(mood1.toLowerCase());
+    final isPositive2 = positiveMoods.contains(mood2.toLowerCase());
+    final isChallenging1 = challengingMoods.contains(mood1.toLowerCase());
+    final isChallenging2 = challengingMoods.contains(mood2.toLowerCase());
+    
+    return (isPositive1 && isChallenging2) || (isChallenging1 && isPositive2);
+  }
+
   int get timeRangeDays {
     switch (_selectedTimeRange) {
       case TimeRange.sevenDays:

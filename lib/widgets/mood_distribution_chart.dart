@@ -270,7 +270,7 @@ class MoodDistributionChart extends StatelessWidget {
       'contemplative': const Color(0xFFBA68C8), // Light purple
       'calm': const Color(0xFF81C784), // Soft green
       'focused': const Color(0xFF4FC3F7), // Light blue
-      'creative': const Color(0xFFFFB74D), // Light orange
+      'creative': const Color(0xFF8B5219), // Dark orange
     };
   }
 

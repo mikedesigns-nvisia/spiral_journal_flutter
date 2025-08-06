@@ -118,14 +118,7 @@ class JournalDao {
         'isSynced': entryWithId.isSynced ? 1 : 0,
         'metadata': entryWithId.metadata.isNotEmpty ? 
                    jsonEncode(entryWithId.metadata) : '{}',
-        'aiAnalysis': entryWithId.aiAnalysis != null ? 
-                     jsonEncode(entryWithId.aiAnalysis!.toJson()) : null,
-        'isAnalyzed': entryWithId.isAnalyzed ? 1 : 0,
         'draftContent': entryWithId.draftContent,
-        'aiDetectedMoods': jsonEncode(entryWithId.aiDetectedMoods),
-        'emotionalIntensity': entryWithId.emotionalIntensity,
-        'keyThemes': jsonEncode(entryWithId.keyThemes),
-        'personalizedInsight': entryWithId.personalizedInsight,
       },
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
@@ -270,14 +263,7 @@ class JournalDao {
         'isSynced': updatedEntry.isSynced ? 1 : 0,
         'metadata': updatedEntry.metadata.isNotEmpty ? 
                    jsonEncode(updatedEntry.metadata) : '{}',
-        'aiAnalysis': updatedEntry.aiAnalysis != null ? 
-                     jsonEncode(updatedEntry.aiAnalysis!.toJson()) : null,
-        'isAnalyzed': updatedEntry.isAnalyzed ? 1 : 0,
         'draftContent': updatedEntry.draftContent,
-        'aiDetectedMoods': jsonEncode(updatedEntry.aiDetectedMoods),
-        'emotionalIntensity': updatedEntry.emotionalIntensity,
-        'keyThemes': jsonEncode(updatedEntry.keyThemes),
-        'personalizedInsight': updatedEntry.personalizedInsight,
       },
       where: 'id = ?',
       whereArgs: [entry.id],
@@ -366,14 +352,14 @@ class JournalDao {
     return moodCounts;
   }
 
-  // Enhanced search functionality for full-text search
+  // Enhanced search functionality for full-text search  
   Future<List<JournalEntry>> searchJournalEntriesFullText(String query) async {
     try {
       final db = await _dbHelper.database;
       final List<Map<String, dynamic>> maps = await db.query(
         'journal_entries',
-        where: 'content LIKE ? OR personalizedInsight LIKE ? OR keyThemes LIKE ?',
-        whereArgs: ['%$query%', '%$query%', '%$query%'],
+        where: 'content LIKE ?',
+        whereArgs: ['%$query%'],
         orderBy: 'date DESC',
       );
 
@@ -384,80 +370,9 @@ class JournalDao {
     }
   }
 
-  // Get entries by AI detected moods
-  Future<List<JournalEntry>> getJournalEntriesByAIMood(String mood) async {
-    try {
-      final db = await _dbHelper.database;
-      final List<Map<String, dynamic>> maps = await db.query(
-        'journal_entries',
-        where: 'aiDetectedMoods LIKE ?',
-        whereArgs: ['%"$mood"%'],
-        orderBy: 'date DESC',
-      );
 
-      return maps.map((map) => _mapToJournalEntry(map)).toList();
-    } catch (e) {
-      debugPrint('JournalDao.getJournalEntriesByAIMood failed: $e');
-      rethrow;
-    }
-  }
 
-  // Get entries by emotional intensity range
-  Future<List<JournalEntry>> getJournalEntriesByIntensityRange(
-    double minIntensity,
-    double maxIntensity,
-  ) async {
-    try {
-      final db = await _dbHelper.database;
-      final List<Map<String, dynamic>> maps = await db.query(
-        'journal_entries',
-        where: 'emotionalIntensity BETWEEN ? AND ?',
-        whereArgs: [minIntensity, maxIntensity],
-        orderBy: 'emotionalIntensity DESC, date DESC',
-      );
 
-      return maps.map((map) => _mapToJournalEntry(map)).toList();
-    } catch (e) {
-      debugPrint('JournalDao.getJournalEntriesByIntensityRange failed: $e');
-      rethrow;
-    }
-  }
-
-  // Get entries by key themes
-  Future<List<JournalEntry>> getJournalEntriesByTheme(String theme) async {
-    try {
-      final db = await _dbHelper.database;
-      final List<Map<String, dynamic>> maps = await db.query(
-        'journal_entries',
-        where: 'keyThemes LIKE ?',
-        whereArgs: ['%"$theme"%'],
-        orderBy: 'date DESC',
-      );
-
-      return maps.map((map) => _mapToJournalEntry(map)).toList();
-    } catch (e) {
-      debugPrint('JournalDao.getJournalEntriesByTheme failed: $e');
-      rethrow;
-    }
-  }
-
-  // Get analyzed vs unanalyzed entries
-  Future<List<JournalEntry>> getAnalyzedEntries({bool analyzed = true}) async {
-    try {
-      final db = await _dbHelper.database;
-      final List<Map<String, dynamic>> maps = await db.query(
-        'journal_entries',
-        where: 'isAnalyzed = ?',
-        whereArgs: [analyzed ? 1 : 0],
-        orderBy: 'date DESC',
-      );
-
-      return maps.map((map) => _mapToJournalEntry(map)).toList();
-    } catch (e) {
-      debugPrint('JournalDao.getAnalyzedEntries failed: $e');
-      rethrow;
-    }
-  }
 
   // Get entries with draft content (for crash recovery)
   Future<List<JournalEntry>> getEntriesWithDrafts() async {
@@ -476,17 +391,12 @@ class JournalDao {
     }
   }
 
-  // Combined search with multiple filters
+  // Combined search with multiple filters (simplified for local processing)
   Future<List<JournalEntry>> searchJournalEntriesAdvanced({
     String? textQuery,
     List<String>? moods,
-    List<String>? aiMoods,
     DateTime? startDate,
     DateTime? endDate,
-    double? minIntensity,
-    double? maxIntensity,
-    bool? isAnalyzed,
-    List<String>? themes,
     int? limit,
     int? offset,
   }) async {
@@ -498,8 +408,8 @@ class JournalDao {
       
       // Text search
       if (textQuery != null && textQuery.isNotEmpty) {
-        whereConditions.add('(content LIKE ? OR personalizedInsight LIKE ? OR keyThemes LIKE ?)');
-        whereArgs.addAll(['%$textQuery%', '%$textQuery%', '%$textQuery%']);
+        whereConditions.add('content LIKE ?');
+        whereArgs.add('%$textQuery%');
       }
       
       // Manual moods filter
@@ -507,13 +417,6 @@ class JournalDao {
         final moodConditions = moods.map((_) => 'moods LIKE ?').join(' OR ');
         whereConditions.add('($moodConditions)');
         whereArgs.addAll(moods.map((mood) => '%$mood%'));
-      }
-      
-      // AI detected moods filter
-      if (aiMoods != null && aiMoods.isNotEmpty) {
-        final aiMoodConditions = aiMoods.map((_) => 'aiDetectedMoods LIKE ?').join(' OR ');
-        whereConditions.add('($aiMoodConditions)');
-        whereArgs.addAll(aiMoods.map((mood) => '%"$mood"%'));
       }
       
       // Date range filter
@@ -526,31 +429,6 @@ class JournalDao {
       } else if (endDate != null) {
         whereConditions.add('date <= ?');
         whereArgs.add(endDate.toIso8601String());
-      }
-      
-      // Emotional intensity filter
-      if (minIntensity != null && maxIntensity != null) {
-        whereConditions.add('emotionalIntensity BETWEEN ? AND ?');
-        whereArgs.addAll([minIntensity, maxIntensity]);
-      } else if (minIntensity != null) {
-        whereConditions.add('emotionalIntensity >= ?');
-        whereArgs.add(minIntensity);
-      } else if (maxIntensity != null) {
-        whereConditions.add('emotionalIntensity <= ?');
-        whereArgs.add(maxIntensity);
-      }
-      
-      // Analysis status filter
-      if (isAnalyzed != null) {
-        whereConditions.add('isAnalyzed = ?');
-        whereArgs.add(isAnalyzed ? 1 : 0);
-      }
-      
-      // Themes filter
-      if (themes != null && themes.isNotEmpty) {
-        final themeConditions = themes.map((_) => 'keyThemes LIKE ?').join(' OR ');
-        whereConditions.add('($themeConditions)');
-        whereArgs.addAll(themes.map((theme) => '%"$theme"%'));
       }
       
       final List<Map<String, dynamic>> maps = await db.query(
@@ -767,34 +645,6 @@ class JournalDao {
       metadata = {};
     }
 
-    // Parse AI analysis safely
-    EmotionalAnalysis? aiAnalysis;
-    try {
-      final aiAnalysisStr = map['aiAnalysis']?.toString();
-      if (aiAnalysisStr != null && aiAnalysisStr.isNotEmpty) {
-        aiAnalysis = EmotionalAnalysis.fromJson(jsonDecode(aiAnalysisStr));
-      }
-    } catch (e) {
-      aiAnalysis = null;
-    }
-
-    // Parse AI detected moods safely
-    List<String> aiDetectedMoods = [];
-    try {
-      final aiMoodsStr = map['aiDetectedMoods']?.toString() ?? '[]';
-      aiDetectedMoods = List<String>.from(jsonDecode(aiMoodsStr));
-    } catch (e) {
-      aiDetectedMoods = [];
-    }
-
-    // Parse key themes safely
-    List<String> keyThemes = [];
-    try {
-      final keyThemesStr = map['keyThemes']?.toString() ?? '[]';
-      keyThemes = List<String>.from(jsonDecode(keyThemesStr));
-    } catch (e) {
-      keyThemes = [];
-    }
 
     return JournalEntry(
       id: map['id'],
@@ -807,13 +657,7 @@ class JournalDao {
       updatedAt: DateTime.parse(map['updatedAt'] ?? map['date']),
       isSynced: (map['isSynced'] ?? 1) == 1,
       metadata: metadata,
-      aiAnalysis: aiAnalysis,
-      isAnalyzed: (map['isAnalyzed'] ?? 0) == 1,
       draftContent: map['draftContent'],
-      aiDetectedMoods: aiDetectedMoods,
-      emotionalIntensity: map['emotionalIntensity']?.toDouble(),
-      keyThemes: keyThemes,
-      personalizedInsight: map['personalizedInsight'],
     );
   }
 }

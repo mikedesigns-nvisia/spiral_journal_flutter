@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:local_auth/local_auth.dart';
@@ -10,12 +9,11 @@ import 'package:spiral_journal/providers/core_provider_refactored.dart';
 import 'package:spiral_journal/services/settings_service.dart';
 // PIN auth service import removed - using biometrics-only authentication
 import 'package:spiral_journal/models/user_preferences.dart';
-import 'package:spiral_journal/screens/ai_settings_screen.dart';
 // AI diagnostic screen removed - using local fallback processing
-import 'package:spiral_journal/utils/sample_data_generator.dart';
 import 'package:spiral_journal/services/accessibility_service.dart';
 import 'package:spiral_journal/services/journal_service.dart';
 import 'package:spiral_journal/services/core_library_service.dart';
+import 'package:spiral_journal/services/app_info_service.dart';
 import 'package:spiral_journal/widgets/testflight_feedback_widget.dart';
 import 'package:spiral_journal/widgets/offline_queue_status_widget.dart';
 import 'package:spiral_journal/widgets/animated_card.dart';
@@ -34,6 +32,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   final LocalAuthentication _localAuth = LocalAuthentication();
   // PIN auth service removed - using biometrics-only authentication
   final AccessibilityService _accessibilityService = AccessibilityService();
+  final AppInfoService _appInfoService = AppInfoService();
   
   UserPreferences _currentPreferences = UserPreferences.defaults;
   bool _isLoading = true;
@@ -59,6 +58,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
         const Duration(seconds: 5),
         onTimeout: () {
           throw TimeoutException('Accessibility service initialization timed out', const Duration(seconds: 5));
+        },
+      );
+      
+      await _appInfoService.initialize().timeout(
+        const Duration(seconds: 3),
+        onTimeout: () {
+          debugPrint('App info service initialization timed out');
         },
       );
       
@@ -155,22 +161,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
               const SizedBox(height: 32),
               
-              // AI Analysis & Privacy
-              _buildSettingsSection(
-                'AI Analysis & Privacy',
-                [
-                  _buildSwitchItem(
-                    Icons.psychology,
-                    'Personalized Insights',
-                    'Get personalized feedback and commentary in AI analysis',
-                    _currentPreferences.personalizedInsightsEnabled,
-                    _togglePersonalizedInsights,
-                  ),
-                  _buildPersonalizedInsightsInfo(),
-                ],
-              ),
-              
-              const SizedBox(height: 24),
               
               // Security & Authentication
               _buildSettingsSection(
@@ -252,7 +242,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   _buildActionItem(
                     Icons.privacy_tip,
                     'Privacy Dashboard',
-                    'View what data is stored and manage privacy settings',
+                    'View what data is stored locally on your device',
                     () => Navigator.pushNamed(context, '/privacy-dashboard'),
                   ),
                   _buildActionItem(
@@ -334,27 +324,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
               
               const SizedBox(height: 24),
               
-              // Production Debugging Tools
-              _buildSettingsSection(
-                'Debugging Tools',
-                [
-                  // Debug screens removed - using local fallback processing
-                  /*_buildActionItem(
-                    Icons.terminal,
-                    'Debug Console',
-                    'Debug commands removed - using local processing',
-                    () {},
-                  ),
-                  _buildActionItem(
-                    Icons.help_center,
-                    'Troubleshooting Guide',
-                    'Troubleshooting removed - local processing is stable',
-                    () {},
-                  ),*/
-                ],
-              ),
-              
-              const SizedBox(height: 24),
               
               // TestFlight Feedback
               _buildSettingsSection(
@@ -369,53 +338,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ],
               ),
               
-              // Development Settings (Debug mode only)
-              if (kDebugMode) ...[
-                const SizedBox(height: 24),
-                _buildSettingsSection(
-                  'Development',
-                  [
-                    _buildActionItem(
-                      Icons.developer_mode,
-                      'AI Settings (Dev)',
-                      'Configure Claude API key for testing',
-                      () => Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (context) => const AISettingsScreen(),
-                        ),
-                      ),
-                    ),
-                    // AI Diagnostics removed - using local fallback processing
-                    /*_buildActionItem(
-                      Icons.bug_report,
-                      'AI Diagnostics',
-                      'AI diagnostics removed - using stable local processing',
-                      () {},
-                    ),*/
-                    // Debug screens removed - using local fallback processing
-                    /*_buildActionItem(
-                      Icons.terminal,
-                      'Debug Console',
-                      'Debug commands removed - using local processing',
-                      () {},
-                    ),
-                    _buildActionItem(
-                      Icons.help_center,
-                      'Troubleshooting Guide',
-                      'Troubleshooting removed - local processing is stable',
-                      () {},
-                    ),*/
-                    // Sample data generation removed for TestFlight
-                    // Will be re-enabled for development builds
-                  ],
-                ),
-              ],
-              
               const SizedBox(height: 40),
               
               // App Version
               Center(
-                child: HeadingSystem.caption(context, 'Spiral Journal v1.0.0'),
+                child: HeadingSystem.caption(context, _appInfoService.versionDisplay),
               ),
               
               const SizedBox(height: 100), // Extra space for bottom navigation
@@ -607,55 +534,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Widget _buildPersonalizedInsightsInfo() {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: _currentPreferences.personalizedInsightsEnabled 
-            ? AppTheme.getColorWithOpacity(AppTheme.accentGreen, 0.1)
-            : AppTheme.getColorWithOpacity(AppTheme.textTertiary, 0.1),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: _currentPreferences.personalizedInsightsEnabled 
-              ? AppTheme.getColorWithOpacity(AppTheme.accentGreen, 0.3)
-              : AppTheme.getColorWithOpacity(AppTheme.textTertiary, 0.3),
-        ),
-      ),
-      child: Row(
-        children: [
-          Icon(
-            _currentPreferences.personalizedInsightsEnabled ? Icons.psychology : Icons.psychology_outlined,
-            size: 20,
-            color: _currentPreferences.personalizedInsightsEnabled ? AppTheme.accentGreen : AppTheme.textTertiary,
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  _currentPreferences.personalizedInsightsEnabled ? 'Personalized Analysis Active' : 'Core Updates Only',
-                  style: HeadingSystem.getTitleMedium(context).copyWith(
-                    color: _currentPreferences.personalizedInsightsEnabled ? AppTheme.accentGreen : AppTheme.textTertiary,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  _currentPreferences.personalizedInsightsEnabled 
-                      ? 'AI provides personalized feedback and commentary on your entries'
-                      : 'AI only updates your emotional cores without personal commentary',
-                  style: HeadingSystem.getLabelSmall(context).copyWith(
-                    color: _currentPreferences.personalizedInsightsEnabled ? AppTheme.textSecondary : AppTheme.textTertiary,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
   Widget _buildThemeSelector() {
     return HeadingSystem.listTile(
@@ -696,49 +574,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   // Settings Methods
-  Future<void> _togglePersonalizedInsights(bool enabled) async {
-    try {
-      await _settingsService.setPersonalizedInsightsEnabled(enabled).timeout(
-        const Duration(seconds: 5),
-        onTimeout: () {
-          throw TimeoutException('Settings update timed out', const Duration(seconds: 5));
-        },
-      );
-      
-      // Verify the setting was actually saved
-      final currentPrefs = await _settingsService.getPreferences();
-      if (currentPrefs.personalizedInsightsEnabled != enabled) {
-        throw Exception('Setting was not persisted correctly');
-      }
-      
-      if (mounted) {
-        setState(() {
-          _currentPreferences = currentPrefs;
-        });
-        
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              enabled 
-                  ? 'Personalized insights enabled! 🧠' 
-                  : 'Personalized insights disabled. Core updates only.',
-            ),
-            backgroundColor: AppTheme.accentGreen,
-          ),
-        );
-      }
-    } catch (e) {
-      debugPrint('Failed to toggle personalized insights: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to save personalized insights setting: ${e.toString()}'),
-            backgroundColor: AppTheme.accentRed,
-          ),
-        );
-      }
-    }
-  }
 
   Future<void> _toggleBiometricAuth(bool enabled) async {
     try {
@@ -1557,25 +1392,25 @@ class _SettingsScreenState extends State<SettingsScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Help & Support'),
-        content: const Column(
+        content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Spiral Journal - AI-Powered Personal Growth'),
-            SizedBox(height: 16),
-            Text('Features:'),
-            Text('• Stream-of-consciousness journaling'),
-            Text('• AI-powered emotional analysis'),
-            Text('• Personality core evolution tracking'),
-            Text('• Personalized insights and feedback'),
-            Text('• Secure local data storage'),
-            SizedBox(height: 16),
-            Text('Privacy:'),
-            Text('• All data stored locally on your device'),
-            Text('• Optional personalized AI insights'),
-            Text('• Biometric authentication support'),
-            SizedBox(height: 16),
-            Text('Need help? Contact us at support@spiraljournal.com'),
+            Text(_appInfoService.fullTitle),
+            const SizedBox(height: 16),
+            const Text('Features:'),
+            const Text('• Stream-of-consciousness journaling'),
+            const Text('• Emotional pattern tracking'),
+            const Text('• Personality core evolution tracking'),
+            const Text('• Personal insights and reflections'),
+            const Text('• Secure local data storage'),
+            const SizedBox(height: 16),
+            const Text('Privacy:'),
+            const Text('• All data stored locally on your device'),
+            const Text('• No external data sharing'),
+            const Text('• Biometric authentication support'),
+            const SizedBox(height: 16),
+            Text('Need help? Contact us at ${_appInfoService.supportEmail}'),
           ],
         ),
         actions: [
@@ -1588,53 +1423,4 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Future<void> _generateSampleData() async {
-    try {
-      // Show loading dialog
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => const AlertDialog(
-          content: Row(
-            children: [
-              CircularProgressIndicator(),
-              SizedBox(width: 16),
-              Text('Generating sample data...'),
-            ],
-          ),
-        ),
-      );
-
-      // Generate sample data
-      await SampleDataGenerator.generateSampleData();
-
-      // Refresh providers to show new data
-      final journalProvider = Provider.of<JournalProvider>(context, listen: false);
-      final coreProvider = Provider.of<CoreProvider>(context, listen: false);
-      
-      await journalProvider.initialize();
-      await coreProvider.initialize();
-
-      if (mounted) {
-        Navigator.of(context).pop(); // Close loading dialog
-        
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Sample data generated! Check your journal and emotional mirror 📊'),
-            backgroundColor: AppTheme.accentGreen,
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        Navigator.of(context).pop(); // Close loading dialog
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to generate sample data: $e'),
-            backgroundColor: AppTheme.accentRed,
-          ),
-        );
-      }
-    }
-  }
 }
