@@ -36,13 +36,13 @@
       "size" : "40x40"
     },
     {
-      "filename" : "Icon-Light 1.png",
+      "filename" : "dark-small.png",
       "idiom" : "iphone",
       "scale" : "2x",
       "size" : "60x60"
     },
     {
-      "filename" : "Icon-Light.png",
+      "filename" : "dark.png",
       "idiom" : "iphone",
       "scale" : "3x",
       "size" : "60x60"
@@ -78,24 +78,25 @@
       "size" : "40x40"
     },
     {
+      "filename" : "dark-ipad.png",
       "idiom" : "ipad",
       "scale" : "1x",
       "size" : "76x76"
     },
     {
-      "filename" : "Icon-Light-ipad 1.png",
+      "filename" : "dark-ipad 1.png",
       "idiom" : "ipad",
       "scale" : "2x",
       "size" : "76x76"
     },
     {
-      "filename" : "Icon-Light-ipad.png",
+      "filename" : "dark-pro.png",
       "idiom" : "ipad",
       "scale" : "2x",
       "size" : "83.5x83.5"
     },
     {
-      "filename" : "Icon-Light-1024x1024.png",
+      "filename" : "dark-mac.png",
       "idiom" : "ios-marketing",
       "scale" : "1x",
       "size" : "1024x1024"

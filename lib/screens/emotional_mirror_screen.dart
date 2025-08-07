@@ -9,9 +9,12 @@ import '../providers/emotional_mirror_provider.dart';
 import '../widgets/loading_state_widget.dart' as loading_widget;
 import '../widgets/primary_emotional_state_widget.dart';
 import '../widgets/enhanced_emotional_analysis_card.dart';
+import '../widgets/emotional_journey_visualization.dart';
 import '../utils/iphone_detector.dart';
 import '../models/emotional_state.dart';
 import '../models/core.dart';
+import '../models/journal_entry.dart';
+import '../services/journal_service.dart';
 
 class EmotionalMirrorScreen extends StatefulWidget {
   const EmotionalMirrorScreen({super.key});
@@ -2015,37 +2018,42 @@ class _EmotionalMirrorScreenState extends State<EmotionalMirrorScreen>
 
   
   Widget _buildEmotionalStateVisualization(dynamic overview) {
-    return Container(
-      height: 240, // Increased height for richer visualization
-      width: double.infinity,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(DesignTokens.radiusM),
-        color: DesignTokens.getBackgroundSecondary(context).withValues(alpha: 0.3),
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(DesignTokens.radiusM),
-        child: AnimatedBuilder(
-          animation: _particleController,
-          builder: (context, child) {
-            return CustomPaint(
-              painter: EnhancedEmotionalStatePainter(
-                particles: _particles,
-                moodBalance: overview.moodBalance,
-                animationValue: _particleController.value,
-                emotionalVariety: overview.emotionalVariety,
-                dominantMoods: overview.dominantMoods,
-                // Enhanced data from EmotionalAnalyzer
-                emotionalIntensity: _getAverageEmotionalIntensity(),
-                sentimentTrend: _getSentimentTrend(),
-                coreResonanceStrength: _getAverageCoreResonance(),
-                primaryEmotions: _getPrimaryEmotionsFromAnalysis(),
-              ),
-              size: Size.infinite,
-            );
-          },
-        ),
-      ),
+    // Get journal service to fetch recent entries
+    final journalService = JournalService();
+    
+    // Extract dominant moods from overview
+    final List<String> dominantMoods = overview?.dominantMoods?.cast<String>() ?? [];
+    
+    return FutureBuilder<List<JournalEntry>>(
+      future: _getRecentJournalEntries(journalService),
+      builder: (context, snapshot) {
+        final recentEntries = snapshot.data ?? [];
+        
+        return EmotionalJourneyVisualization(
+          recentEntries: recentEntries,
+          dominantMoods: dominantMoods,
+        );
+      },
     );
+  }
+  
+  Future<List<JournalEntry>> _getRecentJournalEntries(JournalService service) async {
+    try {
+      // Get all entries and filter to last 30 days
+      final allEntries = await service.getAllEntries();
+      final thirtyDaysAgo = DateTime.now().subtract(const Duration(days: 30));
+      
+      // Filter and sort entries
+      final recentEntries = allEntries
+          .where((entry) => entry.date.isAfter(thirtyDaysAgo))
+          .toList()
+        ..sort((a, b) => b.date.compareTo(a.date)); // Most recent first
+      
+      return recentEntries;
+    } catch (e) {
+      debugPrint('Error fetching recent journal entries: $e');
+      return [];
+    }
   }
 
   double _getAverageEmotionalIntensity() {

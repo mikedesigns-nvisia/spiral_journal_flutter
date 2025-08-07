@@ -53,7 +53,7 @@ class _CompactAnalysisCounterState extends State<CompactAnalysisCounter> {
 
   String _getTimeText() {
     if (_isAnalysisTime) {
-      return 'Analyzing...';
+      return 'Processing...';
     } else if (_timeUntilAnalysis.inHours < 1) {
       return '${_timeUntilAnalysis.inMinutes}m';
     } else {
@@ -71,7 +71,7 @@ class _CompactAnalysisCounterState extends State<CompactAnalysisCounter> {
 
   String _getTooltipText() {
     if (_isAnalysisTime) {
-      return 'Your journal entries are being analyzed by AI right now';
+      return 'Your journal entries are being processed right now';
     } else if (_timeUntilAnalysis.inHours < 1) {
       return 'Entry will be processed in ${_timeUntilAnalysis.inMinutes} minutes';
     } else {

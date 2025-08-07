@@ -168,65 +168,49 @@ class _SplashScreenState extends State<SplashScreen> {
             child: GestureDetector(
               onTap: _handleTap,
               onLongPress: _handleLongPress,
-              child: Padding(
-              padding: const EdgeInsets.all(32.0),
               child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  // Main app title
-                  HeadingSystem.pageHeading(context, _appInfoService.appName),
+                  // Top spacer
+                  const Expanded(flex: 2, child: SizedBox()),
                   
-                  const SizedBox(height: 16),
-                  
-                  // Optional tagline
-                  Text(
-                    'AI-powered personal growth through journaling',
-                    style: HeadingSystem.getBodyLarge(context).copyWith(
-                      color: AppTheme.getTextSecondary(context),
+                  // Main content - centered
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 32.0),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        // Main app title
+                        HeadingSystem.pageHeading(context, _appInfoService.appName),
+                        
+                        const SizedBox(height: 16),
+                        
+                        // Optional tagline
+                        Center(
+                          child: Text(
+                            'Personal growth through journaling',
+                            style: HeadingSystem.getBodyLarge(context).copyWith(
+                              color: AppTheme.getTextSecondary(context),
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      ],
                     ),
-                    textAlign: TextAlign.center,
                   ),
                   
+                  // Bottom spacer and attribution
+                  const Expanded(flex: 2, child: SizedBox()),
                   
-                  const Spacer(),
-                  
-                  // Attribution section
-                  Column(
-                    children: [
-                      // Powered by Anthropic
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            'Powered by ',
-                            style: HeadingSystem.getBodySmall(context).copyWith(
-                              color: AppTheme.getTextTertiary(context),
-                            ),
-                          ),
-                          Text(
-                            'Anthropic',
-                            style: HeadingSystem.getBodySmall(context).copyWith(
-                              color: AppTheme.getPrimaryColor(context),
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-                      
-                      const SizedBox(height: 8),
-                      
-                      // Made by Mike
-                      HeadingSystem.caption(context, 'Made by Mike'),
-                    ],
+                  // Attribution at bottom
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 48.0),
+                    child: HeadingSystem.caption(context, 'Made by Mike'),
                   ),
-                  
-                  const SizedBox(height: 32),
                 ],
               ),
             ),
           ),
-        ),
         ),
       ),
     );

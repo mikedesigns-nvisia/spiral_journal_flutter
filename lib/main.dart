@@ -452,22 +452,27 @@ class _AuthWrapperState extends State<AuthWrapper> {
       return AppBackground(
         child: Scaffold(
           backgroundColor: Colors.transparent,
-          body: Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                CircularProgressIndicator(
-                  color: AppTheme.getPrimaryColor(context),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'Loading...',
-                  style: TextStyle(
-                    color: AppTheme.getTextSecondary(context),
-                    fontSize: 16,
+          body: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(32.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  CircularProgressIndicator(
+                    color: AppTheme.getPrimaryColor(context),
                   ),
-                ),
-              ],
+                  const SizedBox(height: 24),
+                  Text(
+                    'Loading...',
+                    style: TextStyle(
+                      color: AppTheme.getTextSecondary(context),
+                      fontSize: 16,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
             ),
           ),
         ),

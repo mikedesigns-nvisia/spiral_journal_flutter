@@ -5,24 +5,28 @@ import 'package:spiral_journal/design_system/responsive_layout.dart';
 import 'package:spiral_journal/models/journal_entry.dart';
 import 'package:spiral_journal/services/emotional_analyzer.dart';
 import 'package:spiral_journal/models/emotional_mirror_data.dart';
-import 'package:spiral_journal/widgets/emotional_state_visualization.dart';
+import 'package:spiral_journal/models/emotional_analysis.dart';
+import 'package:spiral_journal/widgets/emotional_journey_visualization.dart';
 
 /// Enhanced widget that displays AI analysis results using the new Claude response structure
 class PostAnalysisDisplay extends StatelessWidget {
   final JournalEntry? journalEntry;
   final EmotionalAnalysisResult? analysisResult; // Legacy support
+  final List<JournalEntry>? recentEntries; // For the new visualization
   final VoidCallback? onViewAnalysis;
 
   const PostAnalysisDisplay({
     super.key,
     this.journalEntry,
     this.analysisResult, // Made optional for new structure
+    this.recentEntries, // For pattern analysis
     this.onViewAnalysis,
   });
 
   @override
   Widget build(BuildContext context) {
-    final analysis = journalEntry?.aiAnalysis;
+    // Note: aiAnalysis field doesn't exist in current JournalEntry model
+    final analysis = analysisResult; // Use the legacy analysisResult for now
     
     // If no journal entry or no analysis is available, show placeholder
     if (journalEntry == null || analysis == null) {
@@ -34,11 +38,10 @@ class PostAnalysisDisplay extends StatelessWidget {
 
     return Column(
       children: [
-        // 0. Emotional State Visualization (Featured at top)
-        EmotionalStateVisualization(
-          moodOverview: _createMoodOverview(analysis),
-          showDescription: true,
-          height: 200,
+        // 0. Emotional Journey Visualization (Featured at top)
+        EmotionalJourneyVisualization(
+          recentEntries: recentEntries ?? (journalEntry != null ? [journalEntry!] : []),
+          dominantMoods: _extractDominantMoods(analysis),
         ),
         
         SizedBox(height: DesignTokens.spaceXL),
@@ -603,14 +606,14 @@ class PostAnalysisDisplay extends StatelessWidget {
         ),
         SizedBox(height: DesignTokens.spaceL),
         ResponsiveText(
-          'Analysis Pending',
+          'Processing Pending',
           baseFontSize: DesignTokens.fontSizeL,
           fontWeight: DesignTokens.fontWeightSemiBold,
           color: DesignTokens.getTextSecondary(context),
         ),
         SizedBox(height: DesignTokens.spaceS),
         ResponsiveText(
-          'Your journal entry is being analyzed...',
+          'Your journal entry is being processed...',
           baseFontSize: DesignTokens.fontSizeM,
           fontWeight: DesignTokens.fontWeightRegular,
           color: DesignTokens.getTextTertiary(context),
@@ -647,40 +650,30 @@ class PostAnalysisDisplay extends StatelessWidget {
     );
   }
   
-  /// Create a MoodOverview from EmotionalAnalysis for the visualization
-  MoodOverview _createMoodOverview(EmotionalAnalysis analysis) {
-    // Calculate mood balance based on sentiment of primary emotions
-    double moodBalance = _calculateMoodBalance(analysis.primaryEmotions);
-    
-    // Calculate emotional variety based on number of unique emotions
-    double emotionalVariety = (analysis.primaryEmotions.length / 10.0).clamp(0.0, 1.0);
-    
-    // Generate description based on the analysis
-    String description = analysis.personalizedInsight ?? 
-        'Your emotional state reflects ${analysis.primaryEmotions.take(2).join(" and ")} with an intensity of ${(analysis.emotionalIntensity * 100).round()}%.';
-    
-    return MoodOverview(
-      dominantMoods: analysis.primaryEmotions.take(4).toList(),
-      moodBalance: moodBalance,
-      emotionalVariety: emotionalVariety,
-      description: description,
-    );
-  }
-  
-  /// Calculate mood balance from emotions list
-  double _calculateMoodBalance(List<String> emotions) {
-    final positiveEmotions = ['happy', 'joyful', 'excited', 'grateful', 'content', 'peaceful', 'love', 'joy', 'optimistic', 'confident'];
-    final negativeEmotions = ['sad', 'angry', 'frustrated', 'anxious', 'worried', 'fear', 'disappointment', 'stress', 'overwhelmed'];
-    
-    double balance = 0.0;
-    for (final emotion in emotions) {
-      if (positiveEmotions.contains(emotion.toLowerCase())) {
-        balance += 0.3;
-      } else if (negativeEmotions.contains(emotion.toLowerCase())) {
-        balance -= 0.3;
+  /// Extract dominant moods from EmotionalAnalysis for the new visualization
+  List<String> _extractDominantMoods(dynamic analysis) {
+    if (analysis == null) {
+      // Fallback to journal entry moods if available
+      if (journalEntry != null) {
+        return journalEntry!.moods.take(4).toList();
       }
+      return [];
     }
     
-    return balance.clamp(-1.0, 1.0);
+    // Try to get primary emotions from EmotionalAnalysisResult
+    try {
+      if (analysis.primaryEmotions != null) {
+        return List<String>.from(analysis.primaryEmotions).take(4).toList();
+      }
+    } catch (e) {
+      // If field doesn't exist, continue to fallback
+    }
+    
+    // Fallback to journal entry moods if available
+    if (journalEntry != null) {
+      return journalEntry!.moods.take(4).toList();
+    }
+    
+    return [];
   }
 }

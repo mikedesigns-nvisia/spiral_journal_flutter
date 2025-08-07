@@ -10,10 +10,10 @@ class DesignTokens {
   // COLOR SYSTEM
   // ============================================================================
   
-  /// Primary brand colors - warm oranges and browns
-  static const Color primaryOrange = Color(0xFF4A2E0F);
-  static const Color primaryLight = Color(0xFF8B5219);
-  static const Color primaryDark = Color(0xFF6A3B01);
+  /// Primary brand colors - warm oranges and browns (enhanced contrast)
+  static const Color primaryOrange = Color(0xFF3A2409);    // Darker for better light mode contrast
+  static const Color primaryLight = Color(0xFF6B4423);     // Darker light variant
+  static const Color primaryDark = Color(0xFF2E1B05);      // Even darker for emphasis
   
   /// Light theme background colors - warm creams with better contrast
   static const Color backgroundPrimary = Color(0xFFFFFBF7);
@@ -41,24 +41,24 @@ class DesignTokens {
   static const Color darkTextSecondary = Color(0xFFE0E0E0);  // Light gray for 4.5:1 contrast
   static const Color darkTextTertiary = Color(0xFFBDBDBD);   // Medium gray for 4.5:1 contrast
   
-  /// Semantic mood colors (theme-agnostic)
-  static const Color moodHappy = Color(0xFFE78B1B);
-  static const Color moodContent = Color(0xFF7AACB3);
-  static const Color moodUnsure = Color(0xFF8B7ED8);
-  static const Color moodSad = Color(0xFFBA1A1A);
-  static const Color moodEnergetic = Color(0xFF8B4513);
+  /// Semantic mood colors (theme-agnostic) - Enhanced for better light mode contrast
+  static const Color moodHappy = Color(0xFFD47716);      // Darker orange for better contrast
+  static const Color moodContent = Color(0xFF1976D2);    // Darker blue for better contrast
+  static const Color moodUnsure = Color(0xFF6A4C93);     // Darker purple for better contrast
+  static const Color moodSad = Color(0xFFBA1A1A);        // Already good contrast
+  static const Color moodEnergetic = Color(0xFF6B4423);  // Darker brown for better contrast
   
-  /// Core personality colors (theme-agnostic)
-  static const Color coreOptimist = Color(0xFFAFCACD);
-  static const Color coreReflective = Color(0xFFEBA751);
-  static const Color coreCreative = Color(0xFFA198DD);
-  static const Color coreSocial = Color(0xFFB1CDAF);
-  static const Color coreRest = Color(0xFFB37A9B);
+  /// Core personality colors (theme-agnostic) - Enhanced for light mode visibility
+  static const Color coreOptimist = Color(0xFF4A90A4);     // Darker teal for better contrast
+  static const Color coreReflective = Color(0xFFD47716);   // Darker orange for better contrast
+  static const Color coreCreative = Color(0xFF6A4C93);     // Darker purple for better contrast
+  static const Color coreSocial = Color(0xFF2E7D32);       // Darker green for better contrast
+  static const Color coreRest = Color(0xFF8E4585);         // Darker pink for better contrast
   
   /// Accent and utility colors
-  static const Color accentYellow = Color(0xFF8B5A3C);
-  static const Color accentBlue = Color(0xFF2196F3);
-  static const Color accentGreen = Color(0xFF4C662B);
+  static const Color accentYellow = Color(0xFF6B4423);  // Darker brown for better light mode contrast
+  static const Color accentBlue = Color(0xFF1976D2);     // Darker blue for better contrast
+  static const Color accentGreen = Color(0xFF2E7D32);    // Darker green for better contrast
   static const Color accentRed = Color(0xFFBA1A1A);
   static const Color primaryBlue = Color(0xFF1976D2);
   static const Color accentCyan = Color(0xFF00BCD4);

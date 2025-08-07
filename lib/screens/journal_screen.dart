@@ -30,6 +30,7 @@ import 'package:spiral_journal/widgets/journal_input.dart';
 import 'package:spiral_journal/widgets/mood_selector.dart';
 import 'package:spiral_journal/widgets/primary_emotional_state_widget.dart';
 import 'package:spiral_journal/widgets/your_cores_card.dart';
+import 'package:spiral_journal/widgets/emotional_journey_visualization.dart';
 
 class JournalScreen extends StatefulWidget {
   const JournalScreen({super.key});
@@ -1087,91 +1088,10 @@ class _JournalScreenState extends State<JournalScreen> {
               // Show snapshot while analysis is pending
               return Column(
                 children: [
-                  // Your Emotional State Visualization
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Title with sparkle icon
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.auto_awesome,
-                            color: DesignTokens.getPrimaryColor(context),
-                            size: 24,
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            'Your Emotional State Visualization',
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: DesignTokens.getTextPrimary(context),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      // Simplified Emotional State Preview (to avoid animation crashes)
-                      Container(
-                        height: 300,
-                        decoration: BoxDecoration(
-                          gradient: DesignTokens.getCardGradient(context),
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.all(20),
-                          child: Column(
-                            children: [
-                              // Mood chips display
-                              Wrap(
-                                spacing: 8,
-                                runSpacing: 8,
-                                children: _savedEntry!.moods.map((mood) => Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                  decoration: BoxDecoration(
-                                    color: _getMoodColor(mood).withValues(alpha: 0.2),
-                                    borderRadius: BorderRadius.circular(16),
-                                    border: Border.all(color: _getMoodColor(mood)),
-                                  ),
-                                  child: Text(
-                                    mood,
-                                    style: TextStyle(
-                                      color: _getMoodColor(mood),
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                )).toList(),
-                              ),
-                              const SizedBox(height: 20),
-                              Icon(
-                                Icons.psychology_outlined,
-                                size: 48,
-                                color: DesignTokens.getTextSecondary(context),
-                              ),
-                              const SizedBox(height: 16),
-                              Text(
-                                'Your emotional state is being analyzed',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w500,
-                                  color: DesignTokens.getTextPrimary(context),
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                'Visit your Mirror tab to see the full animated visualization of your emotional patterns!',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: DesignTokens.getTextSecondary(context),
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
+                  // Emotional Journey Visualization
+                  EmotionalJourneyVisualization(
+                    recentEntries: _savedEntry != null ? [_savedEntry!] : [],
+                    dominantMoods: _savedEntry?.moods ?? [],
                   ),
                   const SizedBox(height: 24),
                   TextButton(

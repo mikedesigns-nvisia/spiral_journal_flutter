@@ -7,6 +7,8 @@ import '../models/core.dart';
 import '../providers/emotional_mirror_provider.dart';
 import '../services/core_library_service.dart';
 import 'simple_resonance_visualizer.dart';
+import '../models/journal_entry.dart';
+import 'emotional_journey_visualization.dart';
 
 class EnhancedEmotionalAnalysisCard extends StatefulWidget {
   const EnhancedEmotionalAnalysisCard({super.key});
@@ -142,49 +144,103 @@ class _EnhancedEmotionalAnalysisCardState extends State<EnhancedEmotionalAnalysi
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Meaningful pattern header
           Row(
             children: [
               Icon(
-                Icons.pattern_rounded,
+                Icons.insights_rounded,
                 size: DesignTokens.iconSizeS,
-                color: DesignTokens.getTextSecondary(context),
+                color: DesignTokens.accentBlue,
               ),
               SizedBox(width: DesignTokens.spaceS),
               Text(
-                'Generated from emotional patterns and core resonance',
-                style: HeadingSystem.getBodySmall(context).copyWith(
-                  color: DesignTokens.getTextSecondary(context),
-                ),
+                'Your Emotional Patterns',
+                style: HeadingSystem.getTitleSmall(context),
               ),
             ],
           ),
           SizedBox(height: DesignTokens.spaceM),
-          // Core resonance indicators
-          Row(
-            children: [
-              Text(
-                'Core Resonance',
-                style: HeadingSystem.getTitleSmall(context),
-              ),
-              SizedBox(width: DesignTokens.spaceM),
-              Expanded(
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: topCores.map((core) => Padding(
-                    padding: EdgeInsets.symmetric(horizontal: DesignTokens.spaceS),
-                    child: _buildMiniCoreIndicator(core),
-                  )).toList(),
+          
+          // Show actual insights instead of percentages
+          _buildMeaningfulCoreInsights(topCores),
+          
+          SizedBox(height: DesignTokens.spaceM),
+          
+          // Mini emotional journey preview
+          Container(
+            height: 32,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              gradient: _generateCoreGradient(topCores),
+            ),
+            child: Center(
+              child: Text(
+                _generateCoreInsightText(topCores),
+                style: HeadingSystem.getLabelSmall(context).copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
-              _buildResonanceBar(topCores),
-            ],
+            ),
           ),
         ],
       ),
     );
   }
 
+  Widget _buildPatternInsights() {
+    // Instead of abstract percentages, show meaningful insights
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'What We\'ll Discover Together',
+          style: HeadingSystem.getTitleMedium(context),
+        ),
+        SizedBox(height: DesignTokens.spaceS),
+        
+        // Example pattern insights
+        _buildInsightItem(
+          icon: Icons.wb_sunny_outlined,
+          text: 'How your mornings shape your day',
+        ),
+        SizedBox(height: DesignTokens.spaceS),
+        _buildInsightItem(
+          icon: Icons.weekend_outlined,
+          text: 'Your weekend vs weekday patterns',
+        ),
+        SizedBox(height: DesignTokens.spaceS),
+        _buildInsightItem(
+          icon: Icons.trending_up_rounded,
+          text: 'What activities boost your energy',
+        ),
+      ],
+    );
+  }
+
+  Widget _buildInsightItem({required IconData icon, required String text}) {
+    return Row(
+      children: [
+        Icon(
+          icon,
+          size: DesignTokens.iconSizeXS,
+          color: DesignTokens.getTextSecondary(context),
+        ),
+        SizedBox(width: DesignTokens.spaceS),
+        Expanded(
+          child: Text(
+            text,
+            style: HeadingSystem.getBodySmall(context),
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildEmptyStatePreview() {
+    // Get provider to check for recent entries
+    final provider = Provider.of<EmotionalMirrorProvider>(context);
+    
     return Container(
       padding: EdgeInsets.all(DesignTokens.spaceM),
       decoration: BoxDecoration(
@@ -197,13 +253,13 @@ class _EnhancedEmotionalAnalysisCardState extends State<EnhancedEmotionalAnalysi
           Row(
             children: [
               Icon(
-                Icons.pattern_rounded,
+                Icons.insights_rounded,
                 size: DesignTokens.iconSizeS,
-                color: DesignTokens.getTextSecondary(context),
+                color: DesignTokens.accentBlue,
               ),
               SizedBox(width: DesignTokens.spaceS),
               Text(
-                'Pattern',
+                'Pattern Discovery',
                 style: HeadingSystem.getTitleSmall(context).copyWith(
                   color: DesignTokens.accentBlue,
                 ),
@@ -211,73 +267,59 @@ class _EnhancedEmotionalAnalysisCardState extends State<EnhancedEmotionalAnalysi
             ],
           ),
           SizedBox(height: DesignTokens.spaceM),
-          Text(
-            'Emotional Pattern Discovery',
-            style: HeadingSystem.getTitleMedium(context),
-          ),
-          SizedBox(height: DesignTokens.spaceS),
-          Text(
-            'Start journaling to discover insights about your emotional patterns.',
-            style: HeadingSystem.getBodyMedium(context),
-          ),
+          
+          // Meaningful pattern insights instead of abstract percentages
+          _buildPatternInsights(),
+          
           SizedBox(height: DesignTokens.spaceM),
-          Text(
-            'emotional processing',
-            style: HeadingSystem.getBodySmall(context).copyWith(
-              color: DesignTokens.getTextSecondary(context),
-            ),
-          ),
-          SizedBox(height: DesignTokens.spaceM),
-          Row(
-            children: [
-              Icon(
-                Icons.radio_button_checked,
-                size: DesignTokens.iconSizeS,
-                color: DesignTokens.getTextTertiary(context),
-              ),
-              SizedBox(width: DesignTokens.spaceS),
-              Text(
-                'Core Resonance',
-                style: HeadingSystem.getBodySmall(context),
-              ),
-              Spacer(),
-              Text(
-                'Real Analysis from Journal Entries',
-                style: HeadingSystem.getBodySmall(context).copyWith(
-                  color: DesignTokens.getTextSecondary(context),
-                  fontStyle: FontStyle.italic,
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: DesignTokens.spaceS),
+          
+          // Visual journey hint instead of intensity bar
           Container(
-            margin: EdgeInsets.only(left: DesignTokens.spaceM),
-            child: Row(
+            padding: EdgeInsets.all(DesignTokens.spaceS),
+            decoration: BoxDecoration(
+              border: Border.all(
+                color: DesignTokens.getBackgroundTertiary(context),
+              ),
+              borderRadius: BorderRadius.circular(DesignTokens.radiusS),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'emotional intensity',
-                        style: HeadingSystem.getBodySmall(context).copyWith(
-                          color: DesignTokens.getTextSecondary(context),
-                        ),
-                      ),
-                      SizedBox(height: DesignTokens.spaceXS),
-                      LinearProgressIndicator(
-                        value: 0.7,
-                        backgroundColor: DesignTokens.getBackgroundTertiary(context),
-                        valueColor: AlwaysStoppedAnimation<Color>(DesignTokens.accentBlue),
-                      ),
-                    ],
-                  ),
+                Row(
+                  children: [
+                    Icon(
+                      Icons.timeline_rounded,
+                      size: DesignTokens.iconSizeXS,
+                      color: DesignTokens.getTextSecondary(context),
+                    ),
+                    SizedBox(width: DesignTokens.spaceXS),
+                    Text(
+                      'Your Emotional Journey',
+                      style: HeadingSystem.getLabelSmall(context),
+                    ),
+                  ],
                 ),
-                SizedBox(width: DesignTokens.spaceL),
-                Text(
-                  '70%',
-                  style: HeadingSystem.getTitleSmall(context),
+                SizedBox(height: DesignTokens.spaceXS),
+                // Mini gradient preview bar
+                Container(
+                  height: 24,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
+                    gradient: LinearGradient(
+                      colors: [
+                        DesignTokens.getTextTertiary(context).withValues(alpha: 0.2),
+                        DesignTokens.getTextTertiary(context).withValues(alpha: 0.2),
+                      ],
+                    ),
+                  ),
+                  child: Center(
+                    child: Text(
+                      'Start journaling to see your emotional flow',
+                      style: HeadingSystem.getLabelSmall(context).copyWith(
+                        color: DesignTokens.getTextSecondary(context),
+                      ),
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -680,5 +722,75 @@ class _EnhancedEmotionalAnalysisCardState extends State<EnhancedEmotionalAnalysi
     } catch (e) {
       return DesignTokens.accentBlue;
     }
+  }
+
+  Widget _buildMeaningfulCoreInsights(List<EmotionalCore> cores) {
+    if (cores.isEmpty) return const SizedBox.shrink();
+    
+    // Generate insights based on core patterns
+    final insights = <Widget>[];
+    
+    // Find the strongest core
+    final strongestCore = cores.reduce((a, b) => a.currentLevel > b.currentLevel ? a : b);
+    
+    insights.add(
+      _buildInsightItem(
+        icon: Icons.star_outline_rounded,
+        text: 'Your ${strongestCore.name} core is most active',
+      ),
+    );
+    
+    // Check for balance
+    if (cores.length >= 2) {
+      final levelDifference = (cores[0].currentLevel - cores[1].currentLevel).abs();
+      if (levelDifference < 0.2) {
+        insights.add(
+          SizedBox(height: DesignTokens.spaceS),
+        );
+        insights.add(
+          _buildInsightItem(
+            icon: Icons.balance_rounded,
+            text: 'Strong balance between ${cores[0].name} and ${cores[1].name}',
+          ),
+        );
+      }
+    }
+    
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: insights,
+    );
+  }
+
+  LinearGradient _generateCoreGradient(List<EmotionalCore> cores) {
+    if (cores.isEmpty) {
+      return LinearGradient(
+        colors: [
+          DesignTokens.getTextTertiary(context).withValues(alpha: 0.3),
+          DesignTokens.getTextTertiary(context).withValues(alpha: 0.3),
+        ],
+      );
+    }
+    
+    final colors = cores.map((core) => _getCoreColor(core.color)).toList();
+    if (colors.length == 1) {
+      colors.add(colors.first);
+    }
+    
+    return LinearGradient(
+      colors: colors,
+      begin: Alignment.centerLeft,
+      end: Alignment.centerRight,
+    );
+  }
+
+  String _generateCoreInsightText(List<EmotionalCore> cores) {
+    if (cores.isEmpty) return 'Start journaling to discover your cores';
+    
+    if (cores.length == 1) {
+      return '${cores.first.name} is guiding you';
+    }
+    
+    return '${cores.map((c) => c.name).take(2).join(' & ')} active';
   }
 }

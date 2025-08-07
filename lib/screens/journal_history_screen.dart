@@ -250,37 +250,6 @@ class _JournalHistoryScreenState extends State<JournalHistoryScreen> {
                                 ),
                               ),
                             ],
-                            if (entry.moods.isNotEmpty) ...[
-                              const SizedBox(width: 8),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 6, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: AppTheme.moodEnergetic,
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(
-                                      Icons.psychology_rounded,
-                                      size: 10,
-                                      color: Colors.white,
-                                    ),
-                                    const SizedBox(width: 2),
-                                    Text(
-                                      'AI',
-                                      style:
-                                          HeadingSystem.getLabelSmall(context)
-                                              .copyWith(
-                                        fontWeight: FontWeight.w600,
-                                        color: Colors.white,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
                           ],
                         ),
                         Text(

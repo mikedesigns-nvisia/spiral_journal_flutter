@@ -116,8 +116,8 @@ class _AnalysisStatusWidgetState extends State<AnalysisStatusWidget> {
               children: [
                 Text(
                   isProcessing 
-                      ? 'AI Analysis Running...'
-                      : 'AI Analysis Pending',
+                      ? 'Processing...'
+                      : 'Processing Pending',
                   style: HeadingSystem.getBodyMedium(context).copyWith(
                     fontWeight: FontWeight.w600,
                     color: DesignTokens.getTextPrimary(context),
@@ -127,7 +127,7 @@ class _AnalysisStatusWidgetState extends State<AnalysisStatusWidget> {
                 Text(
                   isProcessing
                       ? 'Processing $pendingCount entries'
-                      : '$pendingCount entries will be analyzed in $_timeUntilNext',
+                      : '$pendingCount entries will be processed in $_timeUntilNext',
                   style: HeadingSystem.getBodySmall(context).copyWith(
                     color: DesignTokens.getTextSecondary(context),
                   ),
@@ -146,7 +146,7 @@ class _AnalysisStatusWidgetState extends State<AnalysisStatusWidget> {
                 color: DesignTokens.getPrimaryColor(context),
                 size: 20,
               ),
-              tooltip: 'Run analysis now',
+              tooltip: 'Run processing now',
               constraints: const BoxConstraints(
                 minWidth: 32,
                 minHeight: 32,
@@ -162,7 +162,7 @@ class _AnalysisStatusWidgetState extends State<AnalysisStatusWidget> {
     try {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('Starting AI analysis...'),
+          content: const Text('Starting processing...'),
           backgroundColor: DesignTokens.getPrimaryColor(context),
           duration: const Duration(seconds: 2),
         ),
@@ -174,20 +174,20 @@ class _AnalysisStatusWidgetState extends State<AnalysisStatusWidget> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('AI analysis completed!'),
+            content: Text('Processing completed!'),
             backgroundColor: Colors.green,
             duration: Duration(seconds: 2),
           ),
         );
         
-        // Notify parent that analysis is complete
+        // Notify parent that processing is complete
         widget.onProcessingComplete?.call();
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Analysis failed: ${e.toString()}'),
+            content: Text('Processing failed: ${e.toString()}'),
             backgroundColor: Colors.red,
             duration: const Duration(seconds: 3),
           ),
