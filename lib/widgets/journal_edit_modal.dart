@@ -89,18 +89,19 @@ class _JournalEditModalState extends State<JournalEditModal> {
         moods: _selectedMoods,
       );
 
-      final analysisResult = await aiManager.performEmotionalAnalysis(tempEntry);
+      final analysisResult = await aiManager.analyzeJournalEntry(tempEntry);
       
       setState(() {
         _aiDetectedMoods.clear();
-        _aiDetectedMoods.addAll(analysisResult.primaryEmotions);
-        _analysisInsight = analysisResult.personalizedInsight;
+        final primaryEmotions = analysisResult['primary_emotions'] as List<dynamic>? ?? [];
+        _aiDetectedMoods.addAll(primaryEmotions.map((e) => e.toString()));
+        _analysisInsight = analysisResult['insight'] as String? ?? '';
       });
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('AI analysis complete! Found ${analysisResult.primaryEmotions.length} emotions.'),
+            content: Text('AI analysis complete! Found ${_aiDetectedMoods.length} emotions.'),
             backgroundColor: AppTheme.accentGreen,
           ),
         );

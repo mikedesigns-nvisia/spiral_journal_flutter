@@ -6,7 +6,6 @@ import 'package:spiral_journal/services/settings_service.dart';
 import 'package:spiral_journal/services/local_auth_service.dart';
 import 'package:spiral_journal/utils/app_error_handler.dart';
 import 'package:spiral_journal/services/crash_recovery_service.dart';
-import 'package:spiral_journal/services/production_environment_loader.dart';
 
 /// Orchestrates application initialization and system health verification.
 /// 
@@ -90,12 +89,7 @@ class AppInitializer {
           // Perform initialization steps sequentially to avoid race conditions
           final systemStatus = <String, dynamic>{};
           
-          // Step 0: Ensure environment variables are loaded
-          debugPrint('AppInitializer: Step 0 - Loading environment variables');
-          await ProductionEnvironmentLoader.ensureLoaded();
-          final envStatus = ProductionEnvironmentLoader.getStatus();
-          systemStatus['environment'] = envStatus.toJson();
-          debugPrint('AppInitializer: Environment loaded - API key available: ${envStatus.hasClaudeApiKey}');
+          // Environment loading removed - using local-only processing
           
           // Step 1: Check for crash recovery
           final crashRecoveryResult = await _checkCrashRecovery();

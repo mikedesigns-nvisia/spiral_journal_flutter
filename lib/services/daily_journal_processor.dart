@@ -6,7 +6,6 @@ import '../repositories/journal_repository_impl.dart';
 import 'usage_tracking_service.dart';
 import 'core_evolution_engine.dart';
 import 'ai_service_manager.dart';
-import '../services/providers/claude_ai_provider.dart';
 
 /// Daily Journal Processor
 /// 
@@ -204,14 +203,8 @@ class DailyJournalProcessor {
     final startTime = DateTime.now();
     
     try {
-      // Get the Claude AI provider for batch processing
-      final aiProvider = _aiServiceManager.currentService;
-      if (aiProvider is! ClaudeAIProvider) {
-        if (kDebugMode) {
-          debugPrint('DailyJournalProcessor: Claude provider not available, using fallback');
-        }
-        return await _processBatchWithFallback(entries, startTime);
-      }
+      // Use AI service manager for batch processing (local-only mode)
+      await _aiServiceManager.initialize();
       
       // Combine all entry content for batch processing with size limits
       final combinedContent = entries.map((entry) {
@@ -230,8 +223,8 @@ class DailyJournalProcessor {
         debugPrint('DailyJournalProcessor: Processing batch of ${entries.length} entries');
       }
       
-      // Call Claude API batch processing
-      final batchAnalysis = await aiProvider.analyzeDailyBatch(combinedContent);
+      // Process entries individually using local analysis
+      final batchAnalysis = await _processEntriesWithLocalAnalysis(entries);
       
       // Process the batch results
       await _processBatchResults(entries, batchAnalysis, startTime);
@@ -441,6 +434,25 @@ class DailyJournalProcessor {
   }
 
 
+
+  /// Process entries using local analysis instead of batch API
+  Future<Map<String, dynamic>> _processEntriesWithLocalAnalysis(List<JournalEntry> entries) async {
+    final results = <String, dynamic>{};
+    
+    for (final entry in entries) {
+      try {
+        final analysis = await _aiServiceManager.analyzeJournalEntry(entry);
+        results[entry.id] = analysis;
+      } catch (e) {
+        if (kDebugMode) {
+          debugPrint('DailyJournalProcessor: Local analysis failed for entry ${entry.id}: $e');
+        }
+        results[entry.id] = _getDefaultAnalysis();
+      }
+    }
+    
+    return results;
+  }
 
   /// Helper methods
 

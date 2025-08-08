@@ -397,7 +397,13 @@ class JournalService {
       final currentCores = await getAllCores();
       
       // Use AI service to calculate core updates
-      final coreUpdates = await _aiManager.calculateCoreUpdates(entry, currentCores);
+      final updatedCores = await _aiManager.calculateCoreUpdates(entry, currentCores);
+      
+      // Convert List<EmotionalCore> to Map<String, double>
+      final coreUpdates = <String, double>{};
+      for (final core in updatedCores) {
+        coreUpdates[core.name] = core.currentLevel;
+      }
       
       return coreUpdates;
     } catch (e) {
@@ -431,12 +437,12 @@ class JournalService {
       final currentCores = await getAllCores();
       
       // Use AI service to calculate core updates
-      final coreUpdates = await _aiManager.calculateCoreUpdates(entry, currentCores);
+      final updatedCores = await _aiManager.calculateCoreUpdates(entry, currentCores);
       
       // Apply updates to each core
-      for (final update in coreUpdates.entries) {
-        final coreId = update.key;
-        final newPercentage = update.value;
+      for (final updatedCore in updatedCores) {
+        final coreId = updatedCore.id;
+        final newPercentage = updatedCore.currentLevel * 100; // Convert to percentage
         
         final core = currentCores.firstWhere((c) => c.id == coreId);
         final trend = _determineTrend(core.percentage, newPercentage);

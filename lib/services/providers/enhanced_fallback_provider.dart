@@ -86,12 +86,7 @@ class EnhancedFallbackProvider {
       
     } catch (e, stackTrace) {
       debugPrint('❌ EnhancedFallbackProvider error: $e');
-      AIServiceErrorTracker.logError(
-        'analyzeJournalEntry',
-        e,
-        stackTrace: stackTrace,
-        provider: 'EnhancedFallbackProvider',
-      );
+      // Error tracking removed - using local-only processing
       return _getBasicAnalysis(entry);
     }
   }
@@ -118,12 +113,7 @@ class EnhancedFallbackProvider {
       
     } catch (e, stackTrace) {
       debugPrint('❌ EnhancedFallbackProvider monthly insight error: $e');
-      AIServiceErrorTracker.logError(
-        'generateMonthlyInsight',
-        e,
-        stackTrace: stackTrace,
-        provider: 'EnhancedFallbackProvider',
-      );
+      // Error tracking removed - using local-only processing
       return "Your journey of self-discovery continues with ${entries.length} meaningful reflections this month.";
     }
   }
@@ -172,12 +162,7 @@ class EnhancedFallbackProvider {
       
     } catch (e, stackTrace) {
       debugPrint('❌ EnhancedFallbackProvider calculateCoreUpdates error: $e');
-      AIServiceErrorTracker.logError(
-        'calculateCoreUpdates',
-        e,
-        stackTrace: stackTrace,
-        provider: 'EnhancedFallbackProvider',
-      );
+      // Error tracking removed - using local-only processing
       return {};
     }
   }
@@ -476,16 +461,19 @@ class EnhancedFallbackProvider {
       "entry_insight": "Thank you for sharing this moment of your journey.",
     };
   }
-}
 
   /// Generate local insights from content
   Future<List<String>> generateInsights(String content) async {
     try {
       final mockEntry = JournalEntry(
         id: 'temp',
+        userId: 'temp_user',
         content: content,
-        timestamp: DateTime.now(),
-        mood: 'neutral',
+        date: DateTime.now(),
+        moods: ['neutral'],
+        dayOfWeek: 'temp',
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
       );
       
       final analysis = await analyzeJournalEntry(mockEntry);

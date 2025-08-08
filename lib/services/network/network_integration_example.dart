@@ -3,7 +3,6 @@ import '../ai_service_manager.dart';
 import 'network_health_monitor.dart';
 import 'provider_recovery_service.dart';
 import 'network_error_handler.dart';
-import '../providers/claude_ai_provider.dart';
 import '../providers/fallback_provider.dart';
 import '../ai_service_interface.dart';
 import '../../utils/ios_network_logger.dart';

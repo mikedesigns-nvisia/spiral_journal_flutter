@@ -8,7 +8,6 @@ import 'dart:io';
 import '../repositories/journal_repository.dart';
 import '../services/core_library_service.dart';
 import '../services/settings_service.dart';
-import '../services/secure_api_key_service.dart';
 import '../services/data_export_service.dart';
 import '../database/database_helper.dart';
 
@@ -52,7 +51,6 @@ class SecureDataDeletionService extends ChangeNotifier {
   JournalRepository? _journalRepository;
   CoreLibraryService? _coreLibraryService;
   SettingsService? _settingsService;
-  SecureApiKeyService? _apiKeyService;
   DataExportService? _exportService;
   DatabaseHelper? _databaseHelper;
 
@@ -67,20 +65,17 @@ class SecureDataDeletionService extends ChangeNotifier {
     JournalRepository? journalRepository,
     CoreLibraryService? coreLibraryService,
     SettingsService? settingsService,
-    SecureApiKeyService? apiKeyService,
     DataExportService? exportService,
     DatabaseHelper? databaseHelper,
   }) async {
     _journalRepository = journalRepository;
     _coreLibraryService = coreLibraryService;
     _settingsService = settingsService ?? SettingsService();
-    _apiKeyService = apiKeyService ?? SecureApiKeyService();
     _exportService = exportService ?? DataExportService();
     _databaseHelper = databaseHelper ?? DatabaseHelper();
 
     // Initialize all services
     await _settingsService!.initialize();
-    await _apiKeyService!.initialize();
     await _exportService!.initialize();
   }
 
@@ -281,10 +276,8 @@ class SecureDataDeletionService extends ChangeNotifier {
 
   Future<void> _deleteSecureStorage() async {
     try {
-      if (_apiKeyService != null) {
-        await _apiKeyService!.clearAllApiKeys();
-        _log('API keys cleared from secure storage');
-      }
+      // API key service removed - using local-only processing
+      _log('Secure storage cleared (no API keys to remove)');
       
       // Clear PIN and other secure data
       // This would involve clearing flutter_secure_storage
@@ -384,13 +377,7 @@ class SecureDataDeletionService extends ChangeNotifier {
       }
       
       // Verify secure storage is clear
-      if (_apiKeyService != null) {
-        final services = await _apiKeyService!.getStoredServices();
-        if (services.isNotEmpty) {
-          _log('Warning: ${services.length} API keys still stored');
-          allClear = false;
-        }
-      }
+      // API key verification removed - using local-only processing
       
       _log('Deletion verification ${allClear ? 'passed' : 'failed'}');
       return allClear;

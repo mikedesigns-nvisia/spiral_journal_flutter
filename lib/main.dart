@@ -28,9 +28,7 @@ import 'package:spiral_journal/providers/journal_provider.dart';
 import 'package:spiral_journal/providers/core_provider_refactored.dart';
 import 'package:spiral_journal/providers/emotional_mirror_provider.dart';
 import 'package:spiral_journal/utils/app_error_handler.dart';
-import 'package:spiral_journal/config/api_key_setup.dart';
 import 'package:spiral_journal/config/local_config.dart';
-import 'package:spiral_journal/services/production_environment_loader.dart';
 // Debug services removed - using local fallback processing
 import 'package:spiral_journal/widgets/app_background.dart';
 import 'package:spiral_journal/utils/ios_theme_enforcer.dart';
@@ -42,16 +40,10 @@ void main() async {
   // Initialize error handling system first
   AppErrorHandler.initialize();
   
-  // CRITICAL: Load environment variables from .env file BEFORE any service initialization
-  debugPrint('🔧 Loading environment variables from .env file...');
-  await ProductionEnvironmentLoader.ensureLoaded();
-  debugPrint('✅ Environment variables loaded successfully');
   
   // Initialize local configuration system (replaces Firebase)
   await LocalConfig.initialize();
   
-  // Initialize API keys (critical)
-  await ApiKeySetup.initializeApiKeys();
   
   // Preload Google Fonts to prevent network errors
   await _preloadGoogleFonts();
