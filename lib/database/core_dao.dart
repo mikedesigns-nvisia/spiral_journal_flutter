@@ -99,14 +99,16 @@ class CoreDao {
         'id': coreWithId.id,
         'name': coreWithId.name,
         'description': coreWithId.description,
-        'percentage': coreWithId.percentage,
+        'current_level': coreWithId.currentLevel,
+        'previous_level': coreWithId.previousLevel,
         'trend': coreWithId.trend,
         'color': coreWithId.color,
-        'iconPath': coreWithId.iconPath,
+        'icon_path': coreWithId.iconPath,
         'insight': coreWithId.insight,
-        'relatedCores': coreWithId.relatedCores.join(','),
-        'createdAt': now,
-        'updatedAt': now,
+        'related_cores': coreWithId.relatedCores.join(','),
+        'created_at': now,
+        'last_updated': now,
+        'updated_at': now,
       },
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
@@ -120,7 +122,7 @@ class CoreDao {
       final db = await _dbHelper.database;
       final List<Map<String, dynamic>> maps = await db.query(
         'emotional_cores',
-        orderBy: 'percentage DESC',
+        orderBy: 'current_level DESC',
       );
 
       return maps.map((map) => _mapToEmotionalCore(map)).toList();
@@ -187,13 +189,15 @@ class CoreDao {
       {
         'name': core.name,
         'description': core.description,
-        'percentage': core.percentage,
+        'current_level': core.currentLevel,
+        'previous_level': core.previousLevel,
         'trend': core.trend,
         'color': core.color,
-        'iconPath': core.iconPath,
+        'icon_path': core.iconPath,
         'insight': core.insight,
-        'relatedCores': core.relatedCores.join(','),
-        'updatedAt': now,
+        'related_cores': core.relatedCores.join(','),
+        'last_updated': now,
+        'updated_at': now,
       },
       where: 'id = ?',
       whereArgs: [core.id],
@@ -232,9 +236,11 @@ class CoreDao {
     final result = await txn.update(
       'emotional_cores',
       {
-        'percentage': newPercentage,
+        'current_level': newPercentage / 100.0,
+        'previous_level': newPercentage / 100.0,
         'trend': trend,
-        'updatedAt': now,
+        'last_updated': now,
+        'updated_at': now,
       },
       where: 'id = ?',
       whereArgs: [coreId],
@@ -288,7 +294,7 @@ class CoreDao {
       final db = await _dbHelper.database;
       final List<Map<String, dynamic>> maps = await db.query(
         'emotional_cores',
-        orderBy: 'percentage DESC',
+        orderBy: 'current_level DESC',
         limit: limit,
       );
 
@@ -307,7 +313,7 @@ class CoreDao {
         'emotional_cores',
         where: 'trend = ?',
         whereArgs: [trend],
-        orderBy: 'percentage DESC',
+        orderBy: 'current_level DESC',
       );
 
       return maps.map((map) => _mapToEmotionalCore(map)).toList();
@@ -502,78 +508,78 @@ class CoreDao {
         id: '',
         name: 'Optimism',
         description: 'Your ability to maintain hope and positive outlook',
-        currentLevel: 0.75,
-        previousLevel: 0.75,
+        currentLevel: 0.10,
+        previousLevel: 0.10,
         lastUpdated: DateTime.now(),
-        trend: 'rising',
+        trend: 'stable',
         color: 'AFCACD',
         iconPath: 'assets/icons/optimism.png',
-        insight: 'Your optimistic nature helps you see opportunities in challenges',
+        insight: 'Your capacity for optimism awaits discovery through your journey',
         relatedCores: ['Growth Mindset', 'Resilience'],
       ),
       EmotionalCore(
         id: '',
         name: 'Resilience',
         description: 'Your capacity to bounce back from setbacks',
-        currentLevel: 0.68,
-        previousLevel: 0.68,
+        currentLevel: 0.10,
+        previousLevel: 0.10,
         lastUpdated: DateTime.now(),
         trend: 'stable',
         color: 'EBA751',
         iconPath: 'assets/icons/resilience.png',
-        insight: 'You show strong ability to recover from difficult situations',
+        insight: 'Inner strength lies dormant, ready to emerge through your experiences',
         relatedCores: ['Optimism', 'Self-Awareness'],
       ),
       EmotionalCore(
         id: '',
         name: 'Self-Awareness',
         description: 'Your understanding of your thoughts and emotions',
-        currentLevel: 0.82,
-        previousLevel: 0.82,
+        currentLevel: 0.10,
+        previousLevel: 0.10,
         lastUpdated: DateTime.now(),
-        trend: 'rising',
+        trend: 'stable',
         color: 'A198DD',
         iconPath: 'assets/icons/self_awareness.png',
-        insight: 'Your self-reflection shows deep emotional intelligence',
+        insight: 'The path to self-understanding begins with your first reflections',
         relatedCores: ['Growth Mindset', 'Creativity'],
       ),
       EmotionalCore(
         id: '',
         name: 'Creativity',
         description: 'Your innovative thinking and expression',
-        currentLevel: 0.71,
-        previousLevel: 0.71,
+        currentLevel: 0.10,
+        previousLevel: 0.10,
         lastUpdated: DateTime.now(),
-        trend: 'rising',
+        trend: 'stable',
         color: 'B1CDAF',
         iconPath: 'assets/icons/creativity.png',
-        insight: 'Your creative approach brings fresh perspectives to problems',
+        insight: 'Creative potential rests within, waiting to be expressed',
         relatedCores: ['Self-Awareness', 'Social Connection'],
       ),
       EmotionalCore(
         id: '',
         name: 'Social Connection',
         description: 'Your ability to relate and connect with others',
-        currentLevel: 0.64,
-        previousLevel: 0.64,
+        currentLevel: 0.10,
+        previousLevel: 0.10,
         lastUpdated: DateTime.now(),
         trend: 'stable',
         color: 'B37A9B',
         iconPath: 'assets/icons/social.png',
-        insight: 'You value meaningful relationships and community',
+        insight: 'The seeds of meaningful connection are ready to be nurtured',
         relatedCores: ['Creativity', 'Growth Mindset'],
       ),
       EmotionalCore(
         id: '',
         name: 'Growth Mindset',
         description: 'Your openness to learning and development',
-        currentLevel: 0.78,
-        previousLevel: 0.78,
+        currentLevel: 0.10,
+        previousLevel: 0.10,
         lastUpdated: DateTime.now(),
-        trend: 'rising',
+        trend: 'stable',
         color: 'AFCACD',
         iconPath: 'assets/icons/growth.png',
-        insight: 'You embrace challenges as opportunities to learn',
+        insight: 'Your journey of growth and learning is about to begin',
         relatedCores: ['Optimism', 'Self-Awareness'],
       ),
     ];
@@ -598,9 +604,11 @@ class CoreDao {
         final result = await txn.update(
           'emotional_cores',
           {
-            'percentage': updateData['percentage'],
+            'current_level': (updateData['percentage'] ?? 0.0) / 100.0,
+            'previous_level': (updateData['percentage'] ?? 0.0) / 100.0,
             'trend': updateData['trend'],
-            'updatedAt': now,
+            'last_updated': now,
+            'updated_at': now,
           },
           where: 'id = ?',
           whereArgs: [coreId],
@@ -648,8 +656,8 @@ class CoreDao {
       throw ArgumentError('Emotional core description cannot be empty');
     }
     
-    if (core.percentage < 0.0 || core.percentage > 100.0) {
-      throw ArgumentError('Emotional core percentage must be between 0 and 100');
+    if (core.currentLevel < 0.0 || core.currentLevel > 1.0) {
+      throw ArgumentError('Emotional core current level must be between 0.0 and 1.0');
     }
     
     final validTrends = ['rising', 'stable', 'declining'];
@@ -692,78 +700,78 @@ class CoreDao {
           id: '',
           name: 'Optimism',
           description: 'Your ability to maintain hope and positive outlook',
-          currentLevel: 0.75,
-          previousLevel: 0.75,
+          currentLevel: 0.10,
+          previousLevel: 0.10,
           lastUpdated: DateTime.now(),
-          trend: 'rising',
+          trend: 'stable',
           color: 'AFCACD',
           iconPath: 'assets/icons/optimism.png',
-          insight: 'Your optimistic nature helps you see opportunities in challenges',
+          insight: 'Your capacity for optimism awaits discovery through your journey',
           relatedCores: ['Growth Mindset', 'Resilience'],
         ),
         EmotionalCore(
           id: '',
           name: 'Resilience',
           description: 'Your capacity to bounce back from setbacks',
-          currentLevel: 0.68,
-          previousLevel: 0.68,
+          currentLevel: 0.10,
+          previousLevel: 0.10,
           lastUpdated: DateTime.now(),
           trend: 'stable',
           color: 'EBA751',
           iconPath: 'assets/icons/resilience.png',
-          insight: 'You show strong ability to recover from difficult situations',
+          insight: 'Inner strength lies dormant, ready to emerge through your experiences',
           relatedCores: ['Optimism', 'Self-Awareness'],
         ),
         EmotionalCore(
           id: '',
           name: 'Self-Awareness',
           description: 'Your understanding of your thoughts and emotions',
-          currentLevel: 0.82,
-          previousLevel: 0.82,
+          currentLevel: 0.10,
+          previousLevel: 0.10,
           lastUpdated: DateTime.now(),
-          trend: 'rising',
+          trend: 'stable',
           color: 'A198DD',
           iconPath: 'assets/icons/self_awareness.png',
-          insight: 'Your self-reflection shows deep emotional intelligence',
+          insight: 'The path to self-understanding begins with your first reflections',
           relatedCores: ['Growth Mindset', 'Creativity'],
         ),
         EmotionalCore(
           id: '',
           name: 'Creativity',
           description: 'Your innovative thinking and expression',
-          currentLevel: 0.71,
-          previousLevel: 0.71,
+          currentLevel: 0.10,
+          previousLevel: 0.10,
           lastUpdated: DateTime.now(),
-          trend: 'rising',
+          trend: 'stable',
           color: 'B1CDAF',
           iconPath: 'assets/icons/creativity.png',
-          insight: 'Your creative approach brings fresh perspectives to problems',
+          insight: 'Creative potential rests within, waiting to be expressed',
           relatedCores: ['Self-Awareness', 'Social Connection'],
         ),
         EmotionalCore(
           id: '',
           name: 'Social Connection',
           description: 'Your ability to relate and connect with others',
-          currentLevel: 0.64,
-          previousLevel: 0.64,
+          currentLevel: 0.10,
+          previousLevel: 0.10,
           lastUpdated: DateTime.now(),
           trend: 'stable',
           color: 'B37A9B',
           iconPath: 'assets/icons/social.png',
-          insight: 'You value meaningful relationships and community',
+          insight: 'The seeds of meaningful connection are ready to be nurtured',
           relatedCores: ['Creativity', 'Growth Mindset'],
         ),
         EmotionalCore(
           id: '',
           name: 'Growth Mindset',
           description: 'Your openness to learning and development',
-          currentLevel: 0.78,
-          previousLevel: 0.78,
+          currentLevel: 0.10,
+          previousLevel: 0.10,
           lastUpdated: DateTime.now(),
-          trend: 'rising',
+          trend: 'stable',
           color: 'AFCACD',
           iconPath: 'assets/icons/growth.png',
-          insight: 'You embrace challenges as opportunities to learn',
+          insight: 'Your journey of growth and learning is about to begin',
           relatedCores: ['Optimism', 'Self-Awareness'],
         ),
       ];
@@ -778,37 +786,47 @@ class CoreDao {
   // Helper methods to convert database maps to objects
   EmotionalCore _mapToEmotionalCore(Map<String, dynamic> map) {
     return EmotionalCore(
-      id: map['id'],
-      name: map['name'],
-      description: map['description'],
-      currentLevel: (map['percentage'] ?? 0.0) / 100.0,
-      previousLevel: (map['percentage'] ?? 0.0) / 100.0,
-      lastUpdated: map['updatedAt'] != null 
-          ? DateTime.parse(map['updatedAt'])
+      id: map['id'] as String? ?? '',
+      name: map['name'] as String? ?? '',
+      description: map['description'] as String? ?? '',
+      currentLevel: (map['current_level'] as num?)?.toDouble() ?? 0.0,
+      previousLevel: (map['previous_level'] as num?)?.toDouble() ?? 0.0,
+      lastUpdated: map['last_updated'] != null 
+          ? DateTime.tryParse(map['last_updated'].toString()) ?? DateTime.now()
           : DateTime.now(),
-      trend: map['trend'],
-      color: map['color'],
-      iconPath: map['iconPath'],
-      insight: map['insight'],
-      relatedCores: map['relatedCores'].toString().split(',').where((c) => c.isNotEmpty).toList(),
+      trend: map['trend'] as String? ?? 'stable',
+      color: map['color'] as String? ?? 'CCCCCC',
+      iconPath: map['icon_path'] as String? ?? '',
+      insight: map['insight'] as String? ?? '',
+      relatedCores: (map['related_cores'] as String? ?? '').split(',').where((c) => c.isNotEmpty).toList(),
     );
   }
 
   CoreCombination _mapToCoreCombination(Map<String, dynamic> map) {
     return CoreCombination(
-      name: map['name'],
-      coreIds: map['coreIds'].toString().split(',').where((c) => c.isNotEmpty).toList(),
-      description: map['description'],
-      benefit: map['benefit'],
+      name: map['name'] as String? ?? '',
+      coreIds: (map['coreIds'] as String? ?? '').split(',').where((c) => c.isNotEmpty).toList(),
+      description: map['description'] as String? ?? '',
+      benefit: map['benefit'] as String? ?? '',
     );
   }
 
   EmotionalPattern _mapToEmotionalPattern(Map<String, dynamic> map) {
     return EmotionalPattern(
-      category: map['category'],
-      title: map['title'],
-      description: map['description'],
-      type: map['type'],
+      title: map['title'] ?? '',
+      description: map['description'] ?? '',
+      type: map['type'] ?? 'awareness',
+      category: map['category'] ?? 'General',
+      confidence: (map['confidence'] ?? 0.0).toDouble(),
+      firstDetected: map['firstDetected'] != null 
+          ? DateTime.parse(map['firstDetected'])
+          : DateTime.now(),
+      lastSeen: map['lastSeen'] != null 
+          ? DateTime.parse(map['lastSeen'])
+          : DateTime.now(),
+      relatedEmotions: map['relatedEmotions'] != null 
+          ? List<String>.from(map['relatedEmotions'].toString().split(',').where((e) => e.isNotEmpty))
+          : [],
     );
   }
 }

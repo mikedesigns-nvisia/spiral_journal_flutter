@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import '../models/journal_entry.dart';
-import '../models/core.dart';
+import '../models/core_resonance_data.dart';
+import '../models/journal_emotional_pattern.dart';
 
 /// Service for analyzing emotional patterns and extracting structured insights from AI responses.
 /// 
@@ -25,12 +26,13 @@ class EmotionalAnalyzer {
         primaryEmotions: _extractPrimaryEmotions(aiResponse),
         emotionalIntensity: _extractEmotionalIntensity(aiResponse),
         keyThemes: _extractKeyThemes(aiResponse),
-        overallSentiment: _calculateOverallSentiment(aiResponse, entry),
+        overallSentiment: _extractOverallSentiment(aiResponse),
         personalizedInsight: _extractPersonalizedInsight(aiResponse),
-        coreImpacts: _extractCoreImpacts(aiResponse),
+        coreResonance: _extractCoreResonance(aiResponse),
         emotionalPatterns: _extractEmotionalPatterns(aiResponse),
         growthIndicators: _extractGrowthIndicators(aiResponse),
         validationScore: _calculateValidationScore(aiResponse),
+        coreImpacts: _extractCoreImpacts(aiResponse),
       );
     } catch (e) {
       debugPrint('EmotionalAnalyzer processAnalysis error: $e');
@@ -43,13 +45,13 @@ class EmotionalAnalyzer {
     try {
       // Check required fields
       if (result.primaryEmotions.isEmpty) return false;
-      if (result.emotionalIntensity < 0 || result.emotionalIntensity > 10) return false;
+      if (result.emotionalIntensity < 0 || result.emotionalIntensity > 1) return false;
       if (result.overallSentiment < -1 || result.overallSentiment > 1) return false;
       if (result.personalizedInsight.isEmpty) return false;
 
-      // Validate core impacts
-      for (final impact in result.coreImpacts.values) {
-        if (impact < -1.0 || impact > 1.0) return false;
+      // Validate core resonance data
+      for (final resonanceData in result.coreResonance.values) {
+        if (resonanceData.resonanceStrength < 0.0 || resonanceData.resonanceStrength > 1.0) return false;
       }
 
       // Check validation score
@@ -71,7 +73,7 @@ class EmotionalAnalyzer {
             .where((emotion) => emotion.isNotEmpty)
             .take(5) // Limit to 5 emotions max
             .toList(),
-        emotionalIntensity: result.emotionalIntensity.clamp(0.0, 10.0),
+        emotionalIntensity: result.emotionalIntensity.clamp(0.0, 1.0),
         keyThemes: result.keyThemes
             .map((theme) => _sanitizeText(theme))
             .where((theme) => theme.isNotEmpty)
@@ -79,14 +81,23 @@ class EmotionalAnalyzer {
             .toList(),
         overallSentiment: result.overallSentiment.clamp(-1.0, 1.0),
         personalizedInsight: _sanitizeText(result.personalizedInsight, maxLength: 500),
-        coreImpacts: result.coreImpacts.map((key, value) => 
-            MapEntry(key, value.clamp(-1.0, 1.0))),
+        coreResonance: result.coreResonance.map((key, value) => 
+            MapEntry(key, CoreResonanceData(
+              resonanceStrength: value.resonanceStrength.clamp(0.0, 1.0),
+              depthIndicator: _sanitizeText(value.depthIndicator),
+              transitionSignals: value.transitionSignals
+                  .map((signal) => _sanitizeText(signal))
+                  .where((signal) => signal.isNotEmpty)
+                  .take(3)
+                  .toList(),
+              supportingEvidence: _sanitizeText(value.supportingEvidence, maxLength: 300),
+            ))),
         emotionalPatterns: result.emotionalPatterns
-            .map((pattern) => EmotionalPattern(
-              category: _sanitizeText(pattern.category),
+            .map((pattern) => JournalEmotionalPattern(
               title: _sanitizeText(pattern.title),
               description: _sanitizeText(pattern.description, maxLength: 200),
               type: pattern.type,
+              category: _sanitizeText(pattern.category),
             ))
             .take(3) // Limit to 3 patterns max
             .toList(),
@@ -96,6 +107,8 @@ class EmotionalAnalyzer {
             .take(5) // Limit to 5 indicators max
             .toList(),
         validationScore: result.validationScore.clamp(0.0, 1.0),
+        coreImpacts: Map<String, double>.from(result.coreImpacts)
+            .map((key, value) => MapEntry(key, value.clamp(0.0, 1.0))),
       );
     } catch (e) {
       debugPrint('EmotionalAnalyzer sanitizeAnalysisResult error: $e');
@@ -104,11 +117,11 @@ class EmotionalAnalyzer {
   }
 
   /// Extract emotional patterns from multiple journal entries
-  List<EmotionalPattern> identifyPatterns(List<JournalEntry> entries) {
+  List<JournalEmotionalPattern> identifyPatterns(List<JournalEntry> entries) {
     if (entries.isEmpty) return [];
 
     try {
-      final patterns = <EmotionalPattern>[];
+      final patterns = <JournalEmotionalPattern>[];
 
       // Analyze mood frequency patterns
       final moodFrequency = _analyzeMoodFrequency(entries);
@@ -134,7 +147,10 @@ class EmotionalAnalyzer {
         patterns.add(intensityPattern);
       }
 
-      return patterns.take(5).toList(); // Limit to 5 patterns
+      // Remove duplicates based on title and type similarity
+      final deduplicatedPatterns = _removeDuplicatePatterns(patterns);
+
+      return deduplicatedPatterns.take(5).toList(); // Limit to 5 patterns
     } catch (e) {
       debugPrint('EmotionalAnalyzer identifyPatterns error: $e');
       return [];
@@ -257,14 +273,14 @@ class EmotionalAnalyzer {
       if (response.containsKey('emotional_analysis')) {
         final analysis = response['emotional_analysis'] as Map<String, dynamic>;
         final intensity = analysis['emotional_intensity'] as num?;
-        return (intensity?.toDouble() ?? 5.0) * 10; // Convert 0-1 to 0-10 scale
+        return intensity?.toDouble() ?? 0.5; // Keep as 0-1 scale
       }
       
-      // Fallback to legacy format
+      // Fallback to legacy format - convert from 0-10 to 0-1 scale
       final intensity = response['emotional_intensity'] as num?;
-      return intensity?.toDouble() ?? 5.0;
+      return (intensity?.toDouble() ?? 5.0) / 10.0;
     } catch (e) {
-      return 5.0;
+      return 0.5;
     }
   }
 
@@ -284,7 +300,7 @@ class EmotionalAnalyzer {
     }
   }
 
-  double _calculateOverallSentiment(Map<String, dynamic> response, JournalEntry entry) {
+  double _extractOverallSentiment(Map<String, dynamic> response) {
     try {
       if (response.containsKey('emotional_analysis')) {
         final analysis = response['emotional_analysis'] as Map<String, dynamic>;
@@ -292,7 +308,7 @@ class EmotionalAnalyzer {
         return sentiment?.toDouble() ?? 0.0;
       }
       
-      // Calculate from emotions and content
+      // Calculate from emotions for fallback
       final emotions = _extractPrimaryEmotions(response);
       final positiveEmotions = ['happy', 'joyful', 'excited', 'grateful', 'content', 'peaceful'];
       final negativeEmotions = ['sad', 'angry', 'frustrated', 'anxious', 'worried'];
@@ -306,15 +322,34 @@ class EmotionalAnalyzer {
         }
       }
       
-      // Adjust based on content analysis
-      final content = entry.content.toLowerCase();
-      if (content.contains('grateful') || content.contains('thankful')) sentiment += 0.2;
-      if (content.contains('love') || content.contains('amazing')) sentiment += 0.2;
-      if (content.contains('difficult') || content.contains('hard')) sentiment -= 0.1;
-      
       return sentiment.clamp(-1.0, 1.0);
     } catch (e) {
       return 0.0;
+    }
+  }
+
+  Map<String, CoreResonanceData> _extractCoreResonance(Map<String, dynamic> response) {
+    try {
+      final coreResonanceMap = <String, CoreResonanceData>{};
+      
+      if (response.containsKey('core_updates')) {
+        final coreUpdates = response['core_updates'] as List<dynamic>;
+        
+        for (final update in coreUpdates) {
+          final coreMap = update as Map<String, dynamic>;
+          final coreId = coreMap['id'] as String;
+          if (coreMap.containsKey('resonance_depth')) {
+            coreResonanceMap[coreId] = CoreResonanceData.fromJson(
+              coreMap['resonance_depth'] as Map<String, dynamic>
+            );
+          }
+        }
+      }
+      
+      return coreResonanceMap;
+    } catch (e) {
+      debugPrint('EmotionalAnalyzer _extractCoreResonance error: $e');
+      return {};
     }
   }
 
@@ -380,17 +415,17 @@ class EmotionalAnalyzer {
     }
   }
 
-  List<EmotionalPattern> _extractEmotionalPatterns(Map<String, dynamic> response) {
+  List<JournalEmotionalPattern> _extractEmotionalPatterns(Map<String, dynamic> response) {
     try {
       final patterns = response['emotional_patterns'] as List<dynamic>?;
       if (patterns != null) {
         return patterns.map((pattern) {
           final patternMap = pattern as Map<String, dynamic>;
-          return EmotionalPattern(
-            category: patternMap['category'] as String? ?? 'Growth',
+          return JournalEmotionalPattern(
             title: patternMap['title'] as String? ?? 'Emotional Development',
             description: patternMap['description'] as String? ?? 'Developing emotional awareness',
             type: patternMap['type'] as String? ?? 'growth',
+            category: patternMap['category'] as String? ?? 'Growth',
           );
         }).toList();
       }
@@ -430,21 +465,29 @@ class EmotionalAnalyzer {
   EmotionalAnalysisResult _createFallbackAnalysis(JournalEntry entry) {
     return EmotionalAnalysisResult(
       primaryEmotions: entry.moods.isNotEmpty ? [entry.moods.first] : ['neutral'],
-      emotionalIntensity: 5.0,
+      emotionalIntensity: 0.5, // 0-1 scale
       keyThemes: ['self_reflection'],
       overallSentiment: 0.0,
       personalizedInsight: 'Thank you for taking time to reflect and journal.',
-      coreImpacts: {'Self-Awareness': 0.1},
+      coreResonance: {
+        'self_awareness': CoreResonanceData(
+          resonanceStrength: 0.7,
+          depthIndicator: 'emerging',
+          transitionSignals: ['Self-reflection through journaling'],
+          supportingEvidence: 'Taking time to write and reflect shows growing self-awareness',
+        ),
+      },
       emotionalPatterns: [
-        EmotionalPattern(
-          category: 'Growth',
+        JournalEmotionalPattern(
           title: 'Journaling Practice',
           description: 'Building emotional awareness through writing',
           type: 'growth',
+          category: 'Growth',
         ),
       ],
       growthIndicators: ['self_reflection'],
       validationScore: 0.3,
+      coreImpacts: {'self_awareness': 0.1},
     );
   }
 
@@ -479,22 +522,22 @@ class EmotionalAnalyzer {
     return frequency;
   }
 
-  EmotionalPattern _createMoodPattern(Map<String, int> moodFrequency) {
+  JournalEmotionalPattern _createMoodPattern(Map<String, int> moodFrequency) {
     final sortedMoods = moodFrequency.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
     
     final topMood = sortedMoods.first.key;
     final frequency = sortedMoods.first.value;
     
-    return EmotionalPattern(
-      category: 'Mood Patterns',
+    return JournalEmotionalPattern(
       title: 'Dominant Emotional State',
       description: 'Your most frequent mood is "$topMood" appearing $frequency times, indicating a consistent emotional pattern.',
       type: 'recurring',
+      category: 'Mood Patterns',
     );
   }
 
-  EmotionalPattern? _analyzeTemporalPatterns(List<JournalEntry> entries) {
+  JournalEmotionalPattern? _analyzeTemporalPatterns(List<JournalEntry> entries) {
     if (entries.length < 3) return null;
     
     // Analyze day of week patterns
@@ -508,43 +551,43 @@ class EmotionalAnalyzer {
     
     if (sortedDays.isNotEmpty && sortedDays.first.value > 1) {
       final topDay = sortedDays.first.key;
-      return EmotionalPattern(
-        category: 'Temporal Patterns',
+      return JournalEmotionalPattern(
         title: 'Journaling Rhythm',
         description: 'You tend to journal most frequently on $topDay, showing a consistent reflection pattern.',
         type: 'recurring',
+        category: 'Temporal Patterns',
       );
     }
     
     return null;
   }
 
-  EmotionalPattern? _analyzeContentLengthPatterns(List<JournalEntry> entries) {
+  JournalEmotionalPattern? _analyzeContentLengthPatterns(List<JournalEntry> entries) {
     if (entries.length < 3) return null;
     
     final lengths = entries.map((e) => e.content.split(' ').length).toList();
     final avgLength = lengths.reduce((a, b) => a + b) / lengths.length;
     
     if (avgLength > 100) {
-      return EmotionalPattern(
-        category: 'Expression Patterns',
+      return JournalEmotionalPattern(
         title: 'Detailed Reflection',
         description: 'Your entries average ${avgLength.round()} words, showing deep, thoughtful reflection.',
         type: 'growth',
+        category: 'Expression Patterns',
       );
     } else if (avgLength < 30) {
-      return EmotionalPattern(
-        category: 'Expression Patterns',
+      return JournalEmotionalPattern(
         title: 'Concise Expression',
         description: 'Your entries are concise, averaging ${avgLength.round()} words. Consider expanding for deeper insights.',
         type: 'awareness',
+        category: 'Expression Patterns',
       );
     }
     
     return null;
   }
 
-  EmotionalPattern? _analyzeIntensityPatterns(List<JournalEntry> entries) {
+  JournalEmotionalPattern? _analyzeIntensityPatterns(List<JournalEntry> entries) {
     if (entries.length < 3) return null;
     
     // Simple intensity calculation based on mood variety and content
@@ -558,15 +601,72 @@ class EmotionalAnalyzer {
     final avgIntensity = intensities.reduce((a, b) => a + b) / intensities.length;
     
     if (avgIntensity > 2.5) {
-      return EmotionalPattern(
-        category: 'Emotional Intensity',
+      return JournalEmotionalPattern(
         title: 'High Emotional Engagement',
         description: 'Your entries show high emotional intensity, indicating deep engagement with your feelings.',
         type: 'growth',
+        category: 'Emotional Intensity',
       );
     }
     
     return null;
+  }
+
+  /// Remove duplicate patterns based on title and type similarity
+  List<JournalEmotionalPattern> _removeDuplicatePatterns(List<JournalEmotionalPattern> patterns) {
+    if (patterns.length <= 1) return patterns;
+
+    final deduplicatedPatterns = <JournalEmotionalPattern>[];
+    final seenTitles = <String>{};
+    final seenTypes = <String, int>{};
+
+    for (final pattern in patterns) {
+      // Check for exact title duplicates
+      if (seenTitles.contains(pattern.title)) {
+        continue;
+      }
+
+      // Limit patterns of the same type to avoid redundancy
+      final typeCount = seenTypes[pattern.type] ?? 0;
+      if (typeCount >= 2) { // Max 2 patterns per type
+        continue;
+      }
+
+      // Check for similar titles using basic similarity
+      bool isSimilar = false;
+      for (final existingTitle in seenTitles) {
+        if (_areTitlesSimilar(pattern.title, existingTitle)) {
+          isSimilar = true;
+          break;
+        }
+      }
+
+      if (!isSimilar) {
+        deduplicatedPatterns.add(pattern);
+        seenTitles.add(pattern.title);
+        seenTypes[pattern.type] = typeCount + 1;
+      }
+    }
+
+    return deduplicatedPatterns;
+  }
+
+  /// Check if two pattern titles are similar enough to be considered duplicates
+  bool _areTitlesSimilar(String title1, String title2) {
+    final cleanTitle1 = title1.toLowerCase().replaceAll(RegExp(r'[^\w\s]'), '');
+    final cleanTitle2 = title2.toLowerCase().replaceAll(RegExp(r'[^\w\s]'), '');
+    
+    final words1 = cleanTitle1.split(' ').toSet();
+    final words2 = cleanTitle2.split(' ').toSet();
+    
+    // Calculate Jaccard similarity (intersection / union)
+    final intersection = words1.intersection(words2).length;
+    final union = words1.union(words2).length;
+    
+    if (union == 0) return false;
+    
+    final similarity = intersection / union;
+    return similarity > 0.6; // Consider similar if >60% word overlap
   }
 
   // Trend analysis methods
@@ -715,17 +815,18 @@ class EmotionalAnalyzer {
   }
 }
 
-/// Structured result of emotional analysis
+/// Structured result of emotional analysis with resonance depth system
 class EmotionalAnalysisResult {
   final List<String> primaryEmotions;
-  final double emotionalIntensity; // 0-10 scale
+  final double emotionalIntensity; // 0-1 scale
   final List<String> keyThemes;
   final double overallSentiment; // -1 to 1 scale
   final String personalizedInsight;
-  final Map<String, double> coreImpacts; // Core name -> impact value
-  final List<EmotionalPattern> emotionalPatterns;
+  final Map<String, CoreResonanceData> coreResonance; // Core ID -> resonance data
+  final List<JournalEmotionalPattern> emotionalPatterns;
   final List<String> growthIndicators;
   final double validationScore; // 0-1 confidence score
+  final Map<String, double> coreImpacts; // Core ID -> impact strength
 
   EmotionalAnalysisResult({
     required this.primaryEmotions,
@@ -733,10 +834,11 @@ class EmotionalAnalysisResult {
     required this.keyThemes,
     required this.overallSentiment,
     required this.personalizedInsight,
-    required this.coreImpacts,
+    required this.coreResonance,
     required this.emotionalPatterns,
     required this.growthIndicators,
     required this.validationScore,
+    required this.coreImpacts,
   });
 
   Map<String, dynamic> toJson() {
@@ -746,7 +848,7 @@ class EmotionalAnalysisResult {
       'key_themes': keyThemes,
       'overall_sentiment': overallSentiment,
       'personalized_insight': personalizedInsight,
-      'core_impacts': coreImpacts,
+      'core_resonance': coreResonance.map((key, value) => MapEntry(key, value.toJson())),
       'emotional_patterns': emotionalPatterns.map((p) => {
         'category': p.category,
         'title': p.title,
@@ -755,6 +857,7 @@ class EmotionalAnalysisResult {
       }).toList(),
       'growth_indicators': growthIndicators,
       'validation_score': validationScore,
+      'core_impacts': coreImpacts,
     };
   }
 }

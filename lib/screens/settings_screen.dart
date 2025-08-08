@@ -1,19 +1,25 @@
-import 'package:flutter/foundation.dart';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:spiral_journal/theme/app_theme.dart';
+import 'package:spiral_journal/design_system/heading_system.dart';
+import 'package:spiral_journal/design_system/component_library.dart';
+import 'package:spiral_journal/design_system/design_tokens.dart';
 import 'package:spiral_journal/providers/journal_provider.dart';
-import 'package:spiral_journal/providers/core_provider.dart';
+import 'package:spiral_journal/providers/core_provider_refactored.dart';
 import 'package:spiral_journal/services/settings_service.dart';
-import 'package:spiral_journal/services/pin_auth_service.dart';
+// PIN auth service import removed - using biometrics-only authentication
 import 'package:spiral_journal/models/user_preferences.dart';
-import 'package:spiral_journal/screens/ai_settings_screen.dart';
-import 'package:spiral_journal/utils/sample_data_generator.dart';
+// AI diagnostic screen removed - using local fallback processing
 import 'package:spiral_journal/services/accessibility_service.dart';
 import 'package:spiral_journal/services/journal_service.dart';
 import 'package:spiral_journal/services/core_library_service.dart';
+import 'package:spiral_journal/services/app_info_service.dart';
 import 'package:spiral_journal/widgets/testflight_feedback_widget.dart';
+import 'package:spiral_journal/widgets/offline_queue_status_widget.dart';
+import 'package:spiral_journal/widgets/animated_card.dart';
+// Debug screens removed - using local fallback processing
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -25,8 +31,9 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   final SettingsService _settingsService = SettingsService();
   final LocalAuthentication _localAuth = LocalAuthentication();
-  final PinAuthService _pinAuthService = PinAuthService();
+  // PIN auth service removed - using biometrics-only authentication
   final AccessibilityService _accessibilityService = AccessibilityService();
+  final AppInfoService _appInfoService = AppInfoService();
   
   UserPreferences _currentPreferences = UserPreferences.defaults;
   bool _isLoading = true;
@@ -40,24 +47,62 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _initializeSettings() async {
     try {
-      await _settingsService.initialize();
-      await _accessibilityService.initialize();
-      final preferences = await _settingsService.getPreferences();
-      final biometricAvailable = await _localAuth.canCheckBiometrics;
+      // Add timeout to prevent hanging
+      await _settingsService.initialize().timeout(
+        const Duration(seconds: 10),
+        onTimeout: () {
+          throw TimeoutException('Settings service initialization timed out', const Duration(seconds: 10));
+        },
+      );
       
-      setState(() {
-        _currentPreferences = preferences;
-        _biometricAvailable = biometricAvailable;
-        _isLoading = false;
-      });
+      await _accessibilityService.initialize().timeout(
+        const Duration(seconds: 5),
+        onTimeout: () {
+          throw TimeoutException('Accessibility service initialization timed out', const Duration(seconds: 5));
+        },
+      );
       
-      // Listen to settings changes
-      _settingsService.addListener(_onSettingsChanged);
+      await _appInfoService.initialize().timeout(
+        const Duration(seconds: 3),
+        onTimeout: () {
+          debugPrint('App info service initialization timed out');
+        },
+      );
+      
+      final preferences = await _settingsService.getPreferences().timeout(
+        const Duration(seconds: 5),
+        onTimeout: () {
+          debugPrint('Settings service getPreferences timed out, using defaults');
+          return UserPreferences.defaults;
+        },
+      );
+      
+      final biometricAvailable = await _localAuth.canCheckBiometrics.timeout(
+        const Duration(seconds: 3),
+        onTimeout: () {
+          debugPrint('Biometric check timed out, assuming false');
+          return false;
+        },
+      );
+      
+      if (mounted) {
+        setState(() {
+          _currentPreferences = preferences;
+          _biometricAvailable = biometricAvailable;
+          _isLoading = false;
+        });
+        
+        // Listen to settings changes
+        _settingsService.addListener(_onSettingsChanged);
+      }
     } catch (e) {
       debugPrint('Settings initialization error: $e');
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _currentPreferences = UserPreferences.defaults;
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -81,7 +126,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget build(BuildContext context) {
     if (_isLoading) {
       return Scaffold(
-        backgroundColor: AppTheme.getBackgroundPrimary(context),
+        backgroundColor: DesignTokens.getBackgroundPrimary(context),
         body: const Center(
           child: CircularProgressIndicator(),
         ),
@@ -89,53 +134,25 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
 
     return Scaffold(
-      backgroundColor: AppTheme.getBackgroundPrimary(context),
+      backgroundColor: DesignTokens.getBackgroundPrimary(context),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: AppTheme.accentYellow,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Icon(
-                      Icons.settings_rounded,
-                      color: AppTheme.getPrimaryColor(context),
-                      size: 24,
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Text(
-                    'Settings',
-                    style: Theme.of(context).textTheme.headlineLarge,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 32),
+        child: Column(
+          children: [
+            // AppHeader
+            ComponentLibrary.appHeader(
+              context: context,
+              title: 'Settings',
+              subtitle: 'Manage your preferences',
+              icon: Icons.settings_rounded,
+            ),
+            // Main content
+            Expanded(
+              child: SingleChildScrollView(
+                padding: EdgeInsets.all(ComponentLibrary.spaceGR4),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
               
-              // AI Analysis & Privacy
-              _buildSettingsSection(
-                'AI Analysis & Privacy',
-                [
-                  _buildSwitchItem(
-                    Icons.psychology,
-                    'Personalized Insights',
-                    'Get personalized feedback and commentary in AI analysis',
-                    _currentPreferences.personalizedInsightsEnabled,
-                    _togglePersonalizedInsights,
-                  ),
-                  _buildPersonalizedInsightsInfo(),
-                ],
-              ),
-              
-              const SizedBox(height: 24),
               
               // Security & Authentication
               _buildSettingsSection(
@@ -145,20 +162,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     _buildSwitchItem(
                       Icons.fingerprint,
                       'Biometric Authentication',
-                      'Use Face ID, Touch ID, or fingerprint to unlock the app',
+                      'Use Face ID or Touch ID to securely unlock the app',
                       _currentPreferences.biometricAuthEnabled,
                       _toggleBiometricAuth,
                     ),
-                  _buildActionItem(
-                    Icons.lock_reset,
-                    'Change PIN',
-                    'Update your app PIN for security',
-                    _changePIN,
-                  ),
+                  // PIN change option removed - using biometrics-only authentication
                 ],
               ),
               
-              const SizedBox(height: 24),
+              SizedBox(height: ComponentLibrary.spaceGR4),
               
               // Appearance & Theme
               _buildSettingsSection(
@@ -175,12 +187,44 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ],
               ),
               
-              const SizedBox(height: 24),
+              SizedBox(height: ComponentLibrary.spaceGR4),
               
-              // Accessibility section temporarily hidden for TestFlight
-              // Will be re-enabled in future updates
+              // Accessibility
+              _buildSettingsSection(
+                'Accessibility',
+                [
+                  _buildSwitchItem(
+                    Icons.contrast,
+                    'High Contrast',
+                    'Increase contrast for better visibility • Also respects iOS system settings',
+                    _currentPreferences.highContrastEnabled,
+                    _toggleHighContrast,
+                  ),
+                  _buildSwitchItem(
+                    Icons.text_increase,
+                    'Large Text',
+                    'Use larger text for better readability • Respects iOS Dynamic Type',
+                    _currentPreferences.largeTextEnabled,
+                    _toggleLargeText,
+                  ),
+                  _buildSwitchItem(
+                    Icons.motion_photos_off,
+                    'Reduce Motion',
+                    'Minimize animations and transitions • Respects iOS reduce motion setting',
+                    _currentPreferences.reducedMotionEnabled,
+                    _toggleReducedMotion,
+                  ),
+                  _buildSwitchItem(
+                    Icons.record_voice_over,
+                    'Screen Reader Support',
+                    'Enhanced VoiceOver compatibility and semantic labels',
+                    _currentPreferences.screenReaderEnabled,
+                    _toggleScreenReader,
+                  ),
+                ],
+              ),
               
-              const SizedBox(height: 24),
+              SizedBox(height: ComponentLibrary.spaceGR4),
               
               // Notifications & Reminders
               _buildSettingsSection(
@@ -189,7 +233,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   _buildSwitchItem(
                     Icons.notifications,
                     'Daily Reminders',
-                    'Get reminded to journal every day',
+                    'Get local push notifications to journal daily • Requires iOS notification permission',
                     _currentPreferences.dailyRemindersEnabled,
                     _toggleDailyReminders,
                   ),
@@ -198,7 +242,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ],
               ),
               
-              const SizedBox(height: 24),
+              SizedBox(height: ComponentLibrary.spaceGR4),
               
               // Data Management
               _buildSettingsSection(
@@ -213,10 +257,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       );
                     },
                   ),
+                  
+                  // Offline Queue Status
+                  SizedBox(height: ComponentLibrary.spaceGR1),
+                  const OfflineQueueStatusWidget(),
+                  SizedBox(height: ComponentLibrary.spaceGR1),
+                  
                   _buildActionItem(
                     Icons.privacy_tip,
                     'Privacy Dashboard',
-                    'View what data is stored and manage privacy settings',
+                    'View what data is stored locally on your device',
                     () => Navigator.pushNamed(context, '/privacy-dashboard'),
                   ),
                   _buildActionItem(
@@ -224,6 +274,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     'Export Data',
                     'Export your journal entries and cores',
                     _exportData,
+                  ),
+                  _buildBackupStatusItem(),
+                  _buildActionItem(
+                    Icons.cloud_upload,
+                    'Backup to iCloud',
+                    'Create backup in iCloud Documents',
+                    _performBackup,
+                  ),
+                  _buildActionItem(
+                    Icons.cloud_download,
+                    'Restore from iCloud',
+                    'Restore data from iCloud backup',
+                    _restoreFromBackup,
                   ),
                   _buildActionItem(
                     Icons.refresh,
@@ -238,6 +301,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     _resetCores,
                     isDestructive: true,
                   ),
+                  // AI Diagnostics removed - using local fallback processing
+                  /*_buildActionItem(
+                    Icons.bug_report,
+                    'AI Diagnostics',
+                    'Debug and troubleshoot AI integration issues (removed)',
+                    () {},
+                  ),*/
                   _buildActionItem(
                     Icons.delete_forever,
                     'Clear All Data',
@@ -248,7 +318,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ],
               ),
               
-              const SizedBox(height: 24),
+              SizedBox(height: ComponentLibrary.spaceGR4),
               
               // App Preferences
               _buildSettingsSection(
@@ -264,8 +334,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   _buildActionItem(
                     Icons.language, 
                     'Language', 
-                    'English', 
-                    null
+                    'English (System Default)', 
+                    _showLanguageInfo
                   ),
                   _buildActionItem(
                     Icons.help, 
@@ -276,7 +346,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ],
               ),
               
-              const SizedBox(height: 24),
+              SizedBox(height: ComponentLibrary.spaceGR4),
+              
               
               // TestFlight Feedback
               _buildSettingsSection(
@@ -291,43 +362,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ],
               ),
               
-              // Development Settings (Debug mode only)
-              if (kDebugMode) ...[
-                const SizedBox(height: 24),
-                _buildSettingsSection(
-                  'Development',
-                  [
-                    _buildActionItem(
-                      Icons.developer_mode,
-                      'AI Settings (Dev)',
-                      'Configure Claude API key for testing',
-                      () => Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (context) => const AISettingsScreen(),
-                        ),
-                      ),
-                    ),
-                    // Sample data generation removed for TestFlight
-                    // Will be re-enabled for development builds
-                  ],
-                ),
-              ],
-              
-              const SizedBox(height: 40),
+              SizedBox(height: ComponentLibrary.spaceGR5),
               
               // App Version
               Center(
-                child: Text(
-                  'Spiral Journal v1.0.0',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppTheme.textTertiary,
-                  ),
-                ),
+                child: HeadingSystem.caption(context, _appInfoService.versionDisplay),
               ),
               
-              const SizedBox(height: 100), // Extra space for bottom navigation
-            ],
-          ),
+              SizedBox(height: ComponentLibrary.spaceGR6), // Extra space for bottom navigation
+                  ],
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -337,16 +384,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          title,
-          style: AppTheme.getTextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-            color: AppTheme.getPrimaryColor(context),
-          ),
-        ),
-        const SizedBox(height: 12),
-        Card(
+        HeadingSystem.sectionHeading(context, title),
+        AnimatedCard(
           child: Column(
             children: items,
           ),
@@ -362,24 +401,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
     bool value,
     ValueChanged<bool> onChanged,
   ) {
-    return ListTile(
-      leading: Icon(icon, color: AppTheme.getPrimaryColor(context)),
-      title: Text(
-        title,
-        style: AppTheme.getTextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.w500,
-          color: AppTheme.getTextPrimary(context),
-        ),
-      ),
-      subtitle: Text(
-        subtitle,
-        style: AppTheme.getTextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.w400,
-          color: AppTheme.getTextSecondary(context),
-        ),
-      ),
+    return HeadingSystem.listTile(
+      context: context,
+      title: title,
+      subtitle: subtitle,
+      leadingIcon: icon,
       trailing: Switch(
         value: value,
         onChanged: onChanged,
@@ -395,31 +421,44 @@ class _SettingsScreenState extends State<SettingsScreen> {
     VoidCallback? onTap, {
     bool isDestructive = false,
   }) {
-    return ListTile(
-      leading: Icon(
-        icon,
-        color: isDestructive ? AppTheme.accentRed : AppTheme.getPrimaryColor(context),
-      ),
-      title: Text(
-        title,
-        style: AppTheme.getTextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.w500,
-          color: isDestructive ? AppTheme.accentRed : AppTheme.getTextPrimary(context),
+    if (isDestructive) {
+      // For destructive actions, we need custom styling
+      return ListTile(
+        leading: Icon(
+          icon,
+          color: AppTheme.accentRed,
+          size: HeadingSystem.iconSizeM,
         ),
-      ),
-      subtitle: Text(
-        subtitle,
-        style: AppTheme.getTextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.w400,
-          color: AppTheme.getTextSecondary(context),
+        title: Text(
+          title,
+          style: HeadingSystem.getTitleMedium(context).copyWith(
+            color: AppTheme.accentRed,
+          ),
         ),
-      ),
+        subtitle: Text(
+          subtitle,
+          style: HeadingSystem.getBodyMedium(context),
+        ),
+        trailing: onTap != null
+            ? Icon(
+                Icons.arrow_forward_ios,
+                size: HeadingSystem.iconSizeS,
+                color: AppTheme.getTextTertiary(context),
+              )
+            : null,
+        onTap: onTap,
+      );
+    }
+    
+    return HeadingSystem.listTile(
+      context: context,
+      title: title,
+      subtitle: subtitle,
+      leadingIcon: icon,
       trailing: onTap != null
           ? Icon(
               Icons.arrow_forward_ios,
-              size: 16,
+              size: HeadingSystem.iconSizeS,
               color: AppTheme.getTextTertiary(context),
             )
           : null,
@@ -428,24 +467,77 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Widget _buildInfoItem(IconData icon, String title, String subtitle) {
-    return ListTile(
-      leading: Icon(icon, color: AppTheme.getPrimaryColor(context)),
-      title: Text(
-        title,
-        style: AppTheme.getTextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.w500,
-          color: AppTheme.getTextPrimary(context),
-        ),
-      ),
-      subtitle: Text(
-        subtitle,
-        style: AppTheme.getTextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.w400,
-          color: AppTheme.getTextSecondary(context),
-        ),
-      ),
+    return HeadingSystem.listTile(
+      context: context,
+      title: title,
+      subtitle: subtitle,
+      leadingIcon: icon,
+    );
+  }
+
+  Widget _buildBackupStatusItem() {
+    return FutureBuilder<Map<String, dynamic>?>(
+      future: _settingsService.getBackupStatus(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return HeadingSystem.listTile(
+            context: context,
+            title: 'iCloud Backup Status',
+            subtitle: 'Loading...',
+            leadingIcon: Icons.cloud_sync,
+          );
+        }
+
+        final status = snapshot.data;
+        String subtitle;
+        IconData icon;
+        Color? iconColor;
+
+        if (status == null) {
+          subtitle = 'Unable to check backup status';
+          icon = Icons.cloud_off;
+          iconColor = AppTheme.accentRed;
+        } else if (status['hasBackup'] == true) {
+          final lastBackup = status['lastBackup'];
+          if (lastBackup != null) {
+            final lastBackupDate = DateTime.parse(lastBackup);
+            final now = DateTime.now();
+            final difference = now.difference(lastBackupDate);
+            
+            if (difference.inDays > 0) {
+              subtitle = 'Last backup: ${difference.inDays} day${difference.inDays == 1 ? '' : 's'} ago';
+            } else if (difference.inHours > 0) {
+              subtitle = 'Last backup: ${difference.inHours} hour${difference.inHours == 1 ? '' : 's'} ago';
+            } else {
+              subtitle = 'Backup available • Last backup: recently';
+            }
+          } else {
+            subtitle = 'Backup available';
+          }
+          icon = Icons.cloud_done;
+          iconColor = AppTheme.accentGreen;
+        } else {
+          subtitle = 'No backup found • Tap "Backup to iCloud" to create one';
+          icon = Icons.cloud_queue;
+          iconColor = AppTheme.accentOrange;
+        }
+
+        return ListTile(
+          leading: Icon(
+            icon,
+            color: iconColor,
+            size: HeadingSystem.iconSizeM,
+          ),
+          title: Text(
+            'iCloud Backup Status',
+            style: HeadingSystem.getTitleMedium(context),
+          ),
+          subtitle: Text(
+            subtitle,
+            style: HeadingSystem.getBodyMedium(context),
+          ),
+        );
+      },
     );
   }
 
@@ -455,112 +547,30 @@ class _SettingsScreenState extends State<SettingsScreen> {
       minute: int.parse(_currentPreferences.reminderTime.split(':')[1]),
     );
     
-    return ListTile(
-      leading: Icon(Icons.schedule, color: AppTheme.getPrimaryColor(context)),
-      title: Text(
-        'Reminder Time',
-        style: AppTheme.getTextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.w500,
-          color: AppTheme.getTextPrimary(context),
-        ),
-      ),
-      subtitle: Text(
-        reminderTime.format(context),
-        style: AppTheme.getTextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.w400,
-          color: AppTheme.getTextSecondary(context),
-        ),
-      ),
+    return HeadingSystem.listTile(
+      context: context,
+      title: 'Reminder Time',
+      subtitle: reminderTime.format(context),
+      leadingIcon: Icons.schedule,
       trailing: Icon(
         Icons.arrow_forward_ios,
-        size: 16,
+        size: HeadingSystem.iconSizeS,
         color: AppTheme.getTextTertiary(context),
       ),
       onTap: _selectReminderTime,
     );
   }
 
-  Widget _buildPersonalizedInsightsInfo() {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: _currentPreferences.personalizedInsightsEnabled 
-            ? AppTheme.getColorWithOpacity(AppTheme.accentGreen, 0.1)
-            : AppTheme.getColorWithOpacity(AppTheme.textTertiary, 0.1),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: _currentPreferences.personalizedInsightsEnabled 
-              ? AppTheme.getColorWithOpacity(AppTheme.accentGreen, 0.3)
-              : AppTheme.getColorWithOpacity(AppTheme.textTertiary, 0.3),
-        ),
-      ),
-      child: Row(
-        children: [
-          Icon(
-            _currentPreferences.personalizedInsightsEnabled ? Icons.psychology : Icons.psychology_outlined,
-            size: 20,
-            color: _currentPreferences.personalizedInsightsEnabled ? AppTheme.accentGreen : AppTheme.textTertiary,
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  _currentPreferences.personalizedInsightsEnabled ? 'Personalized Analysis Active' : 'Core Updates Only',
-                  style: AppTheme.getTextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    color: _currentPreferences.personalizedInsightsEnabled ? AppTheme.accentGreen : AppTheme.textTertiary,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  _currentPreferences.personalizedInsightsEnabled 
-                      ? 'AI provides personalized feedback and commentary on your entries'
-                      : 'AI only updates your emotional cores without personal commentary',
-                  style: AppTheme.getTextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w400,
-                    color: _currentPreferences.personalizedInsightsEnabled ? AppTheme.textSecondary : AppTheme.textTertiary,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
   Widget _buildThemeSelector() {
-    return ListTile(
-      leading: Icon(
-        _getThemeIcon(_currentPreferences.themeMode),
-        color: AppTheme.getPrimaryColor(context),
-      ),
-      title: Text(
-        'Theme',
-        style: AppTheme.getTextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.w500,
-          color: AppTheme.getTextPrimary(context),
-        ),
-      ),
-      subtitle: Text(
-        _getThemeDescription(_currentPreferences.themeMode),
-        style: AppTheme.getTextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.w400,
-          color: AppTheme.getTextSecondary(context),
-        ),
-      ),
+    return HeadingSystem.listTile(
+      context: context,
+      title: 'Theme',
+      subtitle: _getThemeDescription(_currentPreferences.themeMode),
+      leadingIcon: _getThemeIcon(_currentPreferences.themeMode),
       trailing: Icon(
         Icons.arrow_forward_ios,
-        size: 16,
+        size: HeadingSystem.iconSizeS,
         color: AppTheme.textTertiary,
       ),
       onTap: _showThemeDialog,
@@ -591,33 +601,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   // Settings Methods
-  Future<void> _togglePersonalizedInsights(bool enabled) async {
-    try {
-      await _settingsService.setPersonalizedInsightsEnabled(enabled);
-      
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              enabled 
-                  ? 'Personalized insights enabled! 🧠' 
-                  : 'Personalized insights disabled. Core updates only.',
-            ),
-            backgroundColor: AppTheme.accentGreen,
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to toggle personalized insights: $e'),
-            backgroundColor: AppTheme.accentRed,
-          ),
-        );
-      }
-    }
-  }
 
   Future<void> _toggleBiometricAuth(bool enabled) async {
     try {
@@ -771,7 +754,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   // Accessibility Methods
   Future<void> _toggleHighContrast(bool enabled) async {
     try {
-      await _accessibilityService.setHighContrastMode(enabled);
+      await _settingsService.setHighContrastEnabled(enabled);
       
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -799,7 +782,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _toggleLargeText(bool enabled) async {
     try {
-      await _accessibilityService.setLargeTextMode(enabled);
+      await _settingsService.setLargeTextEnabled(enabled);
       
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -827,7 +810,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _toggleReducedMotion(bool enabled) async {
     try {
-      await _accessibilityService.setReducedMotionMode(enabled);
+      await _settingsService.setReducedMotionEnabled(enabled);
       
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -855,7 +838,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _toggleScreenReader(bool enabled) async {
     try {
-      await _accessibilityService.setScreenReaderEnabled(enabled);
+      await _settingsService.setScreenReaderEnabled(enabled);
       
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -975,8 +958,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ),
       title: Text(
         title,
-        style: AppTheme.getTextStyle(
-          fontSize: 16,
+        style: HeadingSystem.getTitleMedium(context).copyWith(
           fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
           color: isSelected 
               ? AppTheme.getPrimaryColor(context) 
@@ -985,11 +967,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ),
       subtitle: Text(
         subtitle,
-        style: AppTheme.getTextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.w400,
-          color: AppTheme.getTextSecondary(context),
-        ),
+        style: HeadingSystem.getBodyMedium(context),
       ),
       trailing: isSelected
           ? Icon(
@@ -999,8 +977,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
           : null,
       onTap: () async {
         try {
-          await _settingsService.setThemeMode(mode);
+          await _settingsService.setThemeMode(mode).timeout(
+            const Duration(seconds: 5),
+            onTimeout: () {
+              throw TimeoutException('Theme update timed out', const Duration(seconds: 5));
+            },
+          );
+          
+          // Verify the setting was actually saved
+          final currentPrefs = await _settingsService.getPreferences();
+          if (currentPrefs.themeMode != mode) {
+            throw Exception('Theme setting was not persisted correctly');
+          }
+          
           if (mounted) {
+            setState(() {
+              _currentPreferences = currentPrefs;
+            });
+            
             Navigator.of(context).pop();
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
@@ -1010,10 +1004,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
             );
           }
         } catch (e) {
+          debugPrint('Failed to change theme: $e');
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text('Failed to change theme: $e'),
+                content: Text('Failed to save theme setting: ${e.toString()}'),
                 backgroundColor: AppTheme.accentRed,
               ),
             );
@@ -1023,29 +1018,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Future<void> _changePIN() async {
-    try {
-      // Navigate to PIN setup screen to change PIN
-      // This would typically navigate to a PIN change screen
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('PIN change feature will be implemented with PIN setup screen'),
-            backgroundColor: AppTheme.accentGreen,
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to change PIN: $e'),
-            backgroundColor: AppTheme.accentRed,
-          ),
-        );
-      }
-    }
-  }
+  // PIN change functionality removed - using biometrics-only authentication
 
   // Data Management Methods
   Future<void> _exportData() async {
@@ -1089,6 +1062,144 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Export failed: $e'),
+            backgroundColor: AppTheme.accentRed,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _performBackup() async {
+    try {
+      // Show loading dialog
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const AlertDialog(
+          content: Row(
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(width: 16),
+              Text('Creating backup...'),
+            ],
+          ),
+        ),
+      );
+
+      final success = await _settingsService.triggerManualBackup();
+
+      if (mounted) {
+        Navigator.of(context).pop(); // Close loading dialog
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              success ? 'Backup created successfully in iCloud Documents' : 'Backup failed',
+            ),
+            backgroundColor: success ? AppTheme.accentGreen : AppTheme.accentRed,
+          ),
+        );
+        
+        if (success) {
+          setState(() {}); // Refresh backup status
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.of(context).pop(); // Close loading dialog
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Backup failed: $e'),
+            backgroundColor: AppTheme.accentRed,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _restoreFromBackup() async {
+    final hasBackup = await _settingsService.isBackupAvailable();
+    
+    if (!hasBackup) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('No backup found in iCloud Documents'),
+          backgroundColor: AppTheme.accentRed,
+        ),
+      );
+      return;
+    }
+
+    // Show confirmation dialog
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Restore from Backup'),
+        content: const Text(
+          'This will replace all current data with the backup. This action cannot be undone. Continue?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Restore'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    try {
+      // Show loading dialog
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const AlertDialog(
+          content: Row(
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(width: 16),
+              Text('Restoring from backup...'),
+            ],
+          ),
+        ),
+      );
+
+      final success = await _settingsService.restoreFromBackup();
+
+      if (mounted) {
+        Navigator.of(context).pop(); // Close loading dialog
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              success ? 'Data restored successfully from backup' : 'Restore failed',
+            ),
+            backgroundColor: success ? AppTheme.accentGreen : AppTheme.accentRed,
+          ),
+        );
+        
+        if (success) {
+          // Refresh providers after restore
+          if (mounted) {
+            final journalProvider = Provider.of<JournalProvider>(context, listen: false);
+            final coreProvider = Provider.of<CoreProvider>(context, listen: false);
+            await journalProvider.refresh();
+            await coreProvider.refresh(); 
+            setState(() {}); // Refresh UI
+          }
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.of(context).pop(); // Close loading dialog
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Restore failed: $e'),
             backgroundColor: AppTheme.accentRed,
           ),
         );
@@ -1261,7 +1372,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       await _settingsService.clearAllSettings();
       
       // Reset PIN
-      await _pinAuthService.resetPin();
+      // PIN auth service reset removed - using biometrics-only authentication
 
       // Refresh providers
       await journalProvider.initialize();
@@ -1303,30 +1414,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  void _showHelpDialog() {
+  void _showLanguageInfo() {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Help & Support'),
-        content: const Column(
+        title: const Text('Language Settings'),
+        content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Spiral Journal - AI-Powered Personal Growth'),
-            SizedBox(height: 16),
-            Text('Features:'),
-            Text('• Stream-of-consciousness journaling'),
-            Text('• AI-powered emotional analysis'),
-            Text('• Personality core evolution tracking'),
-            Text('• Personalized insights and feedback'),
-            Text('• Secure local data storage'),
-            SizedBox(height: 16),
-            Text('Privacy:'),
-            Text('• All data stored locally on your device'),
-            Text('• Optional personalized AI insights'),
-            Text('• Biometric authentication support'),
-            SizedBox(height: 16),
-            Text('Need help? Contact us at support@spiraljournal.com'),
+            const Text('The app follows your system language settings.'),
+            SizedBox(height: ComponentLibrary.spaceGR2),
+            const Text('Currently Supported:'),
+            const Text('• English'),
+            SizedBox(height: ComponentLibrary.spaceGR2),
+            const Text('To change the app language, update your iOS system language in Settings > General > Language & Region.'),
           ],
         ),
         actions: [
@@ -1339,53 +1441,40 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Future<void> _generateSampleData() async {
-    try {
-      // Show loading dialog
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => const AlertDialog(
-          content: Row(
-            children: [
-              CircularProgressIndicator(),
-              SizedBox(width: 16),
-              Text('Generating sample data...'),
-            ],
-          ),
+  void _showHelpDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Help & Support'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(_appInfoService.fullTitle),
+            SizedBox(height: ComponentLibrary.spaceGR2),
+            const Text('Features:'),
+            const Text('• Stream-of-consciousness journaling'),
+            const Text('• Emotional pattern tracking'),
+            const Text('• Personality core evolution tracking'),
+            const Text('• Personal insights and reflections'),
+            const Text('• Secure local data storage'),
+            SizedBox(height: ComponentLibrary.spaceGR2),
+            const Text('Privacy:'),
+            const Text('• All data stored locally on your device'),
+            const Text('• No external data sharing'),
+            const Text('• Biometric authentication support'),
+            SizedBox(height: ComponentLibrary.spaceGR2),
+            Text('Need help? Contact us at ${_appInfoService.supportEmail}'),
+          ],
         ),
-      );
-
-      // Generate sample data
-      await SampleDataGenerator.generateSampleData();
-
-      // Refresh providers to show new data
-      final journalProvider = Provider.of<JournalProvider>(context, listen: false);
-      final coreProvider = Provider.of<CoreProvider>(context, listen: false);
-      
-      await journalProvider.initialize();
-      await coreProvider.initialize();
-
-      if (mounted) {
-        Navigator.of(context).pop(); // Close loading dialog
-        
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Sample data generated! Check your journal and emotional mirror 📊'),
-            backgroundColor: AppTheme.accentGreen,
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Close'),
           ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        Navigator.of(context).pop(); // Close loading dialog
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to generate sample data: $e'),
-            backgroundColor: AppTheme.accentRed,
-          ),
-        );
-      }
-    }
+        ],
+      ),
+    );
   }
+
 }

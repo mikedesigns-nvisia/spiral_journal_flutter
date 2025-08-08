@@ -13,7 +13,7 @@ class AppTheme {
   static ThemeData get lightTheme {
     return ThemeData(
       useMaterial3: true,
-      fontFamily: DesignTokens.fontFamily,
+      // Removed global fontFamily to allow text styles to use their own fonts
       brightness: Brightness.light,
       
       // Color Scheme
@@ -35,8 +35,8 @@ class AppTheme {
         elevation: DesignTokens.appBarElevation,
         centerTitle: false,
         titleTextStyle: DesignTokens.getTextStyle(
-          fontSize: DesignTokens.fontSizeXXXL,
-          fontWeight: DesignTokens.fontWeightSemiBold,
+          fontSize: 18.0,
+          fontWeight: DesignTokens.fontWeightMedium,
           color: DesignTokens.primaryOrange,
         ),
       ),
@@ -108,39 +108,8 @@ class AppTheme {
         ),
       ),
       
-      // Text Theme
-      textTheme: TextTheme(
-        headlineLarge: DesignTokens.getTextStyle(
-          fontSize: DesignTokens.fontSizeXXXL,
-          fontWeight: DesignTokens.fontWeightSemiBold,
-          color: DesignTokens.primaryOrange,
-        ),
-        headlineMedium: DesignTokens.getTextStyle(
-          fontSize: DesignTokens.fontSizeXXL,
-          fontWeight: DesignTokens.fontWeightMedium,
-          color: DesignTokens.textPrimary,
-        ),
-        headlineSmall: DesignTokens.getTextStyle(
-          fontSize: DesignTokens.fontSizeXL,
-          fontWeight: DesignTokens.fontWeightMedium,
-          color: DesignTokens.primaryDark,
-        ),
-        bodyLarge: DesignTokens.getTextStyle(
-          fontSize: DesignTokens.fontSizeL,
-          fontWeight: DesignTokens.fontWeightRegular,
-          color: DesignTokens.textSecondary,
-        ),
-        bodyMedium: DesignTokens.getTextStyle(
-          fontSize: DesignTokens.fontSizeM,
-          fontWeight: DesignTokens.fontWeightRegular,
-          color: DesignTokens.textSecondary,
-        ),
-        bodySmall: DesignTokens.getTextStyle(
-          fontSize: DesignTokens.fontSizeS,
-          fontWeight: DesignTokens.fontWeightRegular,
-          color: DesignTokens.textTertiary,
-        ),
-      ),
+      // Text Theme - Using serif headings and Noto Sans JP body
+      textTheme: DesignTokens.textTheme(isDark: false),
       
       // Input Decoration Theme
       inputDecorationTheme: InputDecorationTheme(
@@ -175,7 +144,7 @@ class AppTheme {
   static ThemeData get darkTheme {
     return ThemeData(
       useMaterial3: true,
-      fontFamily: DesignTokens.fontFamily,
+      // Removed global fontFamily to allow text styles to use their own fonts
       brightness: Brightness.dark,
       
       // Color Scheme
@@ -199,8 +168,8 @@ class AppTheme {
         elevation: DesignTokens.appBarElevation,
         centerTitle: false,
         titleTextStyle: DesignTokens.getTextStyle(
-          fontSize: DesignTokens.fontSizeXXXL,
-          fontWeight: DesignTokens.fontWeightSemiBold,
+          fontSize: 18.0,
+          fontWeight: DesignTokens.fontWeightMedium,
           color: DesignTokens.darkPrimaryOrange,
         ),
       ),
@@ -214,7 +183,7 @@ class AppTheme {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(DesignTokens.cardRadius),
           side: BorderSide(
-            color: DesignTokens.darkBackgroundTertiary, 
+            color: const Color(0xFF404040), // Subtle border for dark mode contrast
             width: ComponentTokens.cardBorderWidth,
           ),
         ),
@@ -272,39 +241,8 @@ class AppTheme {
         ),
       ),
       
-      // Text Theme
-      textTheme: TextTheme(
-        headlineLarge: DesignTokens.getTextStyle(
-          fontSize: DesignTokens.fontSizeXXXL,
-          fontWeight: DesignTokens.fontWeightSemiBold,
-          color: DesignTokens.darkPrimaryOrange,
-        ),
-        headlineMedium: DesignTokens.getTextStyle(
-          fontSize: DesignTokens.fontSizeXXL,
-          fontWeight: DesignTokens.fontWeightMedium,
-          color: DesignTokens.darkTextPrimary,
-        ),
-        headlineSmall: DesignTokens.getTextStyle(
-          fontSize: DesignTokens.fontSizeXL,
-          fontWeight: DesignTokens.fontWeightMedium,
-          color: DesignTokens.darkPrimaryDark,
-        ),
-        bodyLarge: DesignTokens.getTextStyle(
-          fontSize: DesignTokens.fontSizeL,
-          fontWeight: DesignTokens.fontWeightRegular,
-          color: DesignTokens.darkTextSecondary,
-        ),
-        bodyMedium: DesignTokens.getTextStyle(
-          fontSize: DesignTokens.fontSizeM,
-          fontWeight: DesignTokens.fontWeightRegular,
-          color: DesignTokens.darkTextSecondary,
-        ),
-        bodySmall: DesignTokens.getTextStyle(
-          fontSize: DesignTokens.fontSizeS,
-          fontWeight: DesignTokens.fontWeightRegular,
-          color: DesignTokens.darkTextTertiary,
-        ),
-      ),
+      // Text Theme - Using serif headings and Noto Sans JP body
+      textTheme: DesignTokens.textTheme(isDark: true),
       
       // Input Decoration Theme
       inputDecorationTheme: InputDecorationTheme(
@@ -312,11 +250,17 @@ class AppTheme {
         fillColor: DesignTokens.darkBackgroundTertiary,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(DesignTokens.inputRadius),
-          borderSide: BorderSide(color: DesignTokens.darkSurface),
+          borderSide: BorderSide(
+            color: const Color(0xFF505050), // Better contrast for input borders
+            width: 1.5,
+          ),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(DesignTokens.inputRadius),
-          borderSide: BorderSide(color: DesignTokens.darkSurface),
+          borderSide: BorderSide(
+            color: const Color(0xFF505050), // Better contrast for input borders
+            width: 1.5,
+          ),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(DesignTokens.inputRadius),
@@ -367,6 +311,10 @@ class AppTheme {
     return DesignTokens.getBackgroundSecondary(context);
   }
   
+  static Color getBackgroundTertiary(BuildContext context) {
+    return DesignTokens.getBackgroundTertiary(context);
+  }
+  
   /// Get theme-aware text colors
   static Color getTextPrimary(BuildContext context) {
     return DesignTokens.getTextPrimary(context);
@@ -388,6 +336,11 @@ class AppTheme {
   /// Get core color (theme-agnostic)
   static Color getCoreColor(String coreType) {
     return DesignTokens.getCoreColor(coreType);
+  }
+  
+  /// Get theme-aware accent color
+  static Color getAccentColor(BuildContext context) {
+    return DesignTokens.getPrimaryColor(context);
   }
   
   /// Apply opacity to color
@@ -425,6 +378,13 @@ class AppTheme {
   static Color get accentYellow => DesignTokens.accentYellow;
   static Color get accentGreen => DesignTokens.accentGreen;
   static Color get accentRed => DesignTokens.accentRed;
+  static Color get accentOrange => DesignTokens.warningColor;
+  
+  /// Status colors
+  static Color get warningColor => DesignTokens.warningColor;
+  static Color get successColor => DesignTokens.successColor;
+  static Color get errorColor => DesignTokens.errorColor;
+  static Color get infoColor => DesignTokens.infoColor;
   
   /// Mood colors
   static Color get moodHappy => DesignTokens.moodHappy;

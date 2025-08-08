@@ -1,6 +1,8 @@
 import 'package:flutter/foundation.dart';
 import '../models/journal_entry.dart';
 import '../models/core.dart';
+import '../models/journal_emotional_pattern.dart';
+import '../models/emotional_mirror_data.dart';
 import '../repositories/journal_repository.dart';
 import '../repositories/journal_repository_impl.dart';
 import '../services/core_library_service.dart';
@@ -19,6 +21,19 @@ class EmotionalMirrorService {
   final CoreLibraryService _coreLibraryService = CoreLibraryService();
   final EmotionalAnalyzer _emotionalAnalyzer = EmotionalAnalyzer();
 
+  // Helper method to get primary emotions from journal entry (using manual moods)
+  List<String> _getPrimaryEmotions(JournalEntry entry) {
+    return entry.moods; // Use manually selected moods as emotions
+  }
+
+  // Helper method to get emotional intensity from entry content
+  double _getEmotionalIntensity(JournalEntry entry) {
+    // Simple heuristic based on content length and mood count
+    final contentIntensity = (entry.content.length / 1000.0).clamp(0.0, 0.5);
+    final moodIntensity = (entry.moods.length / 5.0).clamp(0.0, 0.5);
+    return (contentIntensity + moodIntensity).clamp(0.0, 1.0);
+  }
+
   /// Get comprehensive emotional mirror data
   Future<EmotionalMirrorData> getEmotionalMirrorData({
     int daysBack = 30,
@@ -30,7 +45,7 @@ class EmotionalMirrorService {
       final entries = await _journalRepository.getEntriesByDateRange(startDate, endDate);
       
       // Get analyzed entries only
-      final analyzedEntries = entries.where((entry) => entry.isAnalyzed && entry.aiAnalysis != null).toList();
+      final analyzedEntries = entries; // All entries are processed locally
       
       // Get current cores
       final cores = await _coreLibraryService.getAllCores();
@@ -56,7 +71,7 @@ class EmotionalMirrorService {
       return EmotionalMirrorData(
         moodOverview: moodOverview,
         emotionalTrends: trends,
-        emotionalPatterns: patterns,
+        emotionalPatterns: _convertToEmotionalPatterns(patterns),
         emotionalBalance: balance,
         insights: insights,
         selfAwarenessScore: selfAwarenessScore,
@@ -92,10 +107,9 @@ class EmotionalMirrorService {
         }
         
         // Count AI-detected moods
-        if (entry.aiAnalysis != null) {
-          for (final emotion in entry.aiAnalysis!.primaryEmotions) {
-            aiMoodCounts[emotion] = (aiMoodCounts[emotion] ?? 0) + 1;
-          }
+        // Process manually selected moods as emotions
+        for (final emotion in _getPrimaryEmotions(entry)) {
+          aiMoodCounts[emotion] = (aiMoodCounts[emotion] ?? 0) + 1;
         }
       }
       
@@ -131,13 +145,7 @@ class EmotionalMirrorService {
       for (final entry in entries) {
         final dayKey = DateTime(entry.date.year, entry.date.month, entry.date.day);
         
-        double intensity = 0.5; // Default neutral intensity
-        
-        if (entry.aiAnalysis != null) {
-          intensity = entry.aiAnalysis!.emotionalIntensity;
-        } else if (entry.emotionalIntensity != null) {
-          intensity = entry.emotionalIntensity!;
-        }
+        double intensity = _getEmotionalIntensity(entry);
         
         dailyIntensities[dayKey] ??= [];
         dailyIntensities[dayKey]!.add(intensity);
@@ -182,13 +190,8 @@ class EmotionalMirrorService {
         
         double sentiment = 0.0; // Default neutral sentiment
         
-        if (entry.aiAnalysis != null) {
-          // Use AI analysis if available
-          sentiment = _calculateSentimentFromEmotions(entry.aiAnalysis!.primaryEmotions);
-        } else {
-          // Calculate from manual moods
-          sentiment = _calculateSentimentFromMoods(entry.moods);
-        }
+        // Calculate from manual moods
+        sentiment = _calculateSentimentFromMoods(entry.moods);
         
         dailySentiments[dayKey] ??= [];
         dailySentiments[dayKey]!.add(sentiment);
@@ -239,7 +242,7 @@ class EmotionalMirrorService {
       final coreEvolution = _calculateCoreEvolution(entries, cores);
       
       return EmotionalJourneyData(
-        patterns: patterns,
+        patterns: _convertToEmotionalPatterns(patterns),
         trends: trends,
         milestones: milestones,
         coreEvolution: coreEvolution,
@@ -277,9 +280,9 @@ class EmotionalMirrorService {
     int intensityCount = 0;
 
     for (final entry in entries) {
-      if (entry.aiAnalysis != null) {
-        allEmotions.addAll(entry.aiAnalysis!.primaryEmotions);
-        totalIntensity += entry.aiAnalysis!.emotionalIntensity;
+      if (true) {
+        allEmotions.addAll(_getPrimaryEmotions(entry));
+        totalIntensity += _getEmotionalIntensity(entry);
         intensityCount++;
       }
     }
@@ -334,8 +337,8 @@ class EmotionalMirrorService {
     int neutralCount = 0;
 
     for (final entry in entries) {
-      if (entry.aiAnalysis != null) {
-        final sentiment = _calculateSentimentFromEmotions(entry.aiAnalysis!.primaryEmotions);
+      if (true) {
+        final sentiment = _calculateSentimentFromEmotions(_getPrimaryEmotions(entry));
         if (sentiment > 0.1) {
           positiveCount++;
         } else if (sentiment < -0.1) {
@@ -366,7 +369,7 @@ class EmotionalMirrorService {
   List<String> _generateEmotionalInsights(
     List<JournalEntry> entries,
     List<EmotionalCore> cores,
-    List<EmotionalPattern> patterns,
+    List<JournalEmotionalPattern> patterns,
   ) {
     final insights = <String>[];
 
@@ -375,28 +378,274 @@ class EmotionalMirrorService {
       return insights;
     }
 
-    // Analyze recent AI insights
-    final recentInsights = entries
-        .where((entry) => entry.aiAnalysis?.personalizedInsight != null)
-        .map((entry) => entry.aiAnalysis!.personalizedInsight!)
-        .take(3)
-        .toList();
-
-    insights.addAll(recentInsights);
-
-    // Add core-based insights
-    final strongCores = cores.where((core) => core.percentage > 70.0).toList();
-    if (strongCores.isNotEmpty) {
-      insights.add('Your ${strongCores.first.name} is particularly strong, showing consistent growth in this area.');
+    // Create a set to track unique insights and avoid duplicates
+    final uniqueInsights = <String>{};
+    
+    // Generate content-based insights instead of showing journal snippets
+    final contentInsights = _generateContentBasedInsights(entries);
+    
+    // Add diverse content insights by checking for similarity
+    for (final insight in contentInsights) {
+      if (_isInsightUnique(insight, uniqueInsights) && uniqueInsights.length < 2) {
+        uniqueInsights.add(insight);
+      }
     }
-
+    
+    // Generate trend-based insights
+    final trendInsight = _generateTrendInsight(entries);
+    if (trendInsight.isNotEmpty && _isInsightUnique(trendInsight, uniqueInsights)) {
+      uniqueInsights.add(trendInsight);
+    }
+    
+    // Add core-based insights with variety
+    final coreInsight = _generateCoreInsight(cores);
+    if (coreInsight.isNotEmpty && _isInsightUnique(coreInsight, uniqueInsights)) {
+      uniqueInsights.add(coreInsight);
+    }
+    
     // Add pattern-based insights
+    final patternInsight = _generatePatternInsight(patterns, entries);
+    if (patternInsight.isNotEmpty && _isInsightUnique(patternInsight, uniqueInsights)) {
+      uniqueInsights.add(patternInsight);
+    }
+    
+    // Add emotional balance insight if we need more variety
+    if (uniqueInsights.length < 3) {
+      final balanceInsight = _generateBalanceInsight(entries);
+      if (_isInsightUnique(balanceInsight, uniqueInsights)) {
+        uniqueInsights.add(balanceInsight);
+      }
+    }
+    
+    // Ensure we have at least 2 insights
+    if (uniqueInsights.length < 2) {
+      uniqueInsights.add('Your emotional self-awareness continues to develop through consistent journaling practice.');
+    }
+    
+    return uniqueInsights.take(4).toList();
+  }
+
+  /// Check if an insight is sufficiently unique compared to existing insights
+  bool _isInsightUnique(String newInsight, Set<String> existingInsights) {
+    if (existingInsights.isEmpty) return true;
+    
+    final newWords = newInsight.toLowerCase().split(RegExp(r'\W+'));
+    
+    for (final existing in existingInsights) {
+      final existingWords = existing.toLowerCase().split(RegExp(r'\W+'));
+      
+      // Calculate word overlap
+      final commonWords = newWords.where((word) => 
+        existingWords.contains(word) && word.length > 3).length;
+      
+      // If more than 40% of significant words overlap, consider it similar
+      final overlapRatio = commonWords / (newWords.where((w) => w.length > 3).length);
+      if (overlapRatio > 0.4) {
+        return false;
+      }
+    }
+    
+    return true;
+  }
+
+  /// Generate trend-based insight
+  String _generateTrendInsight(List<JournalEntry> entries) {
+    if (entries.length < 3) return '';
+    
+    // Analyze emotional intensity trends
+    final recentEntries = entries.take(7).toList();
+    final intensities = recentEntries
+        .map((e) => _getEmotionalIntensity(e))
+        .toList();
+    
+    if (intensities.length >= 3) {
+      final avgEarly = intensities.take(intensities.length ~/ 2).fold(0.0, (a, b) => a + b) / (intensities.length ~/ 2);
+      final avgRecent = intensities.skip(intensities.length ~/ 2).fold(0.0, (a, b) => a + b) / (intensities.length - intensities.length ~/ 2);
+      
+      if (avgRecent > avgEarly + 0.1) {
+        return 'Your emotional intensity has been increasing recently, suggesting deeper engagement with your feelings.';
+      } else if (avgEarly > avgRecent + 0.1) {
+        return 'You\'ve been experiencing more balanced emotional states lately, indicating growing emotional regulation.';
+      }
+    }
+    
+    // Analyze consistency patterns
+    final journalingFreq = entries.length / 30.0; // entries per day over 30 days
+    if (journalingFreq > 0.8) {
+      return 'Your consistent journaling practice demonstrates strong commitment to emotional self-discovery.';
+    } else if (journalingFreq > 0.5) {
+      return 'Regular journaling sessions are building your emotional vocabulary and self-awareness.';
+    }
+    
+    return '';
+  }
+
+  /// Generate core-based insight with variety
+  String _generateCoreInsight(List<EmotionalCore> cores) {
+    if (cores.isEmpty) return '';
+    
+    // Sort cores by percentage to find patterns
+    final sortedCores = cores.toList()..sort((a, b) => b.percentage.compareTo(a.percentage));
+    
+    final strongCores = sortedCores.where((core) => core.percentage > 70.0).toList();
+    final growingCores = sortedCores.where((core) => 
+      core.currentLevel > core.previousLevel && core.percentage > 50.0).toList();
+    
+    if (strongCores.isNotEmpty) {
+      final topCore = strongCores.first;
+      final coreInsights = [
+        'Your ${topCore.name} core shows exceptional development, reflecting consistent growth in this area.',
+        '${topCore.name} emerges as a dominant strength, influencing your emotional responses and decisions.',
+        'Strong ${topCore.name} patterns suggest this quality is becoming integral to your personality.',
+        'Your well-developed ${topCore.name} core provides a stable foundation for emotional well-being.',
+      ];
+      final hash = topCore.name.hashCode.abs();
+      return coreInsights[hash % coreInsights.length];
+    }
+    
+    if (growingCores.isNotEmpty) {
+      final growingCore = growingCores.first;
+      return 'Your ${growingCore.name} core is actively developing, showing promising upward trends.';
+    }
+    
+    if (sortedCores.isNotEmpty) {
+      return 'Your personality cores show unique patterns that reflect your individual emotional journey.';
+    }
+    
+    return '';
+  }
+
+  /// Generate pattern-based insight
+  /// Convert JournalEmotionalPattern to EmotionalPattern for compatibility
+  List<EmotionalPattern> _convertToEmotionalPatterns(List<JournalEmotionalPattern> journalPatterns) {
+    return journalPatterns.map((jp) => EmotionalPattern(
+      title: jp.title,
+      description: jp.description,
+      type: jp.type,
+      category: jp.category,
+      confidence: 0.7, // Default confidence
+      firstDetected: DateTime.now().subtract(const Duration(days: 7)),
+      lastSeen: DateTime.now(),
+      relatedEmotions: [], // Could be derived from category if needed
+    )).toList();
+  }
+
+  String _generatePatternInsight(List<JournalEmotionalPattern> patterns, List<JournalEntry> entries) {
+    if (patterns.isEmpty) return '';
+    
     final growthPatterns = patterns.where((p) => p.type == 'growth').toList();
+    final challengePatterns = patterns.where((p) => p.type == 'challenge').toList();
+    
     if (growthPatterns.isNotEmpty) {
-      insights.add(growthPatterns.first.description);
+      // Vary the growth pattern insight
+      final pattern = growthPatterns.first;
+      // Note: JournalEmotionalPattern doesn't have confidence, assume high confidence for growth patterns
+      if (pattern.type == 'growth') {
+        return 'Strong ${pattern.title.toLowerCase()} patterns indicate significant emotional development.';
+      } else {
+        return 'Emerging ${pattern.title.toLowerCase()} trends suggest new areas of personal growth.';
+      }
+    }
+    
+    if (challengePatterns.isNotEmpty && entries.length > 5) {
+      return 'Recognizing challenging patterns is the first step toward emotional resilience and growth.';
+    }
+    
+    return '';
+  }
+
+  /// Generate emotional balance insight
+  String _generateBalanceInsight(List<JournalEntry> entries) {
+    final positiveEmotions = ['happy', 'grateful', 'excited', 'calm', 'content', 'joyful'];
+    final challengingEmotions = ['sad', 'anxious', 'stressed', 'frustrated', 'worried'];
+    
+    int positiveCount = 0;
+    int challengingCount = 0;
+    
+    for (final entry in entries) {
+      if (entry.moods.isNotEmpty) {
+        for (final emotion in _getPrimaryEmotions(entry)) {
+          if (positiveEmotions.contains(emotion.toLowerCase())) {
+            positiveCount++;
+          } else if (challengingEmotions.contains(emotion.toLowerCase())) {
+            challengingCount++;
+          }
+        }
+      }
+    }
+    
+    final total = positiveCount + challengingCount;
+    if (total == 0) return 'Your emotional journey is just beginning - each entry adds valuable insight.';
+    
+    final positiveRatio = positiveCount / total;
+    
+    if (positiveRatio > 0.7) {
+      return 'Your emotional landscape shows predominantly positive patterns, reflecting inner contentment.';
+    } else if (positiveRatio < 0.3) {
+      return 'Processing challenging emotions demonstrates emotional courage and commitment to growth.';
+    } else {
+      return 'Your emotional balance reflects the natural complexity of human experience and growth.';
+    }
+  }
+
+  /// Generate meaningful insights based on journal content analysis
+  List<String> _generateContentBasedInsights(List<JournalEntry> entries) {
+    final insights = <String>[];
+    if (entries.isEmpty) return insights;
+
+    // Analyze today's entry if available
+    final todayEntry = entries.firstOrNull;
+    if (todayEntry != null) {
+      // Analyze emotional depth
+      final emotions = _getPrimaryEmotions(todayEntry);
+      if (emotions.length > 2) {
+        insights.add('You\'re experiencing complex emotional layers today, demonstrating heightened emotional awareness.');
+      }
+      
+      // Analyze mood combinations
+      if (todayEntry.moods.contains('grateful') && todayEntry.moods.any((m) => ['tired', 'stressed', 'anxious'].contains(m))) {
+        insights.add('Finding gratitude alongside challenging emotions shows emotional resilience and maturity.');
+      }
+      
+      // Content length insight
+      if (todayEntry.content.length > 200) {
+        insights.add('Your detailed reflection today indicates deep emotional processing and self-exploration.');
+      } else if (todayEntry.content.length < 50) {
+        insights.add('Even brief check-ins contribute to your emotional awareness journey.');
+      }
     }
 
-    return insights.take(4).toList();
+    // Weekly pattern insights
+    if (entries.length >= 3) {
+      final recentMoods = entries.take(7).expand((e) => e.moods).toList();
+      final moodFrequency = <String, int>{};
+      for (final mood in recentMoods) {
+        moodFrequency[mood] = (moodFrequency[mood] ?? 0) + 1;
+      }
+      
+      final topMood = moodFrequency.entries.reduce((a, b) => a.value > b.value ? a : b).key;
+      if (moodFrequency[topMood]! >= 3) {
+        insights.add('$topMood has been a recurring theme this week, worth exploring deeper.');
+      }
+      
+      // Emotional variety insight
+      final uniqueMoods = recentMoods.toSet().length;
+      if (uniqueMoods > 10) {
+        insights.add('Your emotional vocabulary is expanding, showing nuanced self-awareness.');
+      }
+    }
+
+    // Time-based insights
+    final morningEntries = entries.where((e) => e.createdAt.hour < 12).length;
+    final eveningEntries = entries.where((e) => e.createdAt.hour >= 18).length;
+    
+    if (morningEntries > eveningEntries * 2) {
+      insights.add('Morning journaling seems to be your preferred reflection time.');
+    } else if (eveningEntries > morningEntries * 2) {
+      insights.add('Evening reflections help you process the day\'s experiences.');
+    }
+
+    return insights;
   }
 
   double _calculateSelfAwarenessScore(List<JournalEntry> entries, List<EmotionalCore> cores) {
@@ -408,14 +657,14 @@ class EmotionalMirrorService {
     score += (entries.length / 30.0).clamp(0.0, 0.3); // Up to 30% for consistency
 
     // Score from AI analysis usage
-    final analyzedCount = entries.where((entry) => entry.isAnalyzed).length;
+    final analyzedCount = entries.length; // All entries are processed locally
     score += (analyzedCount / entries.length) * 0.3; // Up to 30% for AI analysis
 
     // Score from emotional variety
     final allEmotions = <String>{};
     for (final entry in entries) {
-      if (entry.aiAnalysis != null) {
-        allEmotions.addAll(entry.aiAnalysis!.primaryEmotions);
+      if (true) {
+        allEmotions.addAll(_getPrimaryEmotions(entry));
       }
     }
     score += (allEmotions.length / 15.0).clamp(0.0, 0.2); // Up to 20% for emotional variety
@@ -509,10 +758,10 @@ class EmotionalMirrorService {
     }
 
     // AI analysis milestone
-    final firstAnalyzed = entries.where((entry) => entry.isAnalyzed).toList();
+    final firstAnalyzed = entries; // All entries are processed locally
     if (firstAnalyzed.isNotEmpty) {
       milestones.add(JourneyMilestone(
-        title: 'First AI Analysis',
+        title: 'First Processing',
         description: 'Started receiving personalized insights',
         date: firstAnalyzed.first.date,
         type: 'growth',
@@ -566,151 +815,4 @@ class EmotionalMirrorService {
       lastUpdated: DateTime.now(),
     );
   }
-}
-
-// Data models for emotional mirror
-
-class EmotionalMirrorData {
-  final MoodOverview moodOverview;
-  final Map<String, dynamic> emotionalTrends;
-  final List<EmotionalPattern> emotionalPatterns;
-  final EmotionalBalance emotionalBalance;
-  final List<String> insights;
-  final double selfAwarenessScore;
-  final int totalEntries;
-  final int analyzedEntries;
-  final DateRange dateRange;
-  final DateTime lastUpdated;
-
-  EmotionalMirrorData({
-    required this.moodOverview,
-    required this.emotionalTrends,
-    required this.emotionalPatterns,
-    required this.emotionalBalance,
-    required this.insights,
-    required this.selfAwarenessScore,
-    required this.totalEntries,
-    required this.analyzedEntries,
-    required this.dateRange,
-    required this.lastUpdated,
-  });
-}
-
-class MoodOverview {
-  final List<String> dominantMoods;
-  final double moodBalance; // -1 to 1
-  final double emotionalVariety; // 0 to 1
-  final String description;
-
-  MoodOverview({
-    required this.dominantMoods,
-    required this.moodBalance,
-    required this.emotionalVariety,
-    required this.description,
-  });
-}
-
-class EmotionalBalance {
-  final double positiveRatio;
-  final double negativeRatio;
-  final double neutralRatio;
-  final double overallBalance;
-  final String balanceDescription;
-
-  EmotionalBalance({
-    required this.positiveRatio,
-    required this.negativeRatio,
-    required this.neutralRatio,
-    required this.overallBalance,
-    required this.balanceDescription,
-  });
-}
-
-class MoodDistribution {
-  final Map<String, int> manualMoods;
-  final Map<String, int> aiDetectedMoods;
-  final int totalEntries;
-  final DateRange dateRange;
-
-  MoodDistribution({
-    required this.manualMoods,
-    required this.aiDetectedMoods,
-    required this.totalEntries,
-    required this.dateRange,
-  });
-}
-
-class EmotionalTrendPoint {
-  final DateTime date;
-  final double intensity;
-  final int entryCount;
-
-  EmotionalTrendPoint({
-    required this.date,
-    required this.intensity,
-    required this.entryCount,
-  });
-}
-
-class SentimentTrendPoint {
-  final DateTime date;
-  final double sentiment;
-  final int entryCount;
-
-  SentimentTrendPoint({
-    required this.date,
-    required this.sentiment,
-    required this.entryCount,
-  });
-}
-
-class EmotionalJourneyData {
-  final List<EmotionalPattern> patterns;
-  final Map<String, dynamic> trends;
-  final List<JourneyMilestone> milestones;
-  final Map<String, List<CoreEvolutionPoint>> coreEvolution;
-  final int totalEntries;
-  final DateRange dateRange;
-
-  EmotionalJourneyData({
-    required this.patterns,
-    required this.trends,
-    required this.milestones,
-    required this.coreEvolution,
-    required this.totalEntries,
-    required this.dateRange,
-  });
-}
-
-class JourneyMilestone {
-  final String title;
-  final String description;
-  final DateTime date;
-  final String type; // 'start', 'consistency', 'growth', 'achievement'
-
-  JourneyMilestone({
-    required this.title,
-    required this.description,
-    required this.date,
-    required this.type,
-  });
-}
-
-class CoreEvolutionPoint {
-  final DateTime date;
-  final double percentage;
-
-  CoreEvolutionPoint({
-    required this.date,
-    required this.percentage,
-  });
-}
-
-class DateRange {
-  final DateTime start;
-  final DateTime end;
-
-  DateRange(this.start, this.end);
-
-  int get daysDifference => end.difference(start).inDays;
 }

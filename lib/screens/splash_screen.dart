@@ -4,6 +4,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:spiral_journal/theme/app_theme.dart';
 import 'package:spiral_journal/widgets/app_background.dart';
 import 'package:spiral_journal/services/navigation_flow_controller.dart';
+import 'package:spiral_journal/design_system/heading_system.dart';
+import 'package:spiral_journal/services/app_info_service.dart';
 
 class SplashScreen extends StatefulWidget {
   final Duration displayDuration;
@@ -22,6 +24,7 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen> {
+  final AppInfoService _appInfoService = AppInfoService();
   Timer? _timer;
   bool _hasCompleted = false;
 
@@ -29,7 +32,16 @@ class _SplashScreenState extends State<SplashScreen> {
   void initState() {
     super.initState();
     debugPrint('SplashScreen: Initializing with duration: ${widget.displayDuration.inSeconds}s');
+    _initializeAppInfo();
     _startTimer();
+  }
+  
+  Future<void> _initializeAppInfo() async {
+    try {
+      await _appInfoService.initialize();
+    } catch (e) {
+      debugPrint('SplashScreen: Failed to initialize app info: $e');
+    }
   }
 
   @override
@@ -156,83 +168,49 @@ class _SplashScreenState extends State<SplashScreen> {
             child: GestureDetector(
               onTap: _handleTap,
               onLongPress: _handleLongPress,
-              child: Padding(
-              padding: const EdgeInsets.all(32.0),
               child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  // Main app title
-                  Text(
-                    'Spiral Journal',
-                    style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-                      fontSize: 32,
-                      fontWeight: FontWeight.w700,
-                      color: AppTheme.getPrimaryColor(context),
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
+                  // Top spacer
+                  const Expanded(flex: 2, child: SizedBox()),
                   
-                  const SizedBox(height: 16),
-                  
-                  // Optional tagline
-                  Text(
-                    'AI-powered personal growth through journaling',
-                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      color: AppTheme.getTextSecondary(context),
-                      fontSize: 16,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  
-                  
-                  const Spacer(),
-                  
-                  // Attribution section
-                  Column(
-                    children: [
-                      // Powered by Anthropic
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            'Powered by ',
-                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: AppTheme.getTextTertiary(context),
-                              fontSize: 12,
+                  // Main content - centered
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 32.0),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        // Main app title
+                        HeadingSystem.pageHeading(context, _appInfoService.appName),
+                        
+                        const SizedBox(height: 16),
+                        
+                        // Optional tagline
+                        Center(
+                          child: Text(
+                            'Personal growth through journaling',
+                            style: HeadingSystem.getBodyLarge(context).copyWith(
+                              color: AppTheme.getTextSecondary(context),
                             ),
+                            textAlign: TextAlign.center,
                           ),
-                          Text(
-                            'Anthropic',
-                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: AppTheme.getPrimaryColor(context),
-                              fontWeight: FontWeight.bold,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ],
-                      ),
-                      
-                      const SizedBox(height: 8),
-                      
-                      // Made by Mike
-                      Text(
-                        'Made by Mike',
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: AppTheme.getTextTertiary(context),
-                          fontSize: 12,
                         ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                   
-                  const SizedBox(height: 32),
+                  // Bottom spacer and attribution
+                  const Expanded(flex: 2, child: SizedBox()),
+                  
+                  // Attribution at bottom
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 48.0),
+                    child: HeadingSystem.caption(context, 'Made by Mike'),
+                  ),
                 ],
               ),
             ),
           ),
-        ),
         ),
       ),
     );

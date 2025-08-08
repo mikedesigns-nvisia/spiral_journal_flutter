@@ -4,10 +4,10 @@ description: AI-powered personal growth platform that transforms stream-of-consc
 # TestFlight ready version
 publish_to: 'none'
 
-version: 1.0.0+2
+version: 1.2.0+8
 
-homepage: https://spiraljournal.com
-repository: https://github.com/yourusername/spiral-journal
+homepage: https://spiraljournal.tbd
+repository: https://github.com/mikedesigns-nvisia
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
@@ -32,6 +32,9 @@ dependencies:
   flutter_secure_storage: ^9.2.4
   crypto: ^3.0.6
   
+  # Environment variables support
+  flutter_dotenv: ^5.1.0
+  
   # Data export and validation
   convert: ^3.1.1
   path_provider: ^2.1.4
@@ -39,6 +42,25 @@ dependencies:
   encrypt: ^5.0.3
   file_picker: ^8.1.4
   device_info_plus: ^9.1.2
+  package_info_plus: ^8.1.1
+  
+  # Speech recognition and permissions
+  speech_to_text: ^7.0.0
+  permission_handler: ^11.3.1
+  audio_session: ^0.1.21
+  
+  # Local notifications
+  flutter_local_notifications: ^17.2.3
+  timezone: ^0.9.4
+  
+  # Network connectivity monitoring
+  connectivity_plus: ^6.0.5
+  
+  # Enhanced logging with iOS support
+  logger: ^2.4.0
+  
+  # Sensors for gyroscope-based lighting
+  sensors_plus: ^4.0.2
   
   # Local analytics and crash reporting (no external services)
 
@@ -48,6 +70,11 @@ dev_dependencies:
   flutter_lints: ^6.0.0
   sqflite_common_ffi: ^2.3.0
 
+  integration_test:
+    sdk: flutter
+  mockito: ^5.4.4
+  flutter_native_splash: ^2.4.3
+  image: ^4.5.4
 flutter:
   uses-material-design: true
   
@@ -55,6 +82,7 @@ flutter:
   assets:
     - assets/images/
     - assets/icons/
+    - .env
   
   # Generate app icons for all platforms
   # Run: flutter packages pub run flutter_launcher_icons:main
@@ -62,3 +90,14 @@ flutter:
   #   android: true
   #   ios: true
   #   image_path: "assets/icon/app_icon.png"
+
+# Flutter Native Splash Configuration
+flutter_native_splash:
+  color: "#3A312C"  # Dark brown background color from the image
+  image: assets/images/splash_screen.png
+  android: true
+  ios: true
+  web: false
+  android_12:
+    color: "#3A312C"
+    image: assets/images/splash_screen.png

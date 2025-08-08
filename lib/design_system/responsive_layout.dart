@@ -3,7 +3,7 @@ import 'package:spiral_journal/design_system/design_tokens.dart';
 import 'package:spiral_journal/design_system/component_library.dart';
 import 'package:spiral_journal/utils/iphone_detector.dart';
 
-/// Adaptive scaffold that adjusts to iPhone sizes and safe areas
+/// Adaptive scaffold that adjusts to iPhone sizes and safe areas with enhanced slide support
 class AdaptiveScaffold extends StatelessWidget {
   final Widget body;
   final PreferredSizeWidget? appBar;
@@ -14,6 +14,8 @@ class AdaptiveScaffold extends StatelessWidget {
   final bool extendBody;
   final bool extendBodyBehindAppBar;
   final EdgeInsets? padding;
+  final bool isSlideContext;
+  final bool handleOrientationChanges;
 
   const AdaptiveScaffold({
     super.key,
@@ -26,26 +28,61 @@ class AdaptiveScaffold extends StatelessWidget {
     this.extendBody = false,
     this.extendBodyBehindAppBar = false,
     this.padding,
+    this.isSlideContext = false,
+    this.handleOrientationChanges = true,
   });
 
   @override
   Widget build(BuildContext context) {
-    final adaptivePadding = padding ?? iPhoneDetector.getAdaptivePadding(context);
+    final adaptivePadding = _getAdaptivePadding(context);
 
-    return Scaffold(
-      backgroundColor: backgroundColor ?? DesignTokens.getBackgroundPrimary(context),
-      extendBody: extendBody,
-      extendBodyBehindAppBar: extendBodyBehindAppBar,
-      appBar: appBar,
-      body: SafeArea(
-        child: Padding(
-          padding: adaptivePadding,
-          child: body,
-        ),
+    return OrientationBuilder(
+      builder: (context, orientation) {
+        return Scaffold(
+          backgroundColor: backgroundColor ?? DesignTokens.getBackgroundPrimary(context),
+          extendBody: extendBody,
+          extendBodyBehindAppBar: extendBodyBehindAppBar,
+          appBar: appBar,
+          body: SafeArea(
+            child: Padding(
+              padding: adaptivePadding,
+              child: _buildResponsiveBody(context, orientation),
+            ),
+          ),
+          bottomNavigationBar: bottomNavigationBar,
+          floatingActionButton: floatingActionButton,
+          floatingActionButtonLocation: floatingActionButtonLocation,
+        );
+      },
+    );
+  }
+
+  EdgeInsets _getAdaptivePadding(BuildContext context) {
+    if (padding != null) return padding!;
+    
+    final basePadding = iPhoneDetector.getAdaptivePadding(context);
+    
+    if (isSlideContext) {
+      // Reduce padding for slide context to maximize content area
+      return EdgeInsets.symmetric(
+        horizontal: basePadding.horizontal * 0.7,
+        vertical: basePadding.vertical * 0.5,
+      );
+    }
+    
+    return basePadding;
+  }
+
+  Widget _buildResponsiveBody(BuildContext context, Orientation orientation) {
+    if (!handleOrientationChanges) return body;
+    
+    // Handle orientation changes gracefully
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 300),
+      child: Container(
+        key: ValueKey(orientation),
+        child: body,
       ),
-      bottomNavigationBar: bottomNavigationBar,
-      floatingActionButton: floatingActionButton,
-      floatingActionButtonLocation: floatingActionButtonLocation,
     );
   }
 }
@@ -402,9 +439,36 @@ class AdaptiveBottomNavigation extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    
+    // Use different background colors for light and dark modes
+    final navBackgroundColor = isDarkMode 
+        ? DesignTokens.darkBackgroundPrimary 
+        : Colors.white;
+    
+    // Use better contrast colors for unselected items in light mode
+    final unselectedColor = isDarkMode
+        ? DesignTokens.darkTextTertiary
+        : DesignTokens.textSecondary; // Darker color for better contrast
+    
     return Container(
       decoration: BoxDecoration(
-        color: backgroundColor ?? DesignTokens.getBackgroundPrimary(context),
+        color: backgroundColor ?? navBackgroundColor,
+        border: Border(
+          top: BorderSide(
+            color: isDarkMode 
+                ? DesignTokens.darkBackgroundTertiary
+                : DesignTokens.backgroundTertiary.withOpacity(0.5),
+            width: 1,
+          ),
+        ),
+        boxShadow: !isDarkMode ? [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: Offset(0, -2),
+          ),
+        ] : null,
       ),
       child: SafeArea(
         child: BottomNavigationBar(
@@ -414,7 +478,7 @@ class AdaptiveBottomNavigation extends StatelessWidget {
           type: BottomNavigationBarType.fixed,
           backgroundColor: Colors.transparent,
           selectedItemColor: selectedItemColor ?? DesignTokens.getPrimaryColor(context),
-          unselectedItemColor: unselectedItemColor ?? DesignTokens.getTextTertiary(context),
+          unselectedItemColor: unselectedItemColor ?? unselectedColor,
           selectedLabelStyle: DesignTokens.getTextStyle(
             fontSize: iPhoneDetector.getAdaptiveFontSize(context, base: 12),
             fontWeight: DesignTokens.fontWeightMedium,
@@ -423,9 +487,9 @@ class AdaptiveBottomNavigation extends StatelessWidget {
           unselectedLabelStyle: DesignTokens.getTextStyle(
             fontSize: iPhoneDetector.getAdaptiveFontSize(context, base: 12),
             fontWeight: DesignTokens.fontWeightRegular,
-            color: unselectedItemColor ?? DesignTokens.getTextTertiary(context),
+            color: unselectedItemColor ?? unselectedColor,
           ),
-          elevation: 0,
+          elevation: 0, // We're handling elevation with boxShadow
         ),
       ),
     );

@@ -8,7 +8,6 @@ import 'package:spiral_journal/design_system/design_tokens.dart';
 import 'package:spiral_journal/design_system/responsive_layout.dart';
 import 'package:spiral_journal/utils/iphone_detector.dart';
 import 'package:spiral_journal/services/navigation_service.dart';
-import 'package:spiral_journal/theme/app_theme.dart';
 import 'package:spiral_journal/services/navigation_flow_controller.dart';
 
 class MainScreen extends StatefulWidget {
@@ -44,7 +43,7 @@ class _MainScreenState extends State<MainScreen> {
     }
   }
 
-  final List<Widget> _screens = [
+  List<Widget> get _screens => [
     const JournalScreen(),
     const JournalHistoryScreen(),
     const EmotionalMirrorScreen(),
@@ -55,26 +54,20 @@ class _MainScreenState extends State<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        gradient: AppTheme.getPrimaryGradient(context),
-      ),
-      child: AdaptiveScaffold(
-        backgroundColor: Colors.transparent,
-        padding: EdgeInsets.zero, // Let individual screens handle their own padding
-        body: _screens[_currentIndex],
-        bottomNavigationBar: AdaptiveBottomNavigation(
-          currentIndex: _currentIndex,
-          onTap: (index) {
-            setState(() {
-              _currentIndex = index;
-            });
-          },
-          items: _getAdaptiveNavItems(context),
-          backgroundColor: Colors.transparent,
-          selectedItemColor: DesignTokens.getPrimaryColor(context),
-          unselectedItemColor: DesignTokens.getTextTertiary(context),
-        ),
+    return Scaffold(
+      backgroundColor: DesignTokens.getBackgroundPrimary(context),
+      body: _screens[_currentIndex],
+      bottomNavigationBar: AdaptiveBottomNavigation(
+        currentIndex: _currentIndex,
+        onTap: (index) {
+          setState(() {
+            _currentIndex = index;
+          });
+        },
+        items: _getAdaptiveNavItems(context),
+        // Don't pass backgroundColor to use the default theme-aware colors
+        selectedItemColor: DesignTokens.getPrimaryColor(context),
+        // Don't pass unselectedItemColor to use the default theme-aware colors
       ),
     );
   }

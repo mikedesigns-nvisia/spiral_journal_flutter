@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'dart:async';
-import 'package:spiral_journal/constants/app_constants.dart';
+import 'package:spiral_journal/core/app_constants.dart';
 import 'package:spiral_journal/services/local_auth_service.dart';
 
 /// Manages authentication state and operations for the application.

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:spiral_journal/design_system/design_tokens.dart';
-import '../models/onboarding_slide.dart';
 import '../controllers/onboarding_controller.dart';
 import '../services/theme_service.dart';
 
@@ -45,8 +44,7 @@ class QuickSetupWidget extends StatelessWidget {
           
           SizedBox(height: DesignTokens.spaceL),
           
-          // PIN Setup Toggle
-          _buildPinSetupToggle(context),
+          // PIN setup removed - using biometrics-only authentication
         ],
       ),
     );
@@ -194,49 +192,7 @@ class QuickSetupWidget extends StatelessWidget {
     );
   }
 
-  Widget _buildPinSetupToggle(BuildContext context) {
-    return Row(
-      children: [
-        Icon(
-          Icons.lock_outline,
-          color: DesignTokens.getTextSecondary(context),
-          size: 24,
-        ),
-        SizedBox(width: DesignTokens.spaceM),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'PIN Protection',
-                style: DesignTokens.getTextStyle(
-                  fontSize: DesignTokens.fontSizeL,
-                  fontWeight: DesignTokens.fontWeightSemiBold,
-                  color: DesignTokens.getTextPrimary(context),
-                ),
-              ),
-              Text(
-                'Set up after onboarding',
-                style: DesignTokens.getTextStyle(
-                  fontSize: DesignTokens.fontSizeM,
-                  fontWeight: DesignTokens.fontWeightRegular,
-                  color: DesignTokens.getTextSecondary(context),
-                ),
-              ),
-            ],
-          ),
-        ),
-        Switch(
-          value: controller.quickSetupConfig.pinSetup,
-          onChanged: (value) {
-            controller.updatePinSetupPreference(value);
-            onConfigChanged?.call();
-          },
-          activeColor: DesignTokens.getPrimaryColor(context),
-        ),
-      ],
-    );
-  }
+  // PIN setup toggle removed - using biometrics-only authentication
 
   Widget _buildSelectionChip({
     required BuildContext context,

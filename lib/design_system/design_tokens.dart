@@ -10,55 +10,61 @@ class DesignTokens {
   // COLOR SYSTEM
   // ============================================================================
   
-  /// Primary brand colors - warm oranges and browns
-  static const Color primaryOrange = Color(0xFF865219);
-  static const Color primaryLight = Color(0xFFFDB876);
-  static const Color primaryDark = Color(0xFF6A3B01);
+  /// Primary brand colors - warm oranges and browns (enhanced contrast)
+  static const Color primaryOrange = Color(0xFF3A2409);    // Darker for better light mode contrast
+  static const Color primaryLight = Color(0xFF6B4423);     // Darker light variant
+  static const Color primaryDark = Color(0xFF2E1B05);      // Even darker for emphasis
   
-  /// Light theme background colors - warm creams
-  static const Color backgroundPrimary = Color(0xFFFFF8F5);
-  static const Color backgroundSecondary = Color(0xFFFAEBE0);
-  static const Color backgroundTertiary = Color(0xFFF2DFD1);
+  /// Light theme background colors - warm creams with better contrast
+  static const Color backgroundPrimary = Color(0xFFFFFBF7);
+  static const Color backgroundSecondary = Color(0xFFF5E6D8);
+  static const Color backgroundTertiary = Color(0xFFE8D4C1);
   
-  /// Light theme text colors
-  static const Color textPrimary = Color(0xFF211A14);
-  static const Color textSecondary = Color(0xFF51443A);
-  static const Color textTertiary = Color(0xFF837469);
+  /// Light theme text colors - darker for better contrast
+  static const Color textPrimary = Color(0xFF1A1410);
+  static const Color textSecondary = Color(0xFF3D322A);
+  static const Color textTertiary = Color(0xFF65574D);
   
-  /// Dark theme primary colors - muted oranges
-  static const Color darkPrimaryOrange = Color(0xFFB8763A);
-  static const Color darkPrimaryLight = Color(0xFF8B5A2B);
-  static const Color darkPrimaryDark = Color(0xFFD4A574);
+  /// Dark theme primary colors - Enhanced for better contrast
+  static const Color darkPrimaryOrange = Color(0xFFFF9E52);  // Brighter orange for better contrast
+  static const Color darkPrimaryLight = Color(0xFFFFB366);   // Lighter orange
+  static const Color darkPrimaryDark = Color(0xFFE8833D);    // Darker orange
   
-  /// Dark theme background colors
-  static const Color darkBackgroundPrimary = Color(0xFF121212);
-  static const Color darkBackgroundSecondary = Color(0xFF1E1E1E);
-  static const Color darkBackgroundTertiary = Color(0xFF2C2C2C);
-  static const Color darkSurface = Color(0xFF383838);
+  /// Dark theme background colors - Enhanced contrast ratios
+  static const Color darkBackgroundPrimary = Color(0xFF000000);  // Pure black for maximum contrast
+  static const Color darkBackgroundSecondary = Color(0xFF121212); // Very dark gray
+  static const Color darkBackgroundTertiary = Color(0xFF1E1E1E);  // Dark gray with subtle borders
+  static const Color darkSurface = Color(0xFF2C2C2C);             // Medium dark for surfaces
   
-  /// Dark theme text colors
-  static const Color darkTextPrimary = Color(0xFFE8E3E0);
-  static const Color darkTextSecondary = Color(0xFFB8B3B0);
-  static const Color darkTextTertiary = Color(0xFFD8D3D0);
+  /// Dark theme text colors - Updated for WCAG AA compliance
+  static const Color darkTextPrimary = Color(0xFFFFFFFF);    // White for maximum contrast
+  static const Color darkTextSecondary = Color(0xFFE0E0E0);  // Light gray for 4.5:1 contrast
+  static const Color darkTextTertiary = Color(0xFFBDBDBD);   // Medium gray for 4.5:1 contrast
   
-  /// Semantic mood colors (theme-agnostic)
-  static const Color moodHappy = Color(0xFFE78B1B);
-  static const Color moodContent = Color(0xFF7AACB3);
-  static const Color moodUnsure = Color(0xFF8B7ED8);
-  static const Color moodSad = Color(0xFFBA1A1A);
-  static const Color moodEnergetic = Color(0xFFEA8100);
+  /// Semantic mood colors (theme-agnostic) - Enhanced for better light mode contrast
+  static const Color moodHappy = Color(0xFFD47716);      // Darker orange for better contrast
+  static const Color moodContent = Color(0xFF1976D2);    // Darker blue for better contrast
+  static const Color moodUnsure = Color(0xFF6A4C93);     // Darker purple for better contrast
+  static const Color moodSad = Color(0xFFBA1A1A);        // Already good contrast
+  static const Color moodEnergetic = Color(0xFF6B4423);  // Darker brown for better contrast
   
-  /// Core personality colors (theme-agnostic)
-  static const Color coreOptimist = Color(0xFFAFCACD);
-  static const Color coreReflective = Color(0xFFEBA751);
-  static const Color coreCreative = Color(0xFFA198DD);
-  static const Color coreSocial = Color(0xFFB1CDAF);
-  static const Color coreRest = Color(0xFFB37A9B);
+  /// Core personality colors (theme-agnostic) - Enhanced for light mode visibility
+  static const Color coreOptimist = Color(0xFF4A90A4);     // Darker teal for better contrast
+  static const Color coreReflective = Color(0xFFD47716);   // Darker orange for better contrast
+  static const Color coreCreative = Color(0xFF6A4C93);     // Darker purple for better contrast
+  static const Color coreSocial = Color(0xFF2E7D32);       // Darker green for better contrast
+  static const Color coreRest = Color(0xFF8E4585);         // Darker pink for better contrast
   
   /// Accent and utility colors
-  static const Color accentYellow = Color(0xFFFFDCBF);
-  static const Color accentGreen = Color(0xFF4C662B);
+  static const Color accentYellow = Color(0xFF6B4423);  // Darker brown for better light mode contrast
+  static const Color accentBlue = Color(0xFF1976D2);     // Darker blue for better contrast
+  static const Color accentGreen = Color(0xFF2E7D32);    // Darker green for better contrast
   static const Color accentRed = Color(0xFFBA1A1A);
+  static const Color primaryBlue = Color(0xFF1976D2);
+  static const Color accentCyan = Color(0xFF00BCD4);
+  static const Color accentPink = Color(0xFFE91E63);
+  static const Color accentPurple = Color(0xFF9C27B0);
+  static const Color accentBrown = Color(0xFF795548);
   
   /// Status colors
   static const Color successColor = Color(0xFF4CAF50);
@@ -81,13 +87,13 @@ class DesignTokens {
   static const Color aiContentBackground = Color(0xFFF8FAFC); // Light blue-gray
   static const Color aiContentBorder = Color(0xFFE2E8F0); // Slate border
   static const Color darkAiContentBackground = Color(0xFF1E293B); // Dark slate
-  static const Color darkAiContentBorder = Color(0xFF334155); // Dark slate border
+  static const Color darkAiContentBorder = Color(0xFF64748B); // Brighter dark slate border for contrast
   
   // ============================================================================
   // TYPOGRAPHY SYSTEM
   // ============================================================================
   
-  /// Font family with fallback support
+  /// Font family with Google Fonts primary, local cached as fallback
   static String get fontFamily {
     try {
       return GoogleFonts.notoSansJp().fontFamily ?? _getFallbackFontFamily();
@@ -164,9 +170,9 @@ class DesignTokens {
   /// Border radius following golden ratio progression
   static const double radiusXXS = 2.0;   // 4 ÷ φ² ≈ 1.5 → 2px
   static const double radiusXS = 3.0;    // 4 ÷ φ ≈ 2.5 → 3px
-  static const double radiusS = 4.0;     // Base unit
-  static const double radiusM = 6.0;     // 4 × φ ≈ 6.5 → 6px
-  static const double radiusL = 10.0;    // 4 × φ² ≈ 10.5 → 10px
+  static const double radiusS = 8.0;     // Base unit - smoother corners
+  static const double radiusM = 12.0;    // Medium radius - more rounded
+  static const double radiusL = 16.0;    // Large radius - smooth curves
   static const double radiusXL = 16.0;   // 4 × φ³ ≈ 17 → 16px
   static const double radiusXXL = 26.0;  // 4 × φ⁴ ≈ 27.5 → 26px
   static const double radiusRound = 50.0; // Maintained for circular elements
@@ -336,6 +342,11 @@ class DesignTokens {
         : textTertiary;
   }
   
+  /// Get error color (theme-agnostic)
+  static Color getErrorColor(BuildContext context) {
+    return errorColor;
+  }
+  
   /// Get mood color by name
   static Color getMoodColor(String mood) {
     switch (mood.toLowerCase()) {
@@ -484,6 +495,13 @@ class DesignTokens {
         : aiContentBorder;
   }
   
+  /// Get theme-aware subtle border color for cards
+  static Color getSubtleBorderColor(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark 
+        ? const Color(0xFF404040) // Subtle gray border for dark mode
+        : const Color(0xFFE0E0E0); // Light gray border for light mode
+  }
+  
   /// Apply opacity to color consistently
   static Color getColorWithOpacity(Color color, double opacity) {
     return color.withValues(alpha: opacity.clamp(0.0, 1.0));
@@ -506,7 +524,7 @@ class DesignTokens {
         decoration: decoration,
       );
     } catch (e) {
-      debugPrint('Google Fonts failed, using system font: $e');
+      debugPrint('Google Fonts failed in getTextStyle, using fallback font: $e');
       return TextStyle(
         fontSize: fontSize,
         fontWeight: fontWeight,
@@ -517,6 +535,264 @@ class DesignTokens {
       );
     }
   }
+
+  /// Create Lora serif text style for headings
+  static TextStyle getSerifTextStyle({
+    required double fontSize,
+    required FontWeight fontWeight,
+    required Color color,
+    double? height,
+    double? letterSpacing,
+    TextDecoration? decoration,
+  }) {
+    try {
+      return GoogleFonts.lora(
+        fontSize: fontSize,
+        fontWeight: fontWeight,
+        color: color,
+        height: height,
+        letterSpacing: letterSpacing,
+        decoration: decoration,
+      );
+    } catch (e) {
+      debugPrint('Google Fonts failed in getSerifTextStyle, using serif fallback: $e');
+      return TextStyle(
+        fontSize: fontSize,
+        fontWeight: fontWeight,
+        color: color,
+        height: height,
+        letterSpacing: letterSpacing,
+        decoration: decoration,
+        fontFamily: 'serif', // Use serif fallback
+      );
+    }
+  }
+
+  /// Complete text theme with serif headings and Noto Sans JP body
+  static TextTheme textTheme({required bool isDark}) {
+    final baseColor = isDark ? darkTextPrimary : textPrimary;
+    
+    return TextTheme(
+      // Display styles - NOW USING SERIF (Lora)
+      displayLarge: getSerifTextStyle(
+        fontSize: 57,
+        fontWeight: FontWeight.w400,
+        color: baseColor,
+        letterSpacing: -0.25,
+        height: 1.12,
+      ),
+      displayMedium: getSerifTextStyle(
+        fontSize: 45,
+        fontWeight: FontWeight.w400,
+        color: baseColor,
+        height: 1.16,
+      ),
+      displaySmall: getSerifTextStyle(
+        fontSize: 36,
+        fontWeight: FontWeight.w400,
+        color: baseColor,
+        height: 1.22,
+      ),
+      
+      // Headlines - NOW USING SERIF (Lora)
+      headlineLarge: getSerifTextStyle(
+        fontSize: 32,
+        fontWeight: FontWeight.w400,
+        color: baseColor,
+        height: 1.25,
+      ),
+      headlineMedium: getSerifTextStyle(
+        fontSize: 28,
+        fontWeight: FontWeight.w400,
+        color: baseColor,
+        height: 1.29,
+      ),
+      headlineSmall: getSerifTextStyle(
+        fontSize: 24,
+        fontWeight: FontWeight.w400,
+        color: baseColor,
+        height: 1.33,
+      ),
+      
+      // Title styles - KEEP NOTO SANS JP
+      titleLarge: getTextStyle(
+        fontSize: 22,
+        fontWeight: FontWeight.w500,
+        color: baseColor,
+        height: 1.27,
+      ),
+      titleMedium: getTextStyle(
+        fontSize: 16,
+        fontWeight: FontWeight.w500,
+        color: baseColor,
+        height: 1.5,
+      ),
+      titleSmall: getTextStyle(
+        fontSize: 14,
+        fontWeight: FontWeight.w500,
+        color: baseColor,
+        height: 1.43,
+      ),
+      
+      // Body text - KEEP NOTO SANS JP
+      bodyLarge: getTextStyle(
+        fontSize: 16,
+        fontWeight: FontWeight.w400,
+        color: baseColor,
+        height: 1.5,
+      ),
+      bodyMedium: getTextStyle(
+        fontSize: 14,
+        fontWeight: FontWeight.w400,
+        color: baseColor,
+        height: 1.43,
+      ),
+      bodySmall: getTextStyle(
+        fontSize: 12,
+        fontWeight: FontWeight.w400,
+        color: baseColor,
+        height: 1.33,
+      ),
+      
+      // Labels - KEEP NOTO SANS JP
+      labelLarge: getTextStyle(
+        fontSize: 14,
+        fontWeight: FontWeight.w500,
+        color: baseColor,
+        height: 1.43,
+      ),
+      labelMedium: getTextStyle(
+        fontSize: 12,
+        fontWeight: FontWeight.w500,
+        color: baseColor,
+        height: 1.33,
+      ),
+      labelSmall: getTextStyle(
+        fontSize: 11,
+        fontWeight: FontWeight.w500,
+        color: baseColor,
+        height: 1.45,
+      ),
+    );
+  }
+
+  // ============================================================================
+  // STATIC TEXT STYLES - CONVENIENCE PROPERTIES
+  // ============================================================================
+
+  /// Commonly used static text styles for easy access
+  static TextStyle get displayLarge => getSerifTextStyle(
+    fontSize: 57,
+    fontWeight: FontWeight.w400,
+    color: textPrimary,
+    letterSpacing: -0.25,
+    height: 1.12,
+  );
+
+  static TextStyle get displayMedium => getSerifTextStyle(
+    fontSize: 45,
+    fontWeight: FontWeight.w400,
+    color: textPrimary,
+    height: 1.16,
+  );
+
+  static TextStyle get displaySmall => getSerifTextStyle(
+    fontSize: 36,
+    fontWeight: FontWeight.w400,
+    color: textPrimary,
+    height: 1.22,
+  );
+
+  static TextStyle get headlineLarge => getSerifTextStyle(
+    fontSize: 32,
+    fontWeight: FontWeight.w400,
+    color: textPrimary,
+    height: 1.25,
+  );
+
+  static TextStyle get headlineMedium => getSerifTextStyle(
+    fontSize: 28,
+    fontWeight: FontWeight.w400,
+    color: textPrimary,
+    height: 1.29,
+  );
+
+  static TextStyle get headlineSmall => getSerifTextStyle(
+    fontSize: 24,
+    fontWeight: FontWeight.w400,
+    color: textPrimary,
+    height: 1.33,
+  );
+
+  static TextStyle get titleLarge => getTextStyle(
+    fontSize: 22,
+    fontWeight: FontWeight.w500,
+    color: textPrimary,
+    height: 1.27,
+  );
+
+  static TextStyle get titleMedium => getTextStyle(
+    fontSize: 16,
+    fontWeight: FontWeight.w500,
+    color: textPrimary,
+    height: 1.5,
+  );
+
+  static TextStyle get titleSmall => getTextStyle(
+    fontSize: 14,
+    fontWeight: FontWeight.w500,
+    color: textPrimary,
+    height: 1.43,
+  );
+
+  static TextStyle get bodyLarge => getTextStyle(
+    fontSize: 16,
+    fontWeight: FontWeight.w400,
+    color: textPrimary,
+    height: 1.5,
+  );
+
+  static TextStyle get bodyMedium => getTextStyle(
+    fontSize: 14,
+    fontWeight: FontWeight.w400,
+    color: textPrimary,
+    height: 1.43,
+  );
+
+  static TextStyle get bodySmall => getTextStyle(
+    fontSize: 12,
+    fontWeight: FontWeight.w400,
+    color: textSecondary,
+    height: 1.33,
+  );
+
+  static TextStyle get bodyLargeBold => getTextStyle(
+    fontSize: 16,
+    fontWeight: FontWeight.w700,
+    color: textPrimary,
+    height: 1.5,
+  );
+
+  static TextStyle get labelLarge => getTextStyle(
+    fontSize: 14,
+    fontWeight: FontWeight.w500,
+    color: textPrimary,
+    height: 1.43,
+  );
+
+  static TextStyle get labelMedium => getTextStyle(
+    fontSize: 12,
+    fontWeight: FontWeight.w500,
+    color: textPrimary,
+    height: 1.33,
+  );
+
+  static TextStyle get labelSmall => getTextStyle(
+    fontSize: 11,
+    fontWeight: FontWeight.w500,
+    color: textPrimary,
+    height: 1.45,
+  );
   
   /// Responsive value based on screen width
   static T getResponsiveValue<T>(

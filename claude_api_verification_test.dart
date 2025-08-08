@@ -307,7 +307,7 @@ void main() async {
   }
   
   // Test Results Summary
-  print('\n' + '=' * 60);
+  print('\n${'=' * 60}');
   print('📈 TEST RESULTS SUMMARY');
   print('=' * 60);
   print('Tests Passed: $testsPassed / $totalTests');

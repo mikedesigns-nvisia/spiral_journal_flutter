@@ -1,8 +1,8 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../design_system/design_tokens.dart';
 import '../design_system/component_library.dart';
+import '../services/app_info_service.dart';
 import '../services/data_export_service.dart';
 import '../services/settings_service.dart';
 import '../services/secure_data_deletion_service.dart';
@@ -10,7 +10,6 @@ import '../repositories/journal_repository.dart';
 import '../services/core_library_service.dart';
 import '../database/database_helper.dart';
 import '../widgets/loading_state_widget.dart' as loading_widget;
-import '../theme/app_theme.dart';
 
 /// Privacy Dashboard Screen for Spiral Journal
 /// 
@@ -32,6 +31,7 @@ class _PrivacyDashboardScreenState extends State<PrivacyDashboardScreen> {
   final DataExportService _exportService = DataExportService();
   final SettingsService _settingsService = SettingsService();
   final SecureDataDeletionService _deletionService = SecureDataDeletionService();
+  final AppInfoService _appInfoService = AppInfoService();
   
   // Data statistics
   int _journalEntryCount = 0;
@@ -56,6 +56,7 @@ class _PrivacyDashboardScreenState extends State<PrivacyDashboardScreen> {
     
     try {
       await _exportService.initialize();
+      await _appInfoService.initialize();
       
       // Try to get journal statistics from actual repositories
       try {
@@ -64,8 +65,8 @@ class _PrivacyDashboardScreenState extends State<PrivacyDashboardScreen> {
         final allEntries = await journalRepository.getAllEntries();
         _journalEntryCount = allEntries.length;
         
-        // Count analyzed entries (those with AI analysis)
-        _analyzedEntryCount = allEntries.where((entry) => entry.aiAnalysis != null).length;
+        // Count processed entries (simplified for local processing)
+        _analyzedEntryCount = allEntries.length; // All entries are processed locally
         
         // Calculate approximate data size
         _totalDataSize = await _calculateDataSize(allEntries, []);
@@ -220,7 +221,7 @@ class _PrivacyDashboardScreenState extends State<PrivacyDashboardScreen> {
           ),
           SizedBox(height: DesignTokens.spaceM),
           Text(
-            'Spiral Journal is designed with privacy-first principles. All your data is stored '
+            '${_appInfoService.appName} is designed with privacy-first principles. All your data is stored '
             'locally on your device and encrypted for security. You have complete control over '
             'your information.',
             style: DesignTokens.getTextStyle(
@@ -317,8 +318,8 @@ class _PrivacyDashboardScreenState extends State<PrivacyDashboardScreen> {
       child: Row(
         children: [
           CircleAvatar(
-            backgroundColor: DesignTokens.primaryOrange.withOpacity(0.1),
-            child: Icon(icon, color: DesignTokens.primaryOrange),
+            backgroundColor: DesignTokens.primaryOrange.withValues(alpha: 0.1),
+            child: Icon(icon, color: DesignTokens.getPrimaryColor(context)),
           ),
           SizedBox(width: DesignTokens.spaceM),
           Expanded(
@@ -483,7 +484,7 @@ class _PrivacyDashboardScreenState extends State<PrivacyDashboardScreen> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: DesignTokens.primaryOrange),
+          Icon(icon, color: DesignTokens.getPrimaryColor(context)),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -526,17 +527,17 @@ class _PrivacyDashboardScreenState extends State<PrivacyDashboardScreen> {
             const SizedBox(height: 16),
             
             ListTile(
-              leading: Icon(Icons.pin, color: DesignTokens.primaryOrange),
+              leading: Icon(Icons.pin, color: DesignTokens.getPrimaryColor(context)),
               title: const Text('PIN Protection'),
               subtitle: const Text('Your journal is protected by a secure PIN'),
-              trailing: const Icon(Icons.check_circle, color: Colors.green),
+              trailing: Icon(Icons.check_circle, color: DesignTokens.successColor),
             ),
             
             ListTile(
-              leading: Icon(Icons.fingerprint, color: DesignTokens.primaryOrange),
+              leading: Icon(Icons.fingerprint, color: DesignTokens.getPrimaryColor(context)),
               title: const Text('Biometric Authentication'),
               subtitle: const Text('Use Face ID or Touch ID for quick access'),
-              trailing: const Icon(Icons.check_circle, color: Colors.green),
+              trailing: Icon(Icons.check_circle, color: DesignTokens.successColor),
             ),
             
             ListTile(

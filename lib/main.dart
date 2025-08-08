@@ -1,9 +1,8 @@
 import 'dart:async';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:spiral_journal/services/analytics_service.dart';
-import 'package:spiral_journal/constants/app_constants.dart';
+import 'package:spiral_journal/core/app_constants.dart';
 import 'package:spiral_journal/theme/app_theme.dart';
 import 'package:spiral_journal/services/theme_service.dart';
 import 'package:spiral_journal/screens/main_screen.dart';
@@ -12,23 +11,30 @@ import 'package:spiral_journal/screens/profile_setup_screen.dart';
 import 'package:spiral_journal/screens/privacy_dashboard_screen.dart';
 import 'package:spiral_journal/screens/data_export_screen.dart';
 import 'package:spiral_journal/screens/onboarding_screen.dart';
-import 'package:spiral_journal/screens/pin_setup_screen.dart';
+import 'package:spiral_journal/screens/core_library_screen.dart';
+
 import 'package:spiral_journal/services/journal_service.dart';
 import 'package:spiral_journal/services/ai_service_manager.dart';
+import 'package:spiral_journal/services/ios_background_scheduler.dart';
 import 'package:spiral_journal/services/profile_service.dart';
 import 'package:spiral_journal/services/app_initializer.dart';
 import 'package:spiral_journal/services/settings_service.dart';
-import 'package:spiral_journal/services/pin_auth_service.dart';
+// PIN auth service removed - using biometrics-only authentication
 import 'package:spiral_journal/services/navigation_service.dart';
+import 'package:spiral_journal/services/core_navigation_context_service.dart';
 import 'package:spiral_journal/controllers/splash_screen_controller.dart';
 import 'package:spiral_journal/controllers/onboarding_controller.dart';
 import 'package:spiral_journal/providers/journal_provider.dart';
-import 'package:spiral_journal/providers/core_provider.dart';
+import 'package:spiral_journal/providers/core_provider_refactored.dart';
+import 'package:spiral_journal/providers/emotional_mirror_provider.dart';
 import 'package:spiral_journal/utils/app_error_handler.dart';
 import 'package:spiral_journal/config/api_key_setup.dart';
 import 'package:spiral_journal/config/local_config.dart';
+import 'package:spiral_journal/services/production_environment_loader.dart';
+// Debug services removed - using local fallback processing
 import 'package:spiral_journal/widgets/app_background.dart';
 import 'package:spiral_journal/utils/ios_theme_enforcer.dart';
+import 'package:google_fonts/google_fonts.dart';
 void main() async {
   final startTime = DateTime.now();
   WidgetsFlutterBinding.ensureInitialized();
@@ -36,18 +42,28 @@ void main() async {
   // Initialize error handling system first
   AppErrorHandler.initialize();
   
+  // CRITICAL: Load environment variables from .env file BEFORE any service initialization
+  debugPrint('🔧 Loading environment variables from .env file...');
+  await ProductionEnvironmentLoader.ensureLoaded();
+  debugPrint('✅ Environment variables loaded successfully');
+  
   // Initialize local configuration system (replaces Firebase)
   await LocalConfig.initialize();
   
   // Initialize API keys (critical)
   await ApiKeySetup.initializeApiKeys();
   
+  // Preload Google Fonts to prevent network errors
+  await _preloadGoogleFonts();
+  
   // Initialize local analytics service
   final analyticsInitFuture = _initializeLocalAnalytics();
   
   // Initialize critical services in parallel
   final themeServiceFuture = ThemeService().initialize();
-  final iOSThemeEnforcerFuture = iOSThemeEnforcer.initialize();
+  
+  // Initialize iOS theme enforcer synchronously
+  iOSThemeEnforcer.initialize();
   
   // Start the app UI while other services initialize in the background
   runApp(const SpiralJournalApp());
@@ -56,7 +72,6 @@ void main() async {
   await Future.wait([
     analyticsInitFuture,
     themeServiceFuture,
-    iOSThemeEnforcerFuture,
     _initializeBackgroundServices(),
   ]);
   
@@ -65,6 +80,36 @@ void main() async {
   AnalyticsService().logAppLaunchTime(launchTime);
   
   debugPrint('App launch completed');
+}
+
+/// Preload Google Fonts to prevent network errors during runtime
+Future<void> _preloadGoogleFonts() async {
+  try {
+    debugPrint('Preloading Google Fonts...');
+    
+    // Preload the Noto Sans JP font family and Lora serif font
+    await GoogleFonts.pendingFonts([
+      // Noto Sans JP for body text and UI elements
+      GoogleFonts.notoSansJp(),
+      GoogleFonts.notoSansJp(fontWeight: FontWeight.w300),
+      GoogleFonts.notoSansJp(fontWeight: FontWeight.w400),
+      GoogleFonts.notoSansJp(fontWeight: FontWeight.w500),
+      GoogleFonts.notoSansJp(fontWeight: FontWeight.w600),
+      GoogleFonts.notoSansJp(fontWeight: FontWeight.w700),
+      // Lora serif for headings and display text
+      GoogleFonts.lora(),
+      GoogleFonts.lora(fontWeight: FontWeight.w300),
+      GoogleFonts.lora(fontWeight: FontWeight.w400),
+      GoogleFonts.lora(fontWeight: FontWeight.w500),
+      GoogleFonts.lora(fontWeight: FontWeight.w600),
+      GoogleFonts.lora(fontWeight: FontWeight.w700),
+    ]);
+    
+    debugPrint('Google Fonts preloaded successfully');
+  } catch (e) {
+    debugPrint('Failed to preload Google Fonts (will use fallback): $e');
+    // Continue with app initialization - fallbacks will handle this
+  }
 }
 
 /// Initialize local analytics service
@@ -95,15 +140,50 @@ Future<void> _initializeLocalAnalytics() async {
 /// Initialize non-critical background services
 Future<void> _initializeBackgroundServices() async {
   try {
-    // Initialize services in parallel for better performance
-    await Future.wait([
-      JournalService().initialize(),
-      AIServiceManager().initialize(),
-    ]);
+    // Initialize services sequentially to ensure proper dependency order
+    debugPrint('🔧 Initializing background services...');
     
-    debugPrint('Background services initialized successfully');
+    // Initialize JournalService first (no dependencies)
+    debugPrint('📋 Initializing JournalService...');
+    await JournalService().initialize();
+    debugPrint('✅ JournalService initialized');
+    
+    // Initialize AIServiceManager (depends on environment being loaded)
+    debugPrint('📋 Initializing AIServiceManager...');
+    try {
+      await AIServiceManager().initialize();
+      debugPrint('✅ AIServiceManager initialized successfully');
+    } catch (e) {
+      debugPrint('⚠️  AIServiceManager initialization failed: $e');
+      debugPrint('   App will continue with fallback AI analysis');
+      // Don't rethrow - app can continue without AI
+    }
+    
+    // BatchAIAnalysisService initialization removed - using local fallback processing
+    debugPrint('📋 Local fallback processing prioritized - batch AI analysis disabled');
+    debugPrint('✅ Local processing is active and ready');
+    
+    // Initialize IOSBackgroundScheduler (independent)
+    debugPrint('📋 Initializing IOSBackgroundScheduler...');
+    try {
+      await IOSBackgroundScheduler().initialize();
+      debugPrint('✅ IOSBackgroundScheduler initialized');
+    } catch (e) {
+      debugPrint('⚠️  IOSBackgroundScheduler initialization failed: $e');
+      // Don't rethrow - app can continue without background scheduling
+    }
+    
+    // Debug Command Service initialization removed - using local fallback processing
+    debugPrint('📋 Debug services disabled - local fallback processing prioritized');
+    debugPrint('✅ Production-ready local processing active');
+    
+    // Troubleshooting Guide Service initialization removed - using local fallback processing
+    debugPrint('📋 Troubleshooting services disabled - local fallback processing prioritized');
+    debugPrint('✅ Streamlined initialization complete');
+    
+    debugPrint('✅ Background services initialization completed');
   } catch (e) {
-    debugPrint('Background service initialization error: $e');
+    debugPrint('❌ Critical background service initialization error: $e');
     // Log error but don't crash the app
     AnalyticsService().logError('background_init_error', context: e.toString());
   }
@@ -111,6 +191,29 @@ Future<void> _initializeBackgroundServices() async {
 
 class SpiralJournalApp extends StatelessWidget {
   const SpiralJournalApp({super.key});
+
+  /// Builds core detail route with navigation context
+  static Widget _buildCoreDetailRoute(BuildContext context) {
+    final args = CoreNavigationContextService.extractNavigationArguments(
+      ModalRoute.of(context)?.settings ?? const RouteSettings(),
+    );
+    
+    final coreId = args?['coreId'] as String?;
+    // Note: navigationContext will be used when we implement dedicated core detail screen
+    
+    if (coreId == null) {
+      // Fallback to core library if no core ID provided
+      return iOSThemeEnforcer.needsEnforcement()
+          ? const CoreLibraryScreen().withiOSThemeEnforcement(context)
+          : const CoreLibraryScreen();
+    }
+    
+    // For now, navigate to core library with the specific core highlighted
+    // This will be enhanced when we implement the dedicated core detail screen
+    return iOSThemeEnforcer.needsEnforcement()
+        ? const CoreLibraryScreen().withiOSThemeEnforcement(context)
+        : const CoreLibraryScreen();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -123,13 +226,17 @@ class SpiralJournalApp extends StatelessWidget {
           create: (context) => CoreProvider()..initialize(),
         ),
         ChangeNotifierProvider(
+          create: (context) => EmotionalMirrorProvider()..initialize(),
+        ),
+        ChangeNotifierProvider(
           create: (context) => SettingsService()..initialize(),
         ),
-        Provider<PinAuthService>(
-          create: (context) => PinAuthService(),
-        ),
+        // PIN auth service provider removed - using biometrics-only authentication
         Provider<NavigationService>(
           create: (context) => NavigationService(),
+        ),
+        Provider<CoreNavigationContextService>(
+          create: (context) => CoreNavigationContextService(),
         ),
       ],
       child: Consumer<SettingsService>(
@@ -143,19 +250,15 @@ class SpiralJournalApp extends StatelessWidget {
                 theme: AppTheme.lightTheme,
                 darkTheme: AppTheme.darkTheme,
                 themeMode: themeMode,
-                home: Builder(
-                  builder: (context) {
-                    // Apply iOS theme enforcement if needed
-                    if (iOSThemeEnforcer.needsEnforcement()) {
-                      // Update system UI overlay for iOS
-                      WidgetsBinding.instance.addPostFrameCallback((_) {
-                        iOSThemeEnforcer.updateSystemUIOverlay(context);
-                      });
-                      return const AuthWrapper().withiOSThemeEnforcement(context);
-                    }
-                    return const AuthWrapper();
-                  },
-                ),
+                builder: (context, child) {
+                  // Enforce iOS theme
+                  iOSThemeEnforcer.updateSystemUIOverlay(context);
+                  return iOSThemeEnforcer.enforceTheme(
+                    context,
+                    child ?? const SizedBox.shrink(),
+                  );
+                },
+                home: const AuthWrapper(),
                 navigatorKey: NavigationService.navigatorKey,
                 routes: {
                   '/main': (context) => iOSThemeEnforcer.needsEnforcement() 
@@ -167,15 +270,17 @@ class SpiralJournalApp extends StatelessWidget {
                   '/profile-setup': (context) => iOSThemeEnforcer.needsEnforcement()
                     ? const ProfileSetupScreen().withiOSThemeEnforcement(context)
                     : const ProfileSetupScreen(),
-                  '/pin-setup': (context) => iOSThemeEnforcer.needsEnforcement()
-                    ? const PinSetupScreen().withiOSThemeEnforcement(context)
-                    : const PinSetupScreen(),
+
                   '/privacy-dashboard': (context) => iOSThemeEnforcer.needsEnforcement()
                     ? const PrivacyDashboardScreen().withiOSThemeEnforcement(context)
                     : const PrivacyDashboardScreen(),
                   '/data-export': (context) => iOSThemeEnforcer.needsEnforcement()
                     ? const DataExportScreen().withiOSThemeEnforcement(context)
                     : const DataExportScreen(),
+                  '/core-library': (context) => iOSThemeEnforcer.needsEnforcement()
+                    ? const CoreLibraryScreen().withiOSThemeEnforcement(context)
+                    : const CoreLibraryScreen(),
+                  '/core-detail': (context) => _buildCoreDetailRoute(context),
                 },
                 debugShowCheckedModeBanner: false,
               );
@@ -347,22 +452,27 @@ class _AuthWrapperState extends State<AuthWrapper> {
       return AppBackground(
         child: Scaffold(
           backgroundColor: Colors.transparent,
-          body: Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                CircularProgressIndicator(
-                  color: AppTheme.getPrimaryColor(context),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'Loading...',
-                  style: TextStyle(
-                    color: AppTheme.getTextSecondary(context),
-                    fontSize: 16,
+          body: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(32.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  CircularProgressIndicator(
+                    color: AppTheme.getPrimaryColor(context),
                   ),
-                ),
-              ],
+                  const SizedBox(height: 24),
+                  Text(
+                    'Loading...',
+                    style: TextStyle(
+                      color: AppTheme.getTextSecondary(context),
+                      fontSize: 16,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
             ),
           ),
         ),

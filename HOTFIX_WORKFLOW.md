@@ -1,124 +1,162 @@
 # Spiral Journal Hotfix Workflow
 
-## Current Release Status
-- ✅ **TestFlight Accepted**: App is live in TestFlight
-- 👤 **Current Tester**: Single whitelisted tester (you)
-- 🎯 **Next Steps**: Hotfix → Beta → Public TestFlight → App Store
+## Current Status: TestFlight Accepted ✅
+
+Your app has been accepted into TestFlight! Here's the structured workflow for handling the upcoming testing phases and hotfixes.
 
 ## Branch Strategy
 
 ### Main Branches
-- `main` - Production-ready code
-- `develop` - Integration branch for features
-- `ios-testflight-build` - Current TestFlight version
+- `main` - Production-ready code, stable releases
+- `release/v1.0.0-testflight` - Current TestFlight release branch
+- `develop` - Integration branch for new features (future)
 
 ### Hotfix Branches
-- `hotfix/v1.0.1-personal` - Personal hotfix for single tester
-- `hotfix/v1.0.2-beta` - Beta hotfix for Apple team review
-- `hotfix/v1.0.3-testflight` - Public TestFlight hotfix
-- `hotfix/v1.0.4-appstore` - App Store release hotfix
+- `hotfix/v1.0.1-personal` - Your personal testing fixes
+- `hotfix/v1.0.2-apple-review` - Apple team feedback fixes  
+- `hotfix/v1.0.3-beta-users` - External TestFlight user fixes
+- `hotfix/v1.0.4-appstore-prep` - Final App Store preparation
 
-## Hotfix Process
+## Testing Phases
 
-### 1. Personal Hotfix (Current Phase)
+### Phase 1: Personal Testing (Current)
+**Branch:** `hotfix/v1.0.1-personal`
+**Tester:** You (whitelisted)
+**Focus:** Core functionality, critical bugs, UX issues
+
+**Workflow:**
 ```bash
-# Create hotfix branch from current TestFlight build
-git checkout ios-testflight-build
-git checkout -b hotfix/v1.0.1-personal
-
+git checkout -b hotfix/v1.0.1-personal release/v1.0.0-testflight
 # Make fixes
-# Test locally
+git commit -m "hotfix: Fix critical issue X"
+git push origin hotfix/v1.0.1-personal
 # Build and upload to TestFlight
+```
 
-# Merge back to main when stable
+### Phase 2: Apple Review Team
+**Branch:** `hotfix/v1.0.2-apple-review`  
+**Testers:** Apple internal review team
+**Focus:** App Store guidelines, technical compliance, security
+
+**Workflow:**
+```bash
+git checkout -b hotfix/v1.0.2-apple-review hotfix/v1.0.1-personal
+# Address Apple feedback
+git commit -m "hotfix: Address Apple review feedback"
+```
+
+### Phase 3: Beta TestFlight Users
+**Branch:** `hotfix/v1.0.3-beta-users`
+**Testers:** External TestFlight beta users
+**Focus:** Real-world usage, edge cases, device compatibility
+
+### Phase 4: App Store Preparation
+**Branch:** `hotfix/v1.0.4-appstore-prep`
+**Focus:** Final polish, performance optimization, store assets
+
+## Quick Commands
+
+### Create Personal Hotfix
+```bash
+git checkout release/v1.0.0-testflight
+git pull origin release/v1.0.0-testflight
+git checkout -b hotfix/v1.0.1-personal
+```
+
+### Build and Deploy
+```bash
+# Test the fix
+flutter test
+flutter analyze
+
+# Build for TestFlight
+./ios/testflight_build.sh
+
+# Commit and push
+git add .
+git commit -m "hotfix: [description]"
+git push origin hotfix/v1.0.1-personal
+```
+
+### Merge Hotfix Back
+```bash
+# Merge to release branch
+git checkout release/v1.0.0-testflight
+git merge hotfix/v1.0.1-personal
+git push origin release/v1.0.0-testflight
+
+# Merge to main
 git checkout main
 git merge hotfix/v1.0.1-personal
-git tag v1.0.1
-```
-
-### 2. Beta Hotfix (Apple Team Review)
-```bash
-git checkout main
-git checkout -b hotfix/v1.0.2-beta
-
-# Address Apple team feedback
-# Build and upload to TestFlight
-# Tag when approved
-git tag v1.0.2
-```
-
-### 3. Public TestFlight Hotfix
-```bash
-git checkout main
-git checkout -b hotfix/v1.0.3-testflight
-
-# Address user feedback from expanded testing
-# Build and upload to TestFlight
-git tag v1.0.3
-```
-
-### 4. App Store Release Hotfix
-```bash
-git checkout main
-git checkout -b hotfix/v1.0.4-appstore
-
-# Final fixes before App Store submission
-# Build and submit to App Store
-git tag v1.0.4
+git push origin main
 ```
 
 ## Version Numbering
-- **Personal**: 1.0.1, 1.0.2, 1.0.3...
-- **Beta**: 1.1.0, 1.1.1, 1.1.2...
-- **TestFlight**: 1.2.0, 1.2.1, 1.2.2...
-- **App Store**: 2.0.0
 
-## Build Commands
-
-### Quick Hotfix Build
-```bash
-# Clean and build
-flutter clean
-flutter pub get
-flutter build ios --release
-
-# Archive and export (from ios directory)
-cd ios
-xcodebuild -workspace Runner.xcworkspace -scheme Runner -configuration Release -destination generic/platform=iOS -archivePath build/Runner.xcarchive archive
-xcodebuild -exportArchive -archivePath build/Runner.xcarchive -exportOptionsPlist exportOptions.plist -exportPath build/ios
-```
-
-### TestFlight Upload
-```bash
-# Use your existing script
-./ios/testflight_build.sh -u your-apple-id -p your-app-password
-```
+- `v1.0.0` - Initial TestFlight release
+- `v1.0.1` - Personal testing hotfix
+- `v1.0.2` - Apple review hotfix
+- `v1.0.3` - Beta user hotfix
+- `v1.0.4` - App Store release candidate
+- `v1.1.0` - First post-launch feature update
 
 ## Critical Files to Monitor
-- `lib/screens/profile_setup_screen.dart` - Recently fixed syntax error
-- `ios/exportOptions.plist` - Export configuration
-- `pubspec.yaml` - Version numbers
-- `ios/Runner/Info.plist` - App metadata
 
-## Testing Checklist for Each Hotfix
-- [ ] App launches without crashes
-- [ ] Profile setup flow works
-- [ ] Journal entry creation/editing
-- [ ] Navigation between screens
-- [ ] Data persistence
-- [ ] Claude AI integration (if applicable)
-- [ ] Fresh install experience
+### Build Files
+- `ios/Runner/Info.plist` - Version numbers, bundle info
+- `pubspec.yaml` - App version, dependencies
+- `ios/exportOptions.plist` - Distribution settings
+
+### Core App Files
+- `lib/main.dart` - App initialization
+- `lib/screens/profile_setup_screen.dart` - Recently fixed syntax
+- `lib/services/navigation_flow_controller.dart` - Flow management
+
+### TestFlight Specific
+- `lib/widgets/testflight_feedback_widget.dart` - Feedback collection
+- `TESTFLIGHT_RELEASE_NOTES.md` - Release documentation
 
 ## Emergency Hotfix Process
-If critical bug found in TestFlight:
-1. Create hotfix branch immediately
-2. Fix the specific issue only
-3. Test thoroughly
-4. Build and upload same day
-5. Notify Apple if needed
 
-## Communication
-- Document all issues found in GitHub issues
-- Tag releases with detailed release notes
-- Keep TestFlight release notes updated
-- Maintain changelog for App Store submission
+If you discover a critical bug during testing:
+
+1. **Immediate Fix**
+   ```bash
+   git checkout -b hotfix/emergency-fix release/v1.0.0-testflight
+   # Fix the issue
+   git commit -m "hotfix: CRITICAL - Fix [issue]"
+   git push origin hotfix/emergency-fix
+   ```
+
+2. **Fast Track Build**
+   ```bash
+   ./ios/testflight_build.sh
+   # Upload to TestFlight immediately
+   ```
+
+3. **Merge Back**
+   ```bash
+   git checkout release/v1.0.0-testflight
+   git merge hotfix/emergency-fix
+   git push origin release/v1.0.0-testflight
+   ```
+
+## Next Steps
+
+1. **Start Personal Testing** - Use the app extensively, document any issues
+2. **Create First Hotfix Branch** - When you find issues
+3. **Iterate Quickly** - Fast feedback loop for personal testing
+4. **Prepare for Apple Review** - Clean up code, add comments, ensure compliance
+
+## Success Metrics
+
+- **Personal Phase:** App works smoothly for core journaling workflow
+- **Apple Phase:** Passes all App Store review guidelines  
+- **Beta Phase:** Positive user feedback, no critical crashes
+- **Store Phase:** Ready for public release
+
+---
+
+**Current Branch:** `release/v1.0.0-testflight`
+**Next Action:** Begin personal testing and create hotfix branch when needed
+**Goal:** Smooth progression through all testing phases to App Store release

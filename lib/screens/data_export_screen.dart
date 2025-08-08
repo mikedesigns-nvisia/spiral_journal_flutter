@@ -141,7 +141,7 @@ class _DataExportScreenState extends State<DataExportScreen>
           children: [
             Row(
               children: [
-                Icon(Icons.backup, color: AppTheme.primaryOrange),
+                Icon(Icons.backup, color: AppTheme.getPrimaryColor(context)),
                 const SizedBox(width: 8),
                 Text(
                   'Export Your Data',
@@ -309,7 +309,7 @@ class _DataExportScreenState extends State<DataExportScreen>
           children: [
             Row(
               children: [
-                Icon(Icons.restore, color: AppTheme.primaryOrange),
+                Icon(Icons.restore, color: AppTheme.getPrimaryColor(context)),
                 const SizedBox(width: 8),
                 Text(
                   'Import Your Data',
@@ -361,19 +361,19 @@ class _DataExportScreenState extends State<DataExportScreen>
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.orange[50],
-                  border: Border.all(color: Colors.orange[300]!),
+                  color: AppTheme.getColorWithOpacity(AppTheme.warningColor, 0.1),
+                  border: Border.all(color: AppTheme.getColorWithOpacity(AppTheme.warningColor, 0.5)),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.warning, color: Colors.orange[700]),
+                    Icon(Icons.warning, color: AppTheme.warningColor),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         'Warning: This will replace ALL your current data!',
                         style: TextStyle(
-                          color: Colors.orange[700],
+                          color: AppTheme.warningColor,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -501,10 +501,10 @@ class _DataExportScreenState extends State<DataExportScreen>
                     contentPadding: EdgeInsets.zero,
                   ),
                 ),
-                const PopupMenuItem(
+                PopupMenuItem(
                   value: 'delete',
                   child: ListTile(
-                    leading: Icon(Icons.delete, color: Colors.red),
+                    leading: Icon(Icons.delete, color: AppTheme.accentRed),
                     title: Text('Delete', style: TextStyle(color: Colors.red)),
                     contentPadding: EdgeInsets.zero,
                   ),
@@ -617,7 +617,7 @@ class _DataExportScreenState extends State<DataExportScreen>
       builder: (context) => AlertDialog(
         title: Row(
           children: [
-            Icon(Icons.check_circle, color: Colors.green[600]),
+            Icon(Icons.check_circle, color: AppTheme.successColor),
             const SizedBox(width: 8),
             const Text('Export Successful'),
           ],
@@ -635,7 +635,7 @@ class _DataExportScreenState extends State<DataExportScreen>
               Text('• ${result.statistics!.totalCores} emotional cores'),
               Text('• Size: ${result.statistics!.formattedSize}'),
               if (result.isEncrypted)
-                Text('• Encrypted with password', style: TextStyle(color: Colors.green[700])),
+                Text('• Encrypted with password', style: TextStyle(color: AppTheme.successColor)),
             ],
           ],
         ),
@@ -670,7 +670,7 @@ class _DataExportScreenState extends State<DataExportScreen>
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: Colors.red[600],
+        backgroundColor: AppTheme.accentRed,
         behavior: SnackBarBehavior.floating,
       ),
     );
@@ -680,7 +680,7 @@ class _DataExportScreenState extends State<DataExportScreen>
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: Colors.green[600],
+        backgroundColor: AppTheme.successColor,
         behavior: SnackBarBehavior.floating,
       ),
     );
@@ -692,7 +692,7 @@ class _DataExportScreenState extends State<DataExportScreen>
       builder: (context) => AlertDialog(
         title: Row(
           children: [
-            Icon(Icons.restore, color: AppTheme.primaryOrange),
+            Icon(Icons.restore, color: AppTheme.getPrimaryColor(context)),
             const SizedBox(width: 8),
             const Text('Import Data'),
           ],
@@ -707,19 +707,19 @@ class _DataExportScreenState extends State<DataExportScreen>
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.red[50],
-                  border: Border.all(color: Colors.red[300]!),
+                  color: AppTheme.getColorWithOpacity(AppTheme.accentRed, 0.1),
+                  border: Border.all(color: AppTheme.getColorWithOpacity(AppTheme.accentRed, 0.5)),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.warning, color: Colors.red[700]),
+                    Icon(Icons.warning, color: AppTheme.accentRed),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         'This will replace ALL your current data!',
                         style: TextStyle(
-                          color: Colors.red[700],
+                          color: AppTheme.accentRed,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -784,7 +784,7 @@ class _DataExportScreenState extends State<DataExportScreen>
       builder: (context) => AlertDialog(
         title: Row(
           children: [
-            Icon(Icons.check_circle, color: Colors.green[600]),
+            Icon(Icons.check_circle, color: AppTheme.successColor),
             const SizedBox(width: 8),
             const Text('Import Successful'),
           ],
@@ -807,12 +807,12 @@ class _DataExportScreenState extends State<DataExportScreen>
             if (result.hasWarnings) ...[
               const SizedBox(height: 16),
               Text('Warnings:', style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                color: Colors.orange[700],
+                color: AppTheme.warningColor,
               )),
               const SizedBox(height: 8),
               ...result.warnings.map((warning) => Text(
                 '• $warning',
-                style: TextStyle(color: Colors.orange[700]),
+                style: TextStyle(color: AppTheme.warningColor),
               )),
             ],
           ],

@@ -1,477 +1,269 @@
-import 'dart:async';
-import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:spiral_journal/utils/app_error_handler.dart';
-import 'test_diagnostics_helper.dart';
 
-/// Handler for test exceptions with improved error context and fallback behavior
+/// Exception handler for test operations with timeout and error management
 class TestExceptionHandler {
-  /// Runs a test function with proper exception handling and diagnostics
-  static Future<T> runWithExceptionHandling<T>(
-    Future<T> Function() testFunction, {
-    required String testName,
-    Map<String, dynamic>? context,
-    T? fallbackValue,
-    bool rethrowException = true,
-  }) async {
-    try {
-      return await testFunction();
-    } catch (error, stackTrace) {
-      final errorContext = TestDiagnosticsHelper.createDiagnosticContext(
-        testName: testName,
-        failureReason: error.toString(),
-        additionalContext: context,
-      );
-      
-      _logTestException(error, stackTrace, errorContext);
-      
-      if (fallbackValue != null) {
-        debugPrint('Returning fallback value for test: $testName');
-        return fallbackValue;
-      }
-      
-      if (rethrowException) {
-        rethrow;
-      }
-      
-      throw TestFailure('Test failed: $testName - $error');
-    }
-  }
-
-  /// Runs a widget test with proper exception handling and diagnostics
-  static Future<void> runWidgetTest(
-    WidgetTester tester,
-    Future<void> Function(WidgetTester) testFunction, {
-    required String testName,
-    Map<String, dynamic>? context,
-    bool printWidgetTree = true,
-  }) async {
-    try {
-      await testFunction(tester);
-    } catch (error, stackTrace) {
-      final errorContext = TestDiagnosticsHelper.createDiagnosticContext(
-        testName: testName,
-        failureReason: error.toString(),
-        additionalContext: context,
-      );
-      
-      if (printWidgetTree) {
-        try {
-          TestDiagnosticsHelper.printWidgetTree(tester, message: 'Widget tree at failure');
-        } catch (e) {
-          debugPrint('Could not print widget tree: $e');
-        }
-      }
-      
-      _logTestException(error, stackTrace, errorContext);
-      rethrow;
-    }
-  }
-
-  /// Handles platform service exceptions with fallback behavior
-  static Future<T> handlePlatformServiceException<T>(
-    Future<T> Function() serviceCall, {
-    required String serviceName,
-    required String methodName,
-    T? fallbackValue,
-    bool rethrowException = true,
-  }) async {
-    try {
-      return await serviceCall();
-    } on PlatformException catch (error, stackTrace) {
-      final errorMessage = TestDiagnosticsHelper.getPlatformServiceErrorMessage(
-        serviceName: serviceName,
-        expectedBehavior: 'Platform service call to $methodName should succeed',
-        actualBehavior: 'Platform service call failed: ${error.message}',
-        suggestion: 'Mock the platform channel response for $serviceName.$methodName',
-      );
-      
-      debugPrint(errorMessage);
-      debugPrint('Stack trace:');
-      debugPrint(stackTrace.toString());
-      
-      if (fallbackValue != null) {
-        debugPrint('Returning fallback value for platform service call: $serviceName.$methodName');
-        return fallbackValue;
-      }
-      
-      if (rethrowException) {
-        rethrow;
-      }
-      
-      throw TestFailure('Platform service call failed: $serviceName.$methodName - ${error.message}');
-    } catch (error, stackTrace) {
-      final errorMessage = TestDiagnosticsHelper.getPlatformServiceErrorMessage(
-        serviceName: serviceName,
-        expectedBehavior: 'Platform service call to $methodName should succeed',
-        actualBehavior: 'Unexpected error: $error',
-        suggestion: 'Check if the platform service is properly mocked',
-      );
-      
-      debugPrint(errorMessage);
-      debugPrint('Stack trace:');
-      debugPrint(stackTrace.toString());
-      
-      if (fallbackValue != null) {
-        debugPrint('Returning fallback value for platform service call: $serviceName.$methodName');
-        return fallbackValue;
-      }
-      
-      if (rethrowException) {
-        rethrow;
-      }
-      
-      throw TestFailure('Platform service call failed: $serviceName.$methodName - $error');
-    }
-  }
-
-  /// Handles timeout exceptions with detailed error messages
+  
+  /// Handle timeout exceptions with fallback values
   static Future<T> handleTimeoutException<T>(
     Future<T> Function() operation, {
     required String operationName,
-    required Duration timeout,
+    Duration timeout = const Duration(seconds: 30),
     T? fallbackValue,
     bool rethrowException = true,
   }) async {
     try {
       return await operation().timeout(timeout);
-    } on TimeoutException catch (error, stackTrace) {
-      final errorMessage = TestDiagnosticsHelper.getTimeoutErrorMessage(
-        operation: operationName,
-        timeout: timeout,
-        suggestion: 'Check if the operation is taking too long or stuck in an infinite loop',
-      );
+    } on TimeoutException catch (e) {
+      final errorMessage = 'Operation "$operationName" timed out after ${timeout.inSeconds}s: $e';
+      debugPrint('⏰ $errorMessage');
       
-      debugPrint(errorMessage);
-      debugPrint('Stack trace:');
-      debugPrint(stackTrace.toString());
-      
-      if (fallbackValue != null) {
-        debugPrint('Returning fallback value for timed out operation: $operationName');
+      if (fallbackValue != null && !rethrowException) {
+        debugPrint('🔄 Using fallback value for timed out operation');
         return fallbackValue;
       }
       
       if (rethrowException) {
-        rethrow;
+        throw TimeoutException(errorMessage, timeout);
+      } else {
+        throw Exception(errorMessage);
+      }
+    } catch (e, stackTrace) {
+      final errorMessage = 'Operation "$operationName" failed: $e';
+      debugPrint('❌ $errorMessage');
+      debugPrint('Stack trace: $stackTrace');
+      
+      if (fallbackValue != null && !rethrowException) {
+        debugPrint('🔄 Using fallback value for failed operation');
+        return fallbackValue;
       }
       
-      throw TestFailure('Operation timed out: $operationName - ${error.message}');
+      rethrow;
     }
   }
-
-  /// Handles app errors with detailed error messages
-  static Future<T> handleAppError<T>(
+  
+  /// Handle widget test exceptions with proper error reporting
+  static Future<void> runWidgetTest(
+    WidgetTester tester,
+    Future<void> Function(WidgetTester) testFunction, {
+    required String testName,
+    Map<String, dynamic>? context,
+    bool printWidgetTree = false,
+  }) async {
+    try {
+      debugPrint('🧪 Starting widget test: $testName');
+      
+      await testFunction(tester);
+      
+      debugPrint('✅ Widget test completed: $testName');
+    } catch (e, stackTrace) {
+      debugPrint('❌ Widget test failed: $testName');
+      debugPrint('Error: $e');
+      debugPrint('Stack trace: $stackTrace');
+      
+      if (printWidgetTree) {
+        try {
+          debugPrint('🌳 Widget tree at failure:');
+          debugPrint(tester.binding.renderViewElement?.toStringDeep() ?? 'No widget tree available');
+        } catch (treeError) {
+          debugPrint('Failed to print widget tree: $treeError');
+        }
+      }
+      
+      if (context != null) {
+        debugPrint('📋 Test context:');
+        for (final entry in context.entries) {
+          debugPrint('  ${entry.key}: ${entry.value}');
+        }
+      }
+      
+      rethrow;
+    }
+  }
+  
+  /// Handle async operations with retry logic
+  static Future<T> handleWithRetry<T>(
+    Future<T> Function() operation, {
+    required String operationName,
+    int maxRetries = 3,
+    Duration retryDelay = const Duration(seconds: 1),
+    bool Function(dynamic error)? shouldRetry,
+  }) async {
+    int attempts = 0;
+    dynamic lastError;
+    
+    while (attempts < maxRetries) {
+      attempts++;
+      
+      try {
+        debugPrint('🔄 Attempt $attempts/$maxRetries for operation: $operationName');
+        return await operation();
+      } catch (e) {
+        lastError = e;
+        debugPrint('❌ Attempt $attempts failed for operation "$operationName": $e');
+        
+        // Check if we should retry this error
+        if (shouldRetry != null && !shouldRetry(e)) {
+          debugPrint('🚫 Error is not retryable, stopping attempts');
+          rethrow;
+        }
+        
+        // If this was the last attempt, rethrow
+        if (attempts >= maxRetries) {
+          debugPrint('🚫 Max retries reached for operation "$operationName"');
+          rethrow;
+        }
+        
+        // Wait before retrying
+        debugPrint('⏳ Waiting ${retryDelay.inMilliseconds}ms before retry...');
+        await Future.delayed(retryDelay);
+      }
+    }
+    
+    // This should never be reached, but just in case
+    throw Exception('Operation "$operationName" failed after $maxRetries attempts. Last error: $lastError');
+  }
+  
+  /// Handle network-related exceptions specifically
+  static Future<T> handleNetworkException<T>(
     Future<T> Function() operation, {
     required String operationName,
     T? fallbackValue,
-    bool rethrowException = true,
+    bool useOfflineMode = false,
   }) async {
     try {
       return await operation();
-    } catch (error, stackTrace) {
-      AppError appError;
+    } catch (e) {
+      final errorString = e.toString().toLowerCase();
       
-      if (error is AppError) {
-        appError = error;
-      } else {
-        appError = AppError(
-          type: ErrorType.unknown,
-          category: ErrorCategory.general,
-          message: error.toString(),
-          userMessage: 'An unexpected error occurred during testing',
-          stackTrace: stackTrace,
-          timestamp: DateTime.now(),
-          operationName: operationName,
-          isRecoverable: false,
-        );
-      }
-      
-      final errorMessage = TestDiagnosticsHelper.getAppErrorHandlingMessage(
-        error: appError,
-        expectedBehavior: 'Operation $operationName should succeed',
-        actualBehavior: 'Operation failed with error: ${appError.message}',
-        suggestion: 'Check error handling for ${appError.type.name} errors',
-      );
-      
-      debugPrint(errorMessage);
-      debugPrint('Stack trace:');
-      debugPrint(stackTrace.toString());
-      
-      if (fallbackValue != null) {
-        debugPrint('Returning fallback value for failed operation: $operationName');
-        return fallbackValue;
-      }
-      
-      if (rethrowException) {
-        rethrow;
-      }
-      
-      throw TestFailure('Operation failed: $operationName - ${appError.message}');
-    }
-  }
-
-  /// Wraps a finder with exception handling and better error messages
-  static Finder findWithErrorHandling(
-    Finder Function() finderFunction, {
-    required String widgetDescription,
-    String? suggestion,
-  }) {
-    try {
-      return finderFunction();
-    } catch (error) {
-      final errorMessage = TestDiagnosticsHelper.getDetailedErrorMessage(
-        expectedBehavior: 'Should be able to find $widgetDescription',
-        actualBehavior: 'Failed to create finder: $error',
-        suggestion: suggestion ?? 'Check if the widget exists in the widget tree',
-      );
-      
-      throw TestFailure(errorMessage);
-    }
-  }
-
-  /// Verifies a condition with exception handling and better error messages
-  static void verifyWithErrorHandling(
-    bool Function() condition, {
-    required String expectedBehavior,
-    required String failureMessage,
-    String? suggestion,
-  }) {
-    try {
-      final result = condition();
-      if (!result) {
-        final errorMessage = TestDiagnosticsHelper.getDetailedErrorMessage(
-          expectedBehavior: expectedBehavior,
-          actualBehavior: failureMessage,
-          suggestion: suggestion,
-        );
+      // Check if this is a network-related error
+      if (errorString.contains('network') ||
+          errorString.contains('connection') ||
+          errorString.contains('timeout') ||
+          errorString.contains('socket') ||
+          errorString.contains('dns')) {
         
-        throw TestFailure(errorMessage);
-      }
-    } catch (error) {
-      if (error is TestFailure) {
-        rethrow;
-      }
-      
-      final errorMessage = TestDiagnosticsHelper.getDetailedErrorMessage(
-        expectedBehavior: expectedBehavior,
-        actualBehavior: 'Exception during verification: $error',
-        suggestion: suggestion,
-      );
-      
-      throw TestFailure(errorMessage);
-    }
-  }
-
-  /// Creates a fallback for platform service calls
-  static T createPlatformServiceFallback<T>({
-    required String serviceName,
-    required String methodName,
-    required T fallbackValue,
-  }) {
-    debugPrint('Using fallback value for platform service: $serviceName.$methodName');
-    return fallbackValue;
-  }
-
-  /// Logs test exceptions with detailed context
-  static void _logTestException(
-    Object error,
-    StackTrace stackTrace,
-    Map<String, dynamic> context,
-  ) {
-    debugPrint('\n=== Test Exception ===');
-    debugPrint('Error: $error');
-    debugPrint('Context: $context');
-    debugPrint('Stack trace:');
-    debugPrint(stackTrace.toString());
-    debugPrint('======================\n');
-  }
-}
-
-/// Extension on WidgetTester for exception handling
-extension ExceptionHandlingWidgetTester on WidgetTester {
-  /// Taps a widget with exception handling
-  Future<void> tapWithExceptionHandling(
-    Finder finder, {
-    required String widgetDescription,
-    String? suggestion,
-  }) async {
-    try {
-      await tap(finder);
-      await pumpAndSettle();
-    } catch (error) {
-      final errorMessage = TestDiagnosticsHelper.getDetailedErrorMessage(
-        expectedBehavior: 'Should be able to tap $widgetDescription',
-        actualBehavior: 'Failed to tap widget: $error',
-        widgetName: widgetDescription,
-        suggestion: suggestion ?? 'Check if the widget is visible and enabled',
-      );
-      
-      throw TestFailure(errorMessage);
-    }
-  }
-
-  /// Enters text with exception handling
-  Future<void> enterTextWithExceptionHandling(
-    Finder finder,
-    String text, {
-    required String widgetDescription,
-    String? suggestion,
-  }) async {
-    try {
-      await enterText(finder, text);
-      await pumpAndSettle();
-    } catch (error) {
-      final errorMessage = TestDiagnosticsHelper.getDetailedErrorMessage(
-        expectedBehavior: 'Should be able to enter text in $widgetDescription',
-        actualBehavior: 'Failed to enter text: $error',
-        widgetName: widgetDescription,
-        suggestion: suggestion ?? 'Check if the text field is visible and enabled',
-      );
-      
-      throw TestFailure(errorMessage);
-    }
-  }
-
-  /// Scrolls until a widget is visible with exception handling
-  Future<void> scrollUntilVisibleWithExceptionHandling(
-    Finder finder, {
-    required String widgetDescription,
-    double delta = 100.0,
-    Finder? scrollable,
-    Duration timeout = const Duration(seconds: 10),
-    String? suggestion,
-  }) async {
-    final scrollableFinder = scrollable ?? find.byType(Scrollable);
-    
-    try {
-      if (scrollableFinder.evaluate().isEmpty) {
-        throw TestFailure('No scrollable widget found');
-      }
-      
-      final stopwatch = Stopwatch()..start();
-      bool isVisible = false;
-      
-      while (!isVisible && stopwatch.elapsed < timeout) {
-        if (finder.evaluate().isNotEmpty) {
-          isVisible = true;
-          break;
+        debugPrint('🌐 Network error detected in operation "$operationName": $e');
+        
+        if (useOfflineMode && fallbackValue != null) {
+          debugPrint('📱 Using offline mode with fallback value');
+          return fallbackValue;
         }
         
-        await scrollUntilVisible(
-          finder,
-          delta,
-          scrollable: scrollableFinder,
-        );
+        throw NetworkException('Network error in operation "$operationName": $e');
+      }
+      
+      // Not a network error, rethrow as-is
+      rethrow;
+    }
+  }
+  
+  /// Handle API-specific exceptions
+  static Future<T> handleApiException<T>(
+    Future<T> Function() operation, {
+    required String operationName,
+    T? fallbackValue,
+    bool useFallbackOnError = false,
+  }) async {
+    try {
+      return await operation();
+    } catch (e) {
+      final errorString = e.toString().toLowerCase();
+      
+      // Check for API-specific errors
+      if (errorString.contains('api') ||
+          errorString.contains('401') ||
+          errorString.contains('403') ||
+          errorString.contains('rate limit') ||
+          errorString.contains('quota')) {
         
-        await pump(const Duration(milliseconds: 100));
+        debugPrint('🔑 API error detected in operation "$operationName": $e');
+        
+        if (useFallbackOnError && fallbackValue != null) {
+          debugPrint('🔄 Using fallback value for API error');
+          return fallbackValue;
+        }
+        
+        throw ApiException('API error in operation "$operationName": $e');
       }
       
-      if (!isVisible) {
-        throw TimeoutException('Widget not found within timeout', timeout);
-      }
-    } catch (error) {
-      final errorMessage = TestDiagnosticsHelper.getDetailedErrorMessage(
-        expectedBehavior: 'Should be able to scroll to $widgetDescription',
-        actualBehavior: 'Failed to scroll to widget: $error',
-        widgetName: widgetDescription,
-        suggestion: suggestion ?? 'Check if the widget exists in the scrollable area',
-      );
-      
-      throw TestFailure(errorMessage);
+      // Not an API error, rethrow as-is
+      rethrow;
     }
   }
-
-  /// Pumps a widget with exception handling
-  Future<void> pumpWidgetWithExceptionHandling(
-    Widget widget, {
-    Duration? duration,
-    String? widgetDescription,
-    String? suggestion,
+  
+  /// Comprehensive error handler that combines multiple strategies
+  static Future<T> handleComprehensive<T>(
+    Future<T> Function() operation, {
+    required String operationName,
+    Duration timeout = const Duration(seconds: 30),
+    int maxRetries = 2,
+    Duration retryDelay = const Duration(seconds: 1),
+    T? fallbackValue,
+    bool useFallbackOnTimeout = false,
+    bool useFallbackOnNetworkError = false,
+    bool useFallbackOnApiError = false,
+    Map<String, dynamic>? context,
   }) async {
-    try {
-      await pumpWidget(widget);
-    } catch (error) {
-      final description = widgetDescription ?? widget.runtimeType.toString();
-      final errorMessage = TestDiagnosticsHelper.getDetailedErrorMessage(
-        expectedBehavior: 'Should be able to pump $description widget',
-        actualBehavior: 'Failed to pump widget: $error',
-        widgetName: description,
-        suggestion: suggestion ?? 'Check if the widget can be built without errors',
-      );
-      
-      throw TestFailure(errorMessage);
-    }
-  }
-
-  /// Pumps and settles with exception handling and timeout
-  Future<void> pumpAndSettleWithExceptionHandling({
-    Duration timeout = const Duration(seconds: 10),
-    String? operationDescription,
-    String? suggestion,
-  }) async {
-    try {
-      await pumpAndSettle(const Duration(milliseconds: 100), EnginePhase.sendSemanticsUpdate, timeout);
-    } catch (error) {
-      final description = operationDescription ?? 'widget animations';
-      final errorMessage = TestDiagnosticsHelper.getDetailedErrorMessage(
-        expectedBehavior: 'Should be able to pump and settle $description',
-        actualBehavior: 'Failed to pump and settle: $error',
-        suggestion: suggestion ?? 'Check if there are infinite animations or rebuilds',
-      );
-      
-      throw TestFailure(errorMessage);
-    }
+    return await handleTimeoutException(
+      () => handleWithRetry(
+        () => handleNetworkException(
+          () => handleApiException(
+            operation,
+            operationName: operationName,
+            fallbackValue: useFallbackOnApiError ? fallbackValue : null,
+            useFallbackOnError: useFallbackOnApiError,
+          ),
+          operationName: operationName,
+          fallbackValue: useFallbackOnNetworkError ? fallbackValue : null,
+          useOfflineMode: useFallbackOnNetworkError,
+        ),
+        operationName: operationName,
+        maxRetries: maxRetries,
+        retryDelay: retryDelay,
+        shouldRetry: (error) {
+          // Retry on network errors but not on API auth errors
+          final errorString = error.toString().toLowerCase();
+          return errorString.contains('network') ||
+                 errorString.contains('connection') ||
+                 errorString.contains('timeout') ||
+                 !errorString.contains('401') &&
+                 !errorString.contains('403');
+        },
+      ),
+      operationName: operationName,
+      timeout: timeout,
+      fallbackValue: useFallbackOnTimeout ? fallbackValue : null,
+      rethrowException: !useFallbackOnTimeout,
+    );
   }
 }
 
-/// Extension on Finder for exception handling
-extension ExceptionHandlingFinder on Finder {
-  /// Evaluates a finder with exception handling
-  List<Element> evaluateWithExceptionHandling({
-    required String widgetDescription,
-    String? suggestion,
-  }) {
-    try {
-      return evaluate().toList();
-    } catch (error) {
-      final errorMessage = TestDiagnosticsHelper.getDetailedErrorMessage(
-        expectedBehavior: 'Should be able to evaluate finder for $widgetDescription',
-        actualBehavior: 'Failed to evaluate finder: $error',
-        widgetName: widgetDescription,
-        suggestion: suggestion ?? 'Check if the widget exists in the widget tree',
-      );
-      
-      throw TestFailure(errorMessage);
-    }
-  }
+/// Custom exception for network-related errors
+class NetworkException implements Exception {
+  final String message;
+  NetworkException(this.message);
+  
+  @override
+  String toString() => 'NetworkException: $message';
+}
 
-  /// Gets the first widget with exception handling
-  T getWidgetWithExceptionHandling<T extends Widget>({
-    required String widgetDescription,
-    String? suggestion,
-  }) {
-    try {
-      final elements = evaluate();
-      if (elements.isEmpty) {
-        throw TestFailure('No widgets found matching finder');
-      }
-      
-      final widget = elements.first.widget;
-      if (widget is! T) {
-        throw TestFailure('Widget is not of type $T, found ${widget.runtimeType} instead');
-      }
-      
-      return widget;
-    } catch (error) {
-      final errorMessage = TestDiagnosticsHelper.getDetailedErrorMessage(
-        expectedBehavior: 'Should be able to get $T widget for $widgetDescription',
-        actualBehavior: 'Failed to get widget: $error',
-        widgetName: widgetDescription,
-        suggestion: suggestion ?? 'Check if the widget exists and is of the correct type',
-      );
-      
-      throw TestFailure(errorMessage);
-    }
-  }
+/// Custom exception for API-related errors
+class ApiException implements Exception {
+  final String message;
+  ApiException(this.message);
+  
+  @override
+  String toString() => 'ApiException: $message';
+}
+
+/// Custom exception for timeout errors
+class TimeoutException implements Exception {
+  final String message;
+  final Duration timeout;
+  
+  TimeoutException(this.message, this.timeout);
+  
+  @override
+  String toString() => 'TimeoutException: $message (timeout: ${timeout.inSeconds}s)';
 }

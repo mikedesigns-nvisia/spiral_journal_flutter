@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import '../../models/journal_entry.dart';
 import '../../models/core.dart';
 import '../ai_service_interface.dart';
+import '../ai_service_error_tracker.dart';
 
 class FallbackProvider implements AIServiceInterface {
   // Config not needed for fallback provider but kept for interface consistency
@@ -32,11 +33,39 @@ class FallbackProvider implements AIServiceInterface {
   @override
   Future<Map<String, dynamic>> analyzeJournalEntry(JournalEntry entry) async {
     try {
+      debugPrint('📝 FallbackProvider: Analyzing journal entry ${entry.id} with basic analysis');
+      
+      // Log that we're using fallback analysis
+      AIServiceErrorTracker.logFallback(
+        'Using fallback analysis for journal entry',
+        'ClaudeAIProvider',
+        context: {
+          'entryId': entry.id,
+          'entryLength': entry.content.length,
+          'moods': entry.moods,
+          'reason': 'AI service unavailable',
+        },
+      );
+      
       // Simple mood-based analysis with simulated processing time
       await Future.delayed(const Duration(milliseconds: 200));
-      return _analyzeEntry(entry);
-    } catch (e) {
-      debugPrint('FallbackProvider analyzeJournalEntry error: $e');
+      final result = _analyzeEntry(entry);
+      
+      debugPrint('✅ FallbackProvider: Basic analysis completed for entry ${entry.id}');
+      return result;
+    } catch (e, stackTrace) {
+      debugPrint('❌ FallbackProvider analyzeJournalEntry error: $e');
+      AIServiceErrorTracker.logError(
+        'analyzeJournalEntry',
+        e,
+        stackTrace: stackTrace,
+        context: {
+          'entryId': entry.id,
+          'entryLength': entry.content.length,
+          'moods': entry.moods,
+        },
+        provider: 'FallbackProvider',
+      );
       // Return basic analysis even if there's an error
       return _getBasicAnalysis(entry);
     }
@@ -45,10 +74,34 @@ class FallbackProvider implements AIServiceInterface {
   @override
   Future<String> generateMonthlyInsight(List<JournalEntry> entries) async {
     try {
+      debugPrint('📊 FallbackProvider: Generating monthly insight for ${entries.length} entries');
+      
+      // Log that we're using fallback for monthly insights
+      AIServiceErrorTracker.logFallback(
+        'Using fallback analysis for monthly insight',
+        'ClaudeAIProvider',
+        context: {
+          'entriesCount': entries.length,
+          'reason': 'AI service unavailable',
+        },
+      );
+      
       await Future.delayed(const Duration(milliseconds: 300));
-      return _generateInsight(entries);
-    } catch (e) {
-      debugPrint('FallbackProvider generateMonthlyInsight error: $e');
+      final result = _generateInsight(entries);
+      
+      debugPrint('✅ FallbackProvider: Monthly insight generated');
+      return result;
+    } catch (e, stackTrace) {
+      debugPrint('❌ FallbackProvider generateMonthlyInsight error: $e');
+      AIServiceErrorTracker.logError(
+        'generateMonthlyInsight',
+        e,
+        stackTrace: stackTrace,
+        context: {
+          'entriesCount': entries.length,
+        },
+        provider: 'FallbackProvider',
+      );
       // Return basic insight even if there's an error
       return _getBasicInsight(entries);
     }
@@ -60,10 +113,36 @@ class FallbackProvider implements AIServiceInterface {
     List<EmotionalCore> currentCores,
   ) async {
     try {
+      debugPrint('🎯 FallbackProvider: Calculating core updates for entry ${entry.id}');
+      
+      // Log that we're using fallback for core updates
+      AIServiceErrorTracker.logFallback(
+        'Using fallback analysis for core updates',
+        'ClaudeAIProvider',
+        context: {
+          'entryId': entry.id,
+          'coresCount': currentCores.length,
+          'reason': 'AI service unavailable',
+        },
+      );
+      
       final analysis = await analyzeJournalEntry(entry);
-      return _mapAnalysisToCoreUpdates(analysis, currentCores);
-    } catch (e) {
-      debugPrint('FallbackProvider calculateCoreUpdates error: $e');
+      final result = _mapAnalysisToCoreUpdates(analysis, currentCores);
+      
+      debugPrint('✅ FallbackProvider: Core updates calculated: ${result.length} cores affected');
+      return result;
+    } catch (e, stackTrace) {
+      debugPrint('❌ FallbackProvider calculateCoreUpdates error: $e');
+      AIServiceErrorTracker.logError(
+        'calculateCoreUpdates',
+        e,
+        stackTrace: stackTrace,
+        context: {
+          'entryId': entry.id,
+          'coresCount': currentCores.length,
+        },
+        provider: 'FallbackProvider',
+      );
       // Return minimal core updates even if there's an error
       return _getBasicCoreUpdates(entry, currentCores);
     }

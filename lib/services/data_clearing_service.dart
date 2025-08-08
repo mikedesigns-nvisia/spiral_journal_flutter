@@ -364,7 +364,7 @@ class DataClearingService {
       await prefs.setBool('first_launch', true);
       await prefs.setBool('onboarding_completed', false);
       await prefs.setBool('profile_setup_completed', false);
-      await prefs.setBool('pin_setup_completed', false);
+      // PIN setup removed - using biometrics-only authentication
       await prefs.setBool('biometric_auth_enabled', false);
       await prefs.setBool('fresh_install_mode', true);
       

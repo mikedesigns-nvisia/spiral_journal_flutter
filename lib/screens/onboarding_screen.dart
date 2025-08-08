@@ -7,7 +7,7 @@ import '../widgets/quick_setup_widget.dart';
 import '../widgets/app_background.dart';
 import '../services/theme_service.dart';
 import '../services/settings_service.dart';
-import '../services/pin_auth_service.dart';
+// PIN auth service import removed - using biometrics-only authentication
 import '../services/navigation_service.dart';
 import '../services/navigation_flow_controller.dart';
 
@@ -36,12 +36,12 @@ class _OnboardingScreenState extends State<OnboardingScreen>
     // Create services directly instead of using Provider to avoid dependency issues
     final themeService = ThemeService();
     final settingsService = SettingsService();
-    final pinAuthService = PinAuthService();
+    // PIN auth service removed - using biometrics-only authentication
 
     _controller = OnboardingController(
       themeService: themeService,
       settingsService: settingsService,
-      pinAuthService: pinAuthService,
+      // PIN auth service parameter removed - using biometrics-only authentication
     );
 
     _pageController = PageController();
@@ -315,8 +315,11 @@ class OnboardingEntryScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Use SettingsService for consistent onboarding state management
+    final settingsService = SettingsService();
+    
     return FutureBuilder<bool>(
-      future: OnboardingController.hasCompletedOnboarding(),
+      future: settingsService.initialize().then((_) => settingsService.hasCompletedOnboarding()),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return _buildLoadingScreen(context);
@@ -427,7 +430,12 @@ class OnboardingDebugScreen extends StatelessWidget {
             ),
             SizedBox(height: DesignTokens.spaceM),
             FutureBuilder<bool>(
-              future: OnboardingController.hasCompletedOnboarding(),
+              future: () async {
+                // Use SettingsService for consistent onboarding state management
+                final settingsService = SettingsService();
+                await settingsService.initialize();
+                return settingsService.hasCompletedOnboarding();
+              }(),
               builder: (context, snapshot) {
                 final completed = snapshot.data ?? false;
                 return Text(

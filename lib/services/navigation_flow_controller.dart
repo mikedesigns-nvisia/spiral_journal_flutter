@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'settings_service.dart';
+import 'profile_service.dart';
+import '../screens/onboarding_screen.dart';
+import '../screens/main_screen.dart';
 
 /// Navigation states for the fresh install flow
 enum NavigationState {
@@ -48,13 +52,23 @@ class FlowState {
 class NavigationFlowController extends ChangeNotifier {
   static NavigationFlowController? _instance;
   
+  final SettingsService _settingsService;
+  final ProfileService _profileService;
+  
   /// Singleton instance
   static NavigationFlowController get instance {
-    _instance ??= NavigationFlowController._internal();
+    _instance ??= NavigationFlowController._internal(
+      settingsService: SettingsService(),
+      profileService: ProfileService(),
+    );
     return _instance!;
   }
   
-  NavigationFlowController._internal();
+  NavigationFlowController._internal({
+    required SettingsService settingsService,
+    required ProfileService profileService,
+  }) : _settingsService = settingsService,
+       _profileService = profileService;
 
   FlowState _currentFlowState = const FlowState(
     currentState: NavigationState.splash,
@@ -329,6 +343,36 @@ class NavigationFlowController extends ChangeNotifier {
       }
 
       notifyListeners();
+    }
+  }
+
+  /// Determine the appropriate start screen based on onboarding and profile status
+  Future<Widget> determineStartScreen() async {
+    try {
+      // Ensure both services are properly initialized
+      await _settingsService.initialize();
+      await _profileService.initialize();
+      
+      // Add small delay to ensure persistence operations are complete
+      await Future.delayed(const Duration(milliseconds: 100));
+      
+      final hasProfile = await _profileService.hasProfile();
+      final hasCompletedOnboarding = await _settingsService.hasCompletedOnboarding();
+      
+      debugPrint('NavigationFlowController: determineStartScreen - hasProfile: $hasProfile, hasCompletedOnboarding: $hasCompletedOnboarding');
+      
+      // Fix: Both conditions must be true to proceed to main screen
+      if (hasProfile && hasCompletedOnboarding) {
+        debugPrint('NavigationFlowController: Both conditions met, navigating to MainScreen');
+        return const MainScreen();
+      } else {
+        debugPrint('NavigationFlowController: Missing conditions - hasProfile: $hasProfile, hasCompletedOnboarding: $hasCompletedOnboarding, navigating to OnboardingScreen');
+        return const OnboardingScreen();
+      }
+    } catch (e) {
+      debugPrint('NavigationFlowController: determineStartScreen error: $e');
+      // Default to onboarding on error for safety
+      return const OnboardingScreen();
     }
   }
 

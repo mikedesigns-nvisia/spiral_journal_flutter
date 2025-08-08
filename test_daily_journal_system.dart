@@ -1,4 +1,3 @@
-import 'package:flutter_test/flutter_test.dart';
 import 'lib/models/daily_journal.dart';
 import 'lib/services/daily_journal_service.dart';
 import 'lib/services/usage_tracking_service.dart';

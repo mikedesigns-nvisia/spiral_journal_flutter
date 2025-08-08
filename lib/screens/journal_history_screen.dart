@@ -2,10 +2,13 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:spiral_journal/theme/app_theme.dart';
+import 'package:spiral_journal/design_system/heading_system.dart';
+import 'package:spiral_journal/design_system/component_library.dart';
+import 'package:spiral_journal/design_system/design_tokens.dart';
 import 'package:spiral_journal/providers/journal_provider.dart';
 import 'package:spiral_journal/models/journal_entry.dart';
 import 'package:spiral_journal/constants/validation_constants.dart';
-import 'package:spiral_journal/widgets/loading_state_widget.dart';
+import 'package:spiral_journal/widgets/loading_state_widget.dart' as loading_widget;
 import 'package:spiral_journal/widgets/journal_edit_modal.dart';
 import 'package:spiral_journal/utils/animation_utils.dart';
 import 'package:intl/intl.dart';
@@ -21,28 +24,31 @@ class _JournalHistoryScreenState extends State<JournalHistoryScreen> {
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   bool _showFilters = false;
+  bool _showScrollToTop = false;
   @override
   void initState() {
     super.initState();
-    
+
     // Initialize scroll controller for pagination with optimized loading
     _scrollController.addListener(_onScroll);
-    
+
     // Initialize journal provider to load entries
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final journalProvider = Provider.of<JournalProvider>(context, listen: false);
+      final journalProvider =
+          Provider.of<JournalProvider>(context, listen: false);
       journalProvider.initialize();
-      
+
       // Optimize memory usage periodically
       _scheduleMemoryOptimization();
     });
   }
-  
+
   void _scheduleMemoryOptimization() {
     // Schedule periodic memory optimization
     Timer.periodic(const Duration(minutes: 2), (timer) {
       if (mounted) {
-        final journalProvider = Provider.of<JournalProvider>(context, listen: false);
+        final journalProvider =
+            Provider.of<JournalProvider>(context, listen: false);
         journalProvider.optimizeMemoryUsage();
       } else {
         timer.cancel();
@@ -58,18 +64,30 @@ class _JournalHistoryScreenState extends State<JournalHistoryScreen> {
   }
 
   void _onScroll() {
-    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent * 0.8) {
-      final journalProvider = Provider.of<JournalProvider>(context, listen: false);
+    // Handle pagination
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent * 0.8) {
+      final journalProvider =
+          Provider.of<JournalProvider>(context, listen: false);
       if (journalProvider.hasMorePages && !journalProvider.isLoadingMore) {
         journalProvider.loadMoreEntries();
       }
     }
+
+    // Handle scroll-to-top button visibility
+    final shouldShow = _scrollController.position.pixels > 200;
+    if (shouldShow != _showScrollToTop) {
+      setState(() {
+        _showScrollToTop = shouldShow;
+      });
+    }
   }
 
   Future<void> _loadEntriesForYear(String year) async {
-    final journalProvider = Provider.of<JournalProvider>(context, listen: false);
+    final journalProvider =
+        Provider.of<JournalProvider>(context, listen: false);
     await journalProvider.loadEntriesForYear(year);
-    
+
     if (journalProvider.error != null && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -80,29 +98,35 @@ class _JournalHistoryScreenState extends State<JournalHistoryScreen> {
     }
   }
 
-  List<Widget> _buildEntriesByMonth(Map<String, List<JournalEntry>> groupedEntries) {
+  String _getMonthOnlyFromMonthYear(String monthYear) {
+    // Extract just the month part from "Month Year" format
+    return monthYear.split(' ').first;
+  }
+
+  List<Widget> _buildEntriesByMonth(
+      Map<String, List<JournalEntry>> groupedEntries) {
     final widgets = <Widget>[];
 
     for (final monthEntry in groupedEntries.entries) {
-      final monthName = monthEntry.key;
+      final monthName = _getMonthOnlyFromMonthYear(monthEntry.key);
       final entries = monthEntry.value;
 
       // Month header
       widgets.add(
         Container(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: BoxDecoration(
             color: AppTheme.getBackgroundSecondary(context),
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(10),
             border: Border.all(
-              color: Theme.of(context).brightness == Brightness.dark 
-                  ? AppTheme.darkBackgroundTertiary 
-                  : AppTheme.backgroundTertiary
-            ),
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? AppTheme.darkBackgroundTertiary
+                    : AppTheme.backgroundTertiary),
           ),
           child: Row(
             children: [
-              Icon(Icons.calendar_month, color: AppTheme.getPrimaryColor(context)),
+              Icon(Icons.calendar_month,
+                  color: AppTheme.getPrimaryColor(context)),
               const SizedBox(width: 12),
               Text(
                 monthName,
@@ -112,23 +136,23 @@ class _JournalHistoryScreenState extends State<JournalHistoryScreen> {
               Text(
                 '• ${entries.length} ${entries.length == 1 ? 'entry' : 'entries'}',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: AppTheme.getTextTertiary(context),
-                ),
+                      color: AppTheme.getTextTertiary(context),
+                    ),
               ),
             ],
           ),
         ),
       );
 
-      widgets.add(const SizedBox(height: 16));
+      widgets.add(SizedBox(height: ComponentLibrary.spaceGR1));
 
       // Entries for this month
       for (final entry in entries) {
         widgets.add(_buildEntryCard(entry));
-        widgets.add(const SizedBox(height: 12));
+        widgets.add(SizedBox(height: ComponentLibrary.spaceGR1));
       }
 
-      widgets.add(const SizedBox(height: 16));
+      widgets.add(SizedBox(height: ComponentLibrary.spaceGR1));
     }
 
     return widgets;
@@ -137,7 +161,7 @@ class _JournalHistoryScreenState extends State<JournalHistoryScreen> {
   Widget _buildEntryCard(JournalEntry entry) {
     final isEditable = entry.isEditable;
     final isToday = _isToday(entry.date);
-    
+
     return Dismissible(
       key: Key('journal_entry_${entry.id}'),
       direction: DismissDirection.endToStart,
@@ -152,8 +176,8 @@ class _JournalHistoryScreenState extends State<JournalHistoryScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
-              Theme.of(context).brightness == Brightness.dark 
-                  ? Icons.delete_outline 
+              Theme.of(context).brightness == Brightness.dark
+                  ? Icons.delete_outline
                   : Icons.delete_rounded,
               color: Colors.white,
               size: 28,
@@ -161,8 +185,7 @@ class _JournalHistoryScreenState extends State<JournalHistoryScreen> {
             const SizedBox(height: 4),
             Text(
               'Delete',
-              style: AppTheme.getTextStyle(
-                fontSize: 12,
+              style: HeadingSystem.getLabelMedium(context).copyWith(
                 fontWeight: FontWeight.w600,
                 color: Colors.white,
               ),
@@ -188,9 +211,10 @@ class _JournalHistoryScreenState extends State<JournalHistoryScreen> {
           },
           borderRadius: BorderRadius.circular(16),
           child: Padding(
-            padding: const EdgeInsets.all(16),
+            padding: EdgeInsets.all(ComponentLibrary.spaceGR2),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -202,22 +226,26 @@ class _JournalHistoryScreenState extends State<JournalHistoryScreen> {
                           children: [
                             Text(
                               DateFormat('MMM d').format(entry.date),
-                              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                                fontWeight: FontWeight.w600,
-                              ),
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodyLarge
+                                  ?.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                  ),
                             ),
                             if (isEditable) ...[
                               const SizedBox(width: 8),
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 6, vertical: 2),
                                 decoration: BoxDecoration(
                                   color: AppTheme.accentGreen,
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                                 child: Text(
                                   'Editable',
-                                  style: AppTheme.getTextStyle(
-                                    fontSize: 8,
+                                  style: HeadingSystem.getLabelSmall(context)
+                                      .copyWith(
                                     fontWeight: FontWeight.w600,
                                     color: Colors.white,
                                   ),
@@ -228,13 +256,14 @@ class _JournalHistoryScreenState extends State<JournalHistoryScreen> {
                         ),
                         Text(
                           entry.dayOfWeek,
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: AppTheme.getTextTertiary(context),
-                          ),
+                          style:
+                              Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: AppTheme.getTextTertiary(context),
+                                  ),
                         ),
                       ],
                     ),
-                    const SizedBox(width: 12),
+                    SizedBox(width: ComponentLibrary.spaceGR2),
                     if (entry.moods.isNotEmpty)
                       Expanded(
                         child: Align(
@@ -245,15 +274,16 @@ class _JournalHistoryScreenState extends State<JournalHistoryScreen> {
                             alignment: WrapAlignment.end,
                             children: entry.moods.take(3).map((mood) {
                               return Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 6, vertical: 3),
                                 decoration: BoxDecoration(
                                   color: AppTheme.getMoodColor(mood),
                                   borderRadius: BorderRadius.circular(10),
                                 ),
                                 child: Text(
                                   mood,
-                                  style: AppTheme.getTextStyle(
-                                    fontSize: 9,
+                                  style: HeadingSystem.getLabelSmall(context)
+                                      .copyWith(
                                     fontWeight: FontWeight.w500,
                                     color: Colors.white,
                                   ),
@@ -265,15 +295,17 @@ class _JournalHistoryScreenState extends State<JournalHistoryScreen> {
                       ),
                   ],
                 ),
-                const SizedBox(height: 12),
-                Text(
-                  entry.preview,
-                  style: Theme.of(context).textTheme.bodyMedium,
-                  maxLines: 3,
-                  overflow: TextOverflow.ellipsis,
+                SizedBox(height: ComponentLibrary.spaceGR1),
+                Flexible(
+                  child: Text(
+                    entry.preview,
+                    style: Theme.of(context).textTheme.bodyMedium,
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
                 if (isEditable) ...[
-                  const SizedBox(height: 8),
+                  SizedBox(height: ComponentLibrary.spaceGRHalf),
                   Row(
                     children: [
                       Icon(
@@ -281,11 +313,10 @@ class _JournalHistoryScreenState extends State<JournalHistoryScreen> {
                         size: 14,
                         color: AppTheme.accentGreen,
                       ),
-                      const SizedBox(width: 4),
+                      SizedBox(width: ComponentLibrary.spaceGRQuarter),
                       Text(
                         'Tap to edit',
-                        style: AppTheme.getTextStyle(
-                          fontSize: 12,
+                        style: HeadingSystem.getLabelMedium(context).copyWith(
                           fontWeight: FontWeight.w500,
                           color: AppTheme.accentGreen,
                         ),
@@ -303,7 +334,9 @@ class _JournalHistoryScreenState extends State<JournalHistoryScreen> {
 
   bool _isToday(DateTime date) {
     final now = DateTime.now();
-    return date.year == now.year && date.month == now.month && date.day == now.day;
+    return date.year == now.year &&
+        date.month == now.month &&
+        date.day == now.day;
   }
 
   void _editEntry(JournalEntry entry) {
@@ -316,7 +349,8 @@ class _JournalHistoryScreenState extends State<JournalHistoryScreen> {
         entry: entry,
         onSaved: () {
           // Refresh the journal entries after saving
-          final journalProvider = Provider.of<JournalProvider>(context, listen: false);
+          final journalProvider =
+              Provider.of<JournalProvider>(context, listen: false);
           journalProvider.refresh();
         },
         onCancelled: () {
@@ -343,24 +377,24 @@ class _JournalHistoryScreenState extends State<JournalHistoryScreen> {
                 Text(
                   'Moods:',
                   style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
+                        fontWeight: FontWeight.w600,
+                      ),
                 ),
-                const SizedBox(height: 8),
+                SizedBox(height: ComponentLibrary.spaceGR1),
                 Wrap(
                   spacing: 6,
                   runSpacing: 6,
                   children: entry.moods.map((mood) {
                     return Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(
                         color: AppTheme.getMoodColor(mood),
                         borderRadius: BorderRadius.circular(16),
                       ),
                       child: Text(
                         mood,
-                        style: AppTheme.getTextStyle(
-                          fontSize: 12,
+                        style: HeadingSystem.getLabelMedium(context).copyWith(
                           fontWeight: FontWeight.w500,
                           color: Colors.white,
                         ),
@@ -370,11 +404,134 @@ class _JournalHistoryScreenState extends State<JournalHistoryScreen> {
                 ),
                 const SizedBox(height: 16),
               ],
+
+              // Processing Analysis Section
+              if (entry.moods.isNotEmpty) ...[
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppTheme.accentGreen.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: AppTheme.accentGreen.withValues(alpha: 0.3),
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.psychology_rounded,
+                            color: AppTheme.accentGreen,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Local Processing',
+                            style:
+                                Theme.of(context).textTheme.bodyLarge?.copyWith(
+                                      fontWeight: FontWeight.w600,
+                                      color: AppTheme.accentGreen,
+                                    ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+
+                      // Personal Reflection
+                      Text(
+                        'Personal Reflection:',
+                        style:
+                            Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Thank you for taking time to reflect and journal.',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                      const SizedBox(height: 12),
+
+                      // Selected Moods
+                      Text(
+                        'Selected Moods:',
+                        style:
+                            Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                ),
+                      ),
+                      SizedBox(height: ComponentLibrary.spaceGRHalf),
+                      Wrap(
+                        spacing: 4,
+                        runSpacing: 4,
+                        children:
+                            entry.moods.map((mood) {
+                          return Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: AppTheme.getMoodColor(mood),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Text(
+                              mood,
+                              style: HeadingSystem.getLabelSmall(context)
+                                  .copyWith(
+                                fontWeight: FontWeight.w500,
+                                color: Colors.white,
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                      const SizedBox(height: 12),
+
+                      // Processing Theme
+                      Text(
+                        'Theme: Self-reflection',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                      const SizedBox(height: 12),
+
+                      // Emotional Intensity
+                      Row(
+                        children: [
+                          Text(
+                            'Emotional Intensity: ',
+                            style:
+                                Theme.of(context).textTheme.bodySmall?.copyWith(
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                          ),
+                          Text(
+                            '${((entry.moods.length / 5.0).clamp(0.0, 1.0) * 10).toStringAsFixed(1)}/10',
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                        ],
+                      ),
+
+                      SizedBox(height: ComponentLibrary.spaceGR1),
+
+                      // Processing timestamp
+                      Text(
+                        'Processed: ${DateFormat('MMM d, h:mm a').format(entry.updatedAt)}',
+                        style: HeadingSystem.getLabelSmall(context).copyWith(
+                          color: AppTheme.getTextTertiary(context),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+              ],
+
               Text(
                 'Entry:',
                 style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
+                      fontWeight: FontWeight.w600,
+                    ),
               ),
               const SizedBox(height: 8),
               Text(
@@ -403,10 +560,9 @@ class _JournalHistoryScreenState extends State<JournalHistoryScreen> {
             color: AppTheme.getBackgroundSecondary(context),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: Theme.of(context).brightness == Brightness.dark 
-                  ? AppTheme.darkBackgroundTertiary 
-                  : AppTheme.backgroundTertiary
-            ),
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? AppTheme.darkBackgroundTertiary
+                    : AppTheme.backgroundTertiary),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -415,8 +571,8 @@ class _JournalHistoryScreenState extends State<JournalHistoryScreen> {
               Text(
                 'Filter by Mood',
                 style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
+                      fontWeight: FontWeight.w600,
+                    ),
               ),
               const SizedBox(height: 8),
               SizedBox(
@@ -426,12 +582,14 @@ class _JournalHistoryScreenState extends State<JournalHistoryScreen> {
                     spacing: 8,
                     runSpacing: 8,
                     children: ValidationConstants.validMoods.map((mood) {
-                      final isSelected = journalProvider.selectedMoods.contains(mood);
+                      final isSelected =
+                          journalProvider.selectedMoods.contains(mood);
                       return FilterChip(
                         label: Text(mood),
                         selected: isSelected,
                         onSelected: (selected) {
-                          final newMoods = List<String>.from(journalProvider.selectedMoods);
+                          final newMoods =
+                              List<String>.from(journalProvider.selectedMoods);
                           if (selected) {
                             newMoods.add(mood);
                           } else {
@@ -439,29 +597,33 @@ class _JournalHistoryScreenState extends State<JournalHistoryScreen> {
                           }
                           journalProvider.setMoodFilter(newMoods);
                         },
-                        backgroundColor: Theme.of(context).brightness == Brightness.dark 
-                            ? AppTheme.darkBackgroundTertiary 
-                            : AppTheme.backgroundTertiary,
+                        backgroundColor:
+                            Theme.of(context).brightness == Brightness.dark
+                                ? AppTheme.darkBackgroundTertiary
+                                : AppTheme.backgroundTertiary,
                         selectedColor: AppTheme.getMoodColor(mood),
-                        labelStyle: AppTheme.getTextStyle(
-                          fontSize: 12,
-                          fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                          color: isSelected ? Colors.white : AppTheme.getTextSecondary(context),
+                        labelStyle:
+                            HeadingSystem.getLabelMedium(context).copyWith(
+                          fontWeight:
+                              isSelected ? FontWeight.w600 : FontWeight.w500,
+                          color: isSelected
+                              ? Colors.white
+                              : AppTheme.getTextSecondary(context),
                         ),
                       );
                     }).toList(),
                   ),
                 ),
               ),
-              
+
               const SizedBox(height: 16),
-              
+
               // Date Range Filter
               Text(
                 'Filter by Date Range',
                 style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
+                      fontWeight: FontWeight.w600,
+                    ),
               ),
               const SizedBox(height: 8),
               Row(
@@ -471,10 +633,11 @@ class _JournalHistoryScreenState extends State<JournalHistoryScreen> {
                       onPressed: () => _selectStartDate(journalProvider),
                       icon: const Icon(Icons.calendar_today, size: 16),
                       label: Text(
-                        journalProvider.startDate != null 
-                            ? DateFormat('MMM d, y').format(journalProvider.startDate!)
+                        journalProvider.startDate != null
+                            ? DateFormat('MMM d, y')
+                                .format(journalProvider.startDate!)
                             : 'Start Date',
-                        style: const TextStyle(fontSize: 12),
+                        style: HeadingSystem.getLabelMedium(context),
                       ),
                     ),
                   ),
@@ -484,24 +647,25 @@ class _JournalHistoryScreenState extends State<JournalHistoryScreen> {
                       onPressed: () => _selectEndDate(journalProvider),
                       icon: const Icon(Icons.calendar_today, size: 16),
                       label: Text(
-                        journalProvider.endDate != null 
-                            ? DateFormat('MMM d, y').format(journalProvider.endDate!)
+                        journalProvider.endDate != null
+                            ? DateFormat('MMM d, y')
+                                .format(journalProvider.endDate!)
                             : 'End Date',
-                        style: const TextStyle(fontSize: 12),
+                        style: HeadingSystem.getLabelMedium(context),
                       ),
                     ),
                   ),
                 ],
               ),
-              
+
               const SizedBox(height: 16),
-              
+
               // AI Analysis Filter
               Text(
                 'Filter by Analysis',
                 style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
+                      fontWeight: FontWeight.w600,
+                    ),
               ),
               const SizedBox(height: 8),
               Row(
@@ -512,9 +676,10 @@ class _JournalHistoryScreenState extends State<JournalHistoryScreen> {
                     onSelected: (selected) {
                       journalProvider.setAnalyzedFilter(selected ? true : null);
                     },
-                    backgroundColor: Theme.of(context).brightness == Brightness.dark 
-                        ? AppTheme.darkBackgroundTertiary 
-                        : AppTheme.backgroundTertiary,
+                    backgroundColor:
+                        Theme.of(context).brightness == Brightness.dark
+                            ? AppTheme.darkBackgroundTertiary
+                            : AppTheme.backgroundTertiary,
                     selectedColor: AppTheme.accentGreen,
                   ),
                   const SizedBox(width: 8),
@@ -522,11 +687,13 @@ class _JournalHistoryScreenState extends State<JournalHistoryScreen> {
                     label: const Text('Not Analyzed'),
                     selected: journalProvider.isAnalyzedFilter == false,
                     onSelected: (selected) {
-                      journalProvider.setAnalyzedFilter(selected ? false : null);
+                      journalProvider
+                          .setAnalyzedFilter(selected ? false : null);
                     },
-                    backgroundColor: Theme.of(context).brightness == Brightness.dark 
-                        ? AppTheme.darkBackgroundTertiary 
-                        : AppTheme.backgroundTertiary,
+                    backgroundColor:
+                        Theme.of(context).brightness == Brightness.dark
+                            ? AppTheme.darkBackgroundTertiary
+                            : AppTheme.backgroundTertiary,
                     selectedColor: AppTheme.accentRed,
                   ),
                 ],
@@ -564,7 +731,7 @@ class _JournalHistoryScreenState extends State<JournalHistoryScreen> {
 
   Future<bool?> _showDeleteConfirmation(JournalEntry entry) async {
     final wordCount = entry.content.trim().split(RegExp(r'\s+')).length;
-    
+
     return showDialog<bool>(
       context: context,
       builder: (BuildContext context) {
@@ -581,8 +748,8 @@ class _JournalHistoryScreenState extends State<JournalHistoryScreen> {
                 child: Text(
                   'Delete Journal Entry',
                   style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
+                        fontWeight: FontWeight.w600,
+                      ),
                 ),
               ),
             ],
@@ -599,10 +766,10 @@ class _JournalHistoryScreenState extends State<JournalHistoryScreen> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: AppTheme.accentRed.withOpacity(0.1),
+                  color: AppTheme.accentRed.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(
-                    color: AppTheme.accentRed.withOpacity(0.3),
+                    color: AppTheme.accentRed.withValues(alpha: 0.3),
                   ),
                 ),
                 child: Row(
@@ -616,8 +783,7 @@ class _JournalHistoryScreenState extends State<JournalHistoryScreen> {
                     Expanded(
                       child: Text(
                         'This will permanently delete $wordCount ${wordCount == 1 ? 'word' : 'words'}. This action cannot be undone.',
-                        style: AppTheme.getTextStyle(
-                          fontSize: 12,
+                        style: HeadingSystem.getLabelMedium(context).copyWith(
                           fontWeight: FontWeight.w500,
                           color: AppTheme.accentRed,
                         ),
@@ -651,8 +817,7 @@ class _JournalHistoryScreenState extends State<JournalHistoryScreen> {
               ),
               child: Text(
                 'Delete',
-                style: AppTheme.getTextStyle(
-                  fontSize: 14,
+                style: HeadingSystem.getLabelLarge(context).copyWith(
                   fontWeight: FontWeight.w600,
                   color: Colors.white,
                 ),
@@ -665,11 +830,12 @@ class _JournalHistoryScreenState extends State<JournalHistoryScreen> {
   }
 
   void _deleteEntry(JournalEntry entry) {
-    final journalProvider = Provider.of<JournalProvider>(context, listen: false);
-    
+    final journalProvider =
+        Provider.of<JournalProvider>(context, listen: false);
+
     // Delete the entry from the provider
     journalProvider.deleteEntry(entry.id);
-    
+
     // Show success message
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -693,9 +859,18 @@ class _JournalHistoryScreenState extends State<JournalHistoryScreen> {
         duration: const Duration(seconds: 2),
       ),
     );
-    
+
     // Add haptic feedback
     AnimationUtils.mediumImpact();
+  }
+
+  void _scrollToTop() {
+    _scrollController.animateTo(
+      0,
+      duration: const Duration(milliseconds: 500),
+      curve: Curves.easeInOut,
+    );
+    AnimationUtils.lightImpact();
   }
 
   Widget _buildContent(JournalProvider journalProvider) {
@@ -703,8 +878,8 @@ class _JournalHistoryScreenState extends State<JournalHistoryScreen> {
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(32.0),
-          child: LoadingStateWidget(
-            type: LoadingType.pulse,
+          child: loading_widget.LoadingStateWidget(
+            type: loading_widget.LoadingType.pulse,
             message: 'Loading your journal entries...',
             color: AppTheme.getPrimaryColor(context),
           ),
@@ -720,25 +895,29 @@ class _JournalHistoryScreenState extends State<JournalHistoryScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(
-                journalProvider.hasActiveFilters ? Icons.search_off : Icons.book_outlined,
+                journalProvider.hasActiveFilters
+                    ? Icons.search_off
+                    : Icons.book_outlined,
                 size: 64,
                 color: AppTheme.getTextTertiary(context),
               ),
               const SizedBox(height: 16),
               Text(
-                journalProvider.hasActiveFilters ? 'No entries match your filters' : 'No entries found',
+                journalProvider.hasActiveFilters
+                    ? 'No entries match your filters'
+                    : 'No entries found',
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  color: AppTheme.getTextTertiary(context),
-                ),
+                      color: AppTheme.getTextTertiary(context),
+                    ),
               ),
               const SizedBox(height: 8),
               Text(
-                journalProvider.hasActiveFilters 
+                journalProvider.hasActiveFilters
                     ? 'Try adjusting your search or filters'
                     : 'Start journaling to see your entries here!',
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: AppTheme.getTextTertiary(context),
-                ),
+                      color: AppTheme.getTextTertiary(context),
+                    ),
               ),
             ],
           ),
@@ -748,8 +927,10 @@ class _JournalHistoryScreenState extends State<JournalHistoryScreen> {
 
     return ListView.builder(
       controller: _scrollController,
-      padding: const EdgeInsets.symmetric(horizontal: 24.0),
+      padding: const EdgeInsets.symmetric(horizontal: 16.0),
       itemCount: _getItemCount(journalProvider),
+      physics:
+          const BouncingScrollPhysics(), // iOS-style bouncing scroll physics
       itemBuilder: (context, index) {
         return _buildListItem(context, journalProvider, index);
       },
@@ -759,8 +940,8 @@ class _JournalHistoryScreenState extends State<JournalHistoryScreen> {
   int _getItemCount(JournalProvider journalProvider) {
     if (journalProvider.hasActiveFilters) {
       // For filtered results, show entries + loading indicator if loading more
-      return journalProvider.filteredEntries.length + 
-             (journalProvider.isLoadingMore ? 1 : 0);
+      return journalProvider.filteredEntries.length +
+          (journalProvider.isLoadingMore ? 1 : 0);
     } else {
       // For grouped entries, calculate total items including headers
       final groupedEntries = journalProvider.entriesByMonth;
@@ -773,12 +954,13 @@ class _JournalHistoryScreenState extends State<JournalHistoryScreen> {
     }
   }
 
-  Widget _buildListItem(BuildContext context, JournalProvider journalProvider, int index) {
+  Widget _buildListItem(
+      BuildContext context, JournalProvider journalProvider, int index) {
     if (journalProvider.hasActiveFilters) {
       // Handle filtered results
       if (index < journalProvider.filteredEntries.length) {
         return Padding(
-          padding: const EdgeInsets.only(bottom: 12.0),
+          padding: const EdgeInsets.only(bottom: 8.0),
           child: _buildEntryCard(journalProvider.filteredEntries[index]),
         );
       } else {
@@ -786,8 +968,8 @@ class _JournalHistoryScreenState extends State<JournalHistoryScreen> {
         return Padding(
           padding: const EdgeInsets.all(16.0),
           child: Center(
-            child: LoadingStateWidget(
-              type: LoadingType.dots,
+            child: loading_widget.LoadingStateWidget(
+              type: loading_widget.LoadingType.dots,
               message: 'Loading more entries...',
               size: 24,
             ),
@@ -798,30 +980,30 @@ class _JournalHistoryScreenState extends State<JournalHistoryScreen> {
       // Handle grouped entries
       final groupedEntries = journalProvider.entriesByMonth;
       int currentIndex = 0;
-      
+
       for (final monthEntry in groupedEntries.entries) {
-        final monthName = monthEntry.key;
+        final monthName = _getMonthOnlyFromMonthYear(monthEntry.key);
         final entries = monthEntry.value;
-        
+
         // Check if this is the month header
         if (currentIndex == index) {
           return Padding(
-            padding: const EdgeInsets.only(bottom: 16.0),
+            padding: const EdgeInsets.only(bottom: 8.0),
             child: Container(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: BoxDecoration(
                 color: AppTheme.getBackgroundSecondary(context),
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(10),
                 border: Border.all(
-                  color: Theme.of(context).brightness == Brightness.dark 
-                      ? AppTheme.darkBackgroundTertiary 
-                      : AppTheme.backgroundTertiary
-                ),
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? AppTheme.darkBackgroundTertiary
+                        : AppTheme.backgroundTertiary),
               ),
               child: Row(
                 children: [
-                  Icon(Icons.calendar_month, color: AppTheme.getPrimaryColor(context)),
-                  const SizedBox(width: 12),
+                  Icon(Icons.calendar_month,
+                      color: AppTheme.getPrimaryColor(context)),
+                  SizedBox(width: ComponentLibrary.spaceGR2),
                   Text(
                     monthName,
                     style: Theme.of(context).textTheme.headlineSmall,
@@ -830,8 +1012,8 @@ class _JournalHistoryScreenState extends State<JournalHistoryScreen> {
                   Text(
                     '• ${entries.length} ${entries.length == 1 ? 'entry' : 'entries'}',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: AppTheme.getTextTertiary(context),
-                    ),
+                          color: AppTheme.getTextTertiary(context),
+                        ),
                   ),
                 ],
               ),
@@ -839,19 +1021,19 @@ class _JournalHistoryScreenState extends State<JournalHistoryScreen> {
           );
         }
         currentIndex++;
-        
+
         // Check if this is one of the entries for this month
         for (int i = 0; i < entries.length; i++) {
           if (currentIndex == index) {
             return Padding(
-              padding: const EdgeInsets.only(bottom: 12.0),
+              padding: const EdgeInsets.only(bottom: 8.0),
               child: _buildEntryCard(entries[i]),
             );
           }
           currentIndex++;
         }
       }
-      
+
       // Loading indicator
       return const Padding(
         padding: EdgeInsets.all(16.0),
@@ -863,100 +1045,95 @@ class _JournalHistoryScreenState extends State<JournalHistoryScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.getBackgroundPrimary(context),
+      backgroundColor: DesignTokens.getBackgroundPrimary(context),
+      floatingActionButton: _showScrollToTop
+          ? FloatingActionButton(
+              onPressed: _scrollToTop,
+              mini: true,
+              backgroundColor: DesignTokens.getPrimaryColor(context),
+              foregroundColor: Colors.white,
+              child: const Icon(Icons.keyboard_arrow_up),
+            )
+          : null,
       body: SafeArea(
         child: Column(
           children: [
-            // Header and Search Section
+            // AppHeader
+            Consumer<JournalProvider>(
+              builder: (context, journalProvider, child) {
+                return ComponentLibrary.appHeader(
+                  context: context,
+                  title: 'Journal History',
+                  subtitle: DateFormat('EEEE, MMMM d').format(DateTime.now()),
+                  icon: Icons.history_rounded,
+                  actions: [
+                    // Filter toggle button
+                    IconButton(
+                      onPressed: () {
+                        setState(() {
+                          _showFilters = !_showFilters;
+                        });
+                      },
+                      icon: Icon(
+                        _showFilters
+                            ? Icons.filter_list_off
+                            : Icons.filter_list,
+                        color: DesignTokens.getPrimaryColor(context),
+                      ),
+                      tooltip: _showFilters
+                          ? 'Hide filters'
+                          : 'Show filters',
+                    ),
+                    // Refresh button
+                    IconButton(
+                      onPressed: journalProvider.isLoading
+                          ? null
+                          : () async {
+                              await journalProvider.refresh();
+                              if (mounted &&
+                                  journalProvider.error == null) {
+                                ScaffoldMessenger.of(context)
+                                    .showSnackBar(
+                                  SnackBar(
+                                    content:
+                                        Text('Entries refreshed! 🔄'),
+                                    backgroundColor:
+                                        AppTheme.accentGreen,
+                                    duration: Duration(seconds: 2),
+                                  ),
+                                );
+                              }
+                            },
+                      icon: journalProvider.isLoading
+                          ? SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor:
+                                    AlwaysStoppedAnimation<Color>(
+                                        DesignTokens.getPrimaryColor(
+                                            context)),
+                              ),
+                            )
+                          : Icon(
+                              Icons.refresh_rounded,
+                              color:
+                                  DesignTokens.getPrimaryColor(context),
+                            ),
+                      tooltip: 'Refresh entries',
+                    ),
+                  ],
+                );
+              },
+            ),
+            // Search and Filter Section
             Padding(
-              padding: const EdgeInsets.all(24.0),
+              padding: EdgeInsets.fromLTRB(ComponentLibrary.spaceGR4, ComponentLibrary.spaceGR4, ComponentLibrary.spaceGR4, ComponentLibrary.spaceGR2),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Header
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: AppTheme.accentYellow,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Icon(
-                          Icons.history_rounded,
-                          color: AppTheme.getPrimaryColor(context),
-                          size: 24,
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Text(
-                          'Journal History',
-                          style: Theme.of(context).textTheme.headlineLarge,
-                        ),
-                      ),
-                      Consumer<JournalProvider>(
-                        builder: (context, journalProvider, child) {
-                          return Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              // Filter toggle button
-                              IconButton(
-                                onPressed: () {
-                                  setState(() {
-                                    _showFilters = !_showFilters;
-                                  });
-                                },
-                                icon: Icon(
-                                  _showFilters ? Icons.filter_list_off : Icons.filter_list,
-                                  color: AppTheme.getPrimaryColor(context),
-                                ),
-                                tooltip: _showFilters ? 'Hide filters' : 'Show filters',
-                              ),
-                              // Refresh button
-                              IconButton(
-                                onPressed: journalProvider.isLoading ? null : () async {
-                                  await journalProvider.refresh();
-                                  if (mounted && journalProvider.error == null) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text('Entries refreshed! 🔄'),
-                                        backgroundColor: AppTheme.accentGreen,
-                                        duration: Duration(seconds: 2),
-                                      ),
-                                    );
-                                  }
-                                },
-                                icon: journalProvider.isLoading 
-                                  ? SizedBox(
-                                      width: 20,
-                                      height: 20,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        valueColor: AlwaysStoppedAnimation<Color>(AppTheme.getPrimaryColor(context)),
-                                      ),
-                                    )
-                                  : Icon(
-                                      Icons.refresh_rounded,
-                                      color: AppTheme.getPrimaryColor(context),
-                                    ),
-                                tooltip: 'Refresh entries',
-                              ),
-                            ],
-                          );
-                        },
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    DateFormat('EEEE, MMMM d').format(DateTime.now()),
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: AppTheme.getTextTertiary(context),
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  
+
                   // Search Bar
                   TextField(
                     controller: _searchController,
@@ -970,7 +1147,9 @@ class _JournalHistoryScreenState extends State<JournalHistoryScreen> {
                           ? IconButton(
                               onPressed: () {
                                 _searchController.clear();
-                                final provider = Provider.of<JournalProvider>(context, listen: false);
+                                final provider = Provider.of<JournalProvider>(
+                                    context,
+                                    listen: false);
                                 provider.setSearchQuery('');
                               },
                               icon: Icon(
@@ -984,68 +1163,96 @@ class _JournalHistoryScreenState extends State<JournalHistoryScreen> {
                         borderSide: BorderSide.none,
                       ),
                       filled: true,
-                      fillColor: AppTheme.getBackgroundSecondary(context),
+                      fillColor: DesignTokens.getBackgroundSecondary(context),
                     ),
                     onChanged: (value) {
-                      final provider = Provider.of<JournalProvider>(context, listen: false);
+                      final provider =
+                          Provider.of<JournalProvider>(context, listen: false);
                       provider.setSearchQuery(value);
                     },
                   ),
-                  
+
                   // Filter Section
                   if (_showFilters) ...[
-                    const SizedBox(height: 16),
+                    SizedBox(height: ComponentLibrary.spaceGR2),
                     _buildFilterSection(),
                   ],
                 ],
               ),
             ),
-            
+
             // Content Section
             Expanded(
               child: Consumer<JournalProvider>(
                 builder: (context, journalProvider, child) {
                   return Column(
                     children: [
-                      // Year Filter Chips (only show if no active filters)
-                      if (!journalProvider.hasActiveFilters && journalProvider.availableYears.isNotEmpty)
+                      // Year Filter Dropdown (only show if no active filters)
+                      if (!journalProvider.hasActiveFilters &&
+                          journalProvider.availableYears.isNotEmpty)
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                          child: SizedBox(
-                            height: 40,
-                            child: ListView.builder(
-                              scrollDirection: Axis.horizontal,
-                              itemCount: journalProvider.availableYears.length,
-                              itemBuilder: (context, index) {
-                                final year = journalProvider.availableYears[index];
-                                return Padding(
-                                  padding: const EdgeInsets.only(right: 8.0),
-                                  child: FilterChip(
-                                    label: Text(year),
-                                    selected: year == journalProvider.selectedYear,
-                                    onSelected: (selected) {
-                                      if (selected) {
-                                        _loadEntriesForYear(year);
-                                      }
-                                    },
-                                    backgroundColor: Theme.of(context).brightness == Brightness.dark 
-                                        ? AppTheme.darkBackgroundTertiary 
-                                        : AppTheme.backgroundTertiary,
-                                    selectedColor: AppTheme.moodEnergetic,
-                                    labelStyle: AppTheme.getTextStyle(
-                                      fontSize: 14,
-                                      fontWeight: year == journalProvider.selectedYear ? FontWeight.w600 : FontWeight.w500,
-                                      color: year == journalProvider.selectedYear ? Colors.white : AppTheme.getTextSecondary(context),
+                          child: Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: DesignTokens.getBackgroundSecondary(context),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                  color: Theme.of(context).brightness ==
+                                          Brightness.dark
+                                      ? AppTheme.darkBackgroundTertiary
+                                      : AppTheme.backgroundTertiary),
+                            ),
+                            child: DropdownButtonHideUnderline(
+                              child: DropdownButton<String>(
+                                value: journalProvider.selectedYear,
+                                hint: Text(
+                                  'Select Year',
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .bodyMedium
+                                      ?.copyWith(
+                                        color:
+                                            AppTheme.getTextTertiary(context),
+                                      ),
+                                ),
+                                icon: Icon(
+                                  Icons.arrow_drop_down,
+                                  color: AppTheme.getPrimaryColor(context),
+                                ),
+                                isDense: true,
+                                items: journalProvider.availableYears
+                                    .map((String year) {
+                                  return DropdownMenuItem<String>(
+                                    value: year,
+                                    child: Text(
+                                      year,
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodyMedium
+                                          ?.copyWith(
+                                            fontWeight: year ==
+                                                    journalProvider.selectedYear
+                                                ? FontWeight.w600
+                                                : FontWeight.w500,
+                                          ),
                                     ),
-                                  ),
-                                );
-                              },
+                                  );
+                                }).toList(),
+                                onChanged: (String? newValue) {
+                                  if (newValue != null) {
+                                    _loadEntriesForYear(newValue);
+                                  }
+                                },
+                              ),
                             ),
                           ),
                         ),
-                      
-                      const SizedBox(height: 16),
-                      
+
+                      SizedBox(height: ComponentLibrary.spaceGR1),
+
                       // Active filters indicator
                       if (journalProvider.hasActiveFilters)
                         Padding(
@@ -1060,30 +1267,35 @@ class _JournalHistoryScreenState extends State<JournalHistoryScreen> {
                               const SizedBox(width: 8),
                               Text(
                                 'Filters active',
-                                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                  color: AppTheme.getPrimaryColor(context),
-                                  fontWeight: FontWeight.w500,
-                                ),
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodySmall
+                                    ?.copyWith(
+                                      color: AppTheme.getPrimaryColor(context),
+                                      fontWeight: FontWeight.w500,
+                                    ),
                               ),
                               const Spacer(),
                               TextButton(
                                 onPressed: () {
-                                  final provider = Provider.of<JournalProvider>(context, listen: false);
+                                  final provider = Provider.of<JournalProvider>(
+                                      context,
+                                      listen: false);
                                   provider.clearAllFilters();
                                   _searchController.clear();
                                 },
                                 child: Text(
                                   'Clear all',
-                                  style: TextStyle(
+                                  style: HeadingSystem.getLabelMedium(context)
+                                      .copyWith(
                                     color: AppTheme.getPrimaryColor(context),
-                                    fontSize: 12,
                                   ),
                                 ),
                               ),
                             ],
                           ),
                         ),
-                      
+
                       // Content
                       Expanded(
                         child: _buildContent(journalProvider),

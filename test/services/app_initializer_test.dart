@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:spiral_journal/services/app_initializer.dart';
-import 'package:spiral_journal/constants/app_constants.dart';
+import 'package:spiral_journal/core/app_constants.dart';
 
 void main() {
   group('AppInitializer', () {

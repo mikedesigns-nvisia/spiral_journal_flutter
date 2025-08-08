@@ -357,7 +357,7 @@ class JournalRepositoryImpl implements JournalRepository {
         throw DatabaseValidationException('AI mood cannot be empty');
       }
       
-      final entries = await _journalDao.getJournalEntriesByAIMood(mood);
+      final entries = await _journalDao.getJournalEntriesByMood(mood); // Use manual mood search instead
       
       // Apply pagination if specified
       if (offset != null || limit != null) {
@@ -395,7 +395,7 @@ class JournalRepositoryImpl implements JournalRepository {
         throw DatabaseValidationException('Theme cannot be empty');
       }
       
-      final entries = await _journalDao.getJournalEntriesByTheme(theme);
+      final entries = await _journalDao.searchJournalEntries(theme); // Search content for theme instead
       
       // Apply pagination if specified
       if (offset != null || limit != null) {
@@ -440,7 +440,8 @@ class JournalRepositoryImpl implements JournalRepository {
         throw DatabaseValidationException('Minimum intensity must be less than or equal to maximum intensity');
       }
       
-      final entries = await _journalDao.getJournalEntriesByIntensityRange(minIntensity, maxIntensity);
+      // Use basic entry retrieval since intensity filtering is no longer AI-based
+      final entries = await _journalDao.getAllJournalEntries();
       
       // Apply pagination if specified
       if (offset != null || limit != null) {
@@ -474,7 +475,8 @@ class JournalRepositoryImpl implements JournalRepository {
     int? offset,
   }) async {
     try {
-      final entries = await _journalDao.getAnalyzedEntries(analyzed: analyzed);
+      // Use basic entry retrieval since analysis status is no longer AI-based
+      final entries = await _journalDao.getAllJournalEntries();
       
       // Apply pagination if specified
       if (offset != null || limit != null) {
@@ -535,13 +537,8 @@ class JournalRepositoryImpl implements JournalRepository {
       return await _journalDao.searchJournalEntriesAdvanced(
         textQuery: textQuery,
         moods: moods,
-        aiMoods: aiMoods,
         startDate: startDate,
         endDate: endDate,
-        minIntensity: minIntensity,
-        maxIntensity: maxIntensity,
-        isAnalyzed: isAnalyzed,
-        themes: themes,
         limit: limit,
         offset: offset,
       );

@@ -5,13 +5,13 @@
 	<!-- Keychain Access Groups -->
 	<key>keychain-access-groups</key>
 	<array>
-		<string>$(AppIdentifierPrefix)com.example.spiralJournal</string>
+		<string>$(AppIdentifierPrefix)com.spiraljournal.app</string>
 	</array>
 	
 	<!-- App Groups (for shared data if needed) -->
 	<key>com.apple.security.application-groups</key>
 	<array>
-		<string>group.com.example.spiralJournal</string>
+		<string>group.com.spiraljournal.app</string>
 	</array>
 	
 	<!-- Network Access -->

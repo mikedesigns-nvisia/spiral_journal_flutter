@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:spiral_journal/theme/app_theme.dart';
 import 'test_diagnostics_helper.dart';
-import 'test_exception_handler.dart';
 
 /// Utility class for consistent widget testing with theme support
 class WidgetTestUtils {

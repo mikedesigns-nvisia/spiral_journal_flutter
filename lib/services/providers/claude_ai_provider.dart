@@ -7,23 +7,25 @@ import '../../models/journal_entry.dart';
 import '../../models/core.dart';
 import '../ai_service_interface.dart';
 import '../ai_cache_service.dart';
+import '../ai_service_error_tracker.dart';
+import '../../config/ai_model_config.dart';
+import '../network/network_error_handler.dart';
 
-/// Modern Claude AI Provider implementing the latest Anthropic API standards
+/// Modern Claude AI Provider with flexible model configuration
 /// 
 /// Features:
-/// - Claude 4 model support with fallback to 3.7 Sonnet
-/// - Extended thinking capabilities for deeper analysis
-/// - Proper system prompting from workspace configuration
+/// - Configurable AI models via AIModelConfig
+/// - Automatic model selection based on strategy
+/// - Token-optimized prompts for efficient responses
 /// - Modern error handling and response tracking
-/// - Configurable model selection and parameters
+/// - Cost tracking and optimization
 class ClaudeAIProvider implements AIServiceInterface {
   final AIServiceConfig _config;
   bool _isConfigured = false;
   
-  // Modern Claude models (ordered by preference)
-  static const String _premiumModel = 'claude-sonnet-4-20250514'; // Claude 4 for premium analysis
-  static const String _defaultModel = 'claude-3-5-sonnet-20241022'; // Latest stable 3.5
-  static const String _fallbackModel = 'claude-3-haiku-20240307'; // Cost-effective fallback
+  // Model configuration
+  AIModelConfig? _currentModel;
+  ModelSelectionStrategy _strategy = ModelSelectionStrategy.defaultOnly;
   
   // API configuration
   static const String _apiVersion = '2023-06-01'; // Stable version
@@ -33,15 +35,22 @@ class ClaudeAIProvider implements AIServiceInterface {
   static const int _maxRetries = 3;
   static const Duration _retryDelay = Duration(seconds: 2);
   
-  // Rate limiting
+  // Rate limiting and debouncing
   DateTime? _lastApiCall;
-  static const Duration _minApiInterval = Duration(milliseconds: 500);
+  static const Duration _minApiInterval = Duration(milliseconds: 500); // Minimum 500ms between calls
   
   // Request tracking
   String? _lastRequestId;
-  String? _lastOrganizationId;
 
-  ClaudeAIProvider(this._config);
+  ClaudeAIProvider(this._config) {
+    _initializeModel();
+  }
+  
+  /// Initialize the model configuration
+  Future<void> _initializeModel() async {
+    _currentModel = await AIModelManager.getSelectedModel();
+    _strategy = await AIModelManager.getStrategy();
+  }
 
   @override
   AIProvider get provider => AIProvider.enabled;
@@ -55,18 +64,39 @@ class ClaudeAIProvider implements AIServiceInterface {
   @override
   Future<void> setApiKey(String apiKey) async {
     try {
+      debugPrint('🔑 ClaudeAIProvider: Setting API key...');
+      
       if (apiKey.isEmpty) {
-        throw Exception('API key cannot be empty');
+        final error = Exception('API key cannot be empty');
+        AIServiceErrorTracker.logError(
+          'setApiKey',
+          error,
+          context: {'keyLength': 0},
+          provider: 'ClaudeAIProvider',
+        );
+        throw error;
       }
       
       // Updated validation for current Anthropic API key format
-      if (!apiKey.startsWith('sk-ant-api03-') || apiKey.length < 50) {
-        throw Exception('Invalid Claude API key format. Expected format: sk-ant-api03-... with minimum 50 characters');
+      if (!apiKey.startsWith('sk-ant-') || apiKey.length < 40) {
+        final error = Exception('Invalid Claude API key format. Expected format: sk-ant-... with minimum 40 characters');
+        AIServiceErrorTracker.logError(
+          'setApiKey',
+          error,
+          context: {
+            'keyLength': apiKey.length,
+            'keyPrefix': apiKey.length > 10 ? apiKey.substring(0, 10) : apiKey,
+            'expectedFormat': 'sk-ant-...',
+          },
+          provider: 'ClaudeAIProvider',
+        );
+        throw error;
       }
       
       _isConfigured = true;
+      debugPrint('✅ ClaudeAIProvider: API key configured successfully');
     } catch (e) {
-      debugPrint('ClaudeAIProvider setApiKey error: $e');
+      debugPrint('❌ ClaudeAIProvider setApiKey error: $e');
       rethrow;
     }
   }
@@ -74,30 +104,87 @@ class ClaudeAIProvider implements AIServiceInterface {
   @override
   Future<void> testConnection() async {
     try {
-      final response = await http.post(
-        Uri.parse('https://api.anthropic.com/v1/messages'),
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': _config.apiKey,
-          'anthropic-version': '2023-06-01',
-        },
-        body: jsonEncode({
-          'model': 'claude-3-haiku-20240307',
-          'max_tokens': 10,
-          'messages': [
-            {
-              'role': 'user',
-              'content': 'Hello',
-            }
-          ],
-        }),
-      );
-
-      if (response.statusCode != 200) {
-        throw Exception('API test failed: ${response.statusCode} - ${response.body}');
+      debugPrint('🔗 ClaudeAIProvider: Testing connection...');
+      
+      // Ensure model is initialized
+      if (_currentModel == null) {
+        debugPrint('🔧 ClaudeAIProvider: Initializing model for connection test...');
+        await _initializeModel();
       }
+      
+      // Use network error handler for robust connection testing
+      await NetworkErrorHandler.handleNetworkRequest<http.Response>(
+        () async {
+          final startTime = DateTime.now();
+          final response = await http.post(
+            Uri.parse('https://api.anthropic.com/v1/messages'),
+            headers: {
+              'Content-Type': 'application/json',
+              'x-api-key': _config.apiKey,
+              'anthropic-version': '2023-06-01',
+            },
+            body: jsonEncode({
+              'model': _currentModel!.modelId,
+              'max_tokens': 10,
+              'messages': [
+                {
+                  'role': 'user',
+                  'content': 'Hello',
+                }
+              ],
+            }),
+          );
+
+          final duration = DateTime.now().difference(startTime);
+          
+          if (response.statusCode != 200) {
+            final error = Exception('API test failed: ${response.statusCode} - ${response.body}');
+            AIServiceErrorTracker.logError(
+              'testConnection',
+              error,
+              context: {
+                'statusCode': response.statusCode,
+                'responseBody': response.body,
+                'model': _currentModel!.modelId,
+                'duration': duration.inMilliseconds,
+              },
+              provider: 'ClaudeAIProvider',
+            );
+            throw error;
+          }
+          
+          debugPrint('✅ ClaudeAIProvider: Connection test successful (${duration.inMilliseconds}ms)');
+          return response;
+        },
+        operation: 'claude_connection_test',
+      );
+      
+    } on NetworkException catch (e) {
+      debugPrint('❌ ClaudeAIProvider testConnection network error: $e');
+      AIServiceErrorTracker.logError(
+        'testConnection',
+        e,
+        context: {
+          'model': _currentModel?.modelId,
+          'isConfigured': _isConfigured,
+          'networkErrorType': e.type.name,
+          'errno': e.errno,
+          'isRetryable': e.isRetryable,
+        },
+        provider: 'ClaudeAIProvider',
+      );
+      rethrow;
     } catch (e) {
-      debugPrint('ClaudeAIProvider testConnection error: $e');
+      debugPrint('❌ ClaudeAIProvider testConnection error: $e');
+      AIServiceErrorTracker.logError(
+        'testConnection',
+        e,
+        context: {
+          'model': _currentModel?.modelId,
+          'isConfigured': _isConfigured,
+        },
+        provider: 'ClaudeAIProvider',
+      );
       rethrow;
     }
   }
@@ -105,28 +192,78 @@ class ClaudeAIProvider implements AIServiceInterface {
   @override
   Future<Map<String, dynamic>> analyzeJournalEntry(JournalEntry entry) async {
     if (!isEnabled) {
+      debugPrint('⚠️  ClaudeAIProvider: Service not enabled, using fallback analysis');
+      AIServiceErrorTracker.logFallback(
+        'Service not enabled',
+        'ClaudeAIProvider',
+        context: {
+          'isConfigured': _isConfigured,
+          'apiKeyEmpty': _config.apiKey.isEmpty,
+          'entryId': entry.id,
+        },
+      );
       return _fallbackAnalysis(entry);
     }
 
     try {
+      debugPrint('🧠 ClaudeAIProvider: Analyzing journal entry ${entry.id}...');
+      
       // Check cache first using the dedicated cache service
       final cacheService = AICacheService();
       final cachedAnalysis = await cacheService.getCachedAnalysis(entry);
       if (cachedAnalysis != null) {
+        debugPrint('💾 ClaudeAIProvider: Using cached analysis for entry ${entry.id}');
         return cachedAnalysis;
       }
 
+      // Select optimal model for this entry
+      final model = await AIModelManager.selectOptimalModel(
+        content: entry.content,
+        strategy: _strategy,
+      );
+      
+      debugPrint('🤖 ClaudeAIProvider: Using model ${model.modelId} for analysis');
+      
       // Make API call if not cached
       final prompt = _buildAnalysisPrompt(entry);
-      final response = await _callClaudeAPI(prompt);
+      final startTime = DateTime.now();
+      final response = await _callClaudeAPIWithModel(prompt, model);
+      final duration = DateTime.now().difference(startTime);
+      
+      debugPrint('⏱️  ClaudeAIProvider: API call completed in ${duration.inMilliseconds}ms');
+      
       final analysis = _parseAnalysisResponse(response);
       
       // Cache the successful analysis
       await cacheService.cacheAnalysis(entry, analysis);
       
+      debugPrint('✅ ClaudeAIProvider: Analysis completed successfully for entry ${entry.id}');
       return analysis;
-    } catch (error) {
-      debugPrint('ClaudeAIProvider analyzeJournalEntry error: $error');
+    } catch (error, stackTrace) {
+      debugPrint('❌ ClaudeAIProvider analyzeJournalEntry error: $error');
+      AIServiceErrorTracker.logError(
+        'analyzeJournalEntry',
+        error,
+        stackTrace: stackTrace,
+        context: {
+          'entryId': entry.id,
+          'entryLength': entry.content.length,
+          'moods': entry.moods,
+          'model': _currentModel?.modelId,
+          'strategy': _strategy.toString(),
+        },
+        provider: 'ClaudeAIProvider',
+      );
+      
+      AIServiceErrorTracker.logFallback(
+        'Analysis failed: ${error.toString()}',
+        'ClaudeAIProvider',
+        context: {
+          'entryId': entry.id,
+          'errorType': error.runtimeType.toString(),
+        },
+      );
+      
       return _fallbackAnalysis(entry);
     }
   }
@@ -134,28 +271,76 @@ class ClaudeAIProvider implements AIServiceInterface {
   @override
   Future<String> generateMonthlyInsight(List<JournalEntry> entries) async {
     if (!isEnabled) {
+      debugPrint('⚠️  ClaudeAIProvider: Service not enabled, using fallback insight');
+      AIServiceErrorTracker.logFallback(
+        'Service not enabled for monthly insight',
+        'ClaudeAIProvider',
+        context: {
+          'entriesCount': entries.length,
+          'isConfigured': _isConfigured,
+        },
+      );
       return _fallbackMonthlyInsight(entries);
     }
 
     try {
+      debugPrint('📊 ClaudeAIProvider: Generating monthly insight for ${entries.length} entries...');
+      
       // Check cache first using the dedicated cache service
       final cacheService = AICacheService();
       final cachedInsight = await cacheService.getCachedMonthlyInsight(entries);
       if (cachedInsight != null) {
+        debugPrint('💾 ClaudeAIProvider: Using cached monthly insight');
         return cachedInsight;
       }
 
+      // Select optimal model for insights (may use better model)
+      final combinedContent = entries.map((e) => e.content).join(' ');
+      final model = await AIModelManager.selectOptimalModel(
+        content: combinedContent,
+        strategy: _strategy,
+      );
+      
+      debugPrint('🤖 ClaudeAIProvider: Using model ${model.modelId} for monthly insight');
+      
       // Make API call if not cached
       final prompt = _buildInsightPrompt(entries);
-      final response = await _callClaudeAPI(prompt);
+      final startTime = DateTime.now();
+      final response = await _callClaudeAPIWithModel(prompt, model);
+      final duration = DateTime.now().difference(startTime);
+      
+      debugPrint('⏱️  ClaudeAIProvider: Monthly insight API call completed in ${duration.inMilliseconds}ms');
+      
       final insight = _extractInsightFromResponse(response);
       
       // Cache the successful insight (shorter expiration for insights)
       await cacheService.cacheMonthlyInsight(entries, insight, expiration: Duration(hours: 6));
       
+      debugPrint('✅ ClaudeAIProvider: Monthly insight generated successfully');
       return insight;
-    } catch (error) {
-      debugPrint('ClaudeAIProvider generateMonthlyInsight error: $error');
+    } catch (error, stackTrace) {
+      debugPrint('❌ ClaudeAIProvider generateMonthlyInsight error: $error');
+      AIServiceErrorTracker.logError(
+        'generateMonthlyInsight',
+        error,
+        stackTrace: stackTrace,
+        context: {
+          'entriesCount': entries.length,
+          'totalContentLength': entries.fold(0, (sum, e) => sum + e.content.length),
+          'model': _currentModel?.modelId,
+        },
+        provider: 'ClaudeAIProvider',
+      );
+      
+      AIServiceErrorTracker.logFallback(
+        'Monthly insight generation failed: ${error.toString()}',
+        'ClaudeAIProvider',
+        context: {
+          'entriesCount': entries.length,
+          'errorType': error.runtimeType.toString(),
+        },
+      );
+      
       return _fallbackMonthlyInsight(entries);
     }
   }
@@ -166,88 +351,48 @@ class ClaudeAIProvider implements AIServiceInterface {
     List<EmotionalCore> currentCores,
   ) async {
     try {
+      debugPrint('🎯 ClaudeAIProvider: Calculating core updates for entry ${entry.id}...');
+      
       final analysis = await analyzeJournalEntry(entry);
-      return _mapAnalysisToCoreUpdates(analysis, currentCores);
-    } catch (error) {
-      debugPrint('ClaudeAIProvider calculateCoreUpdates error: $error');
+      final updates = _mapAnalysisToCoreUpdates(analysis, currentCores);
+      
+      debugPrint('✅ ClaudeAIProvider: Core updates calculated: ${updates.length} cores affected');
+      return updates;
+    } catch (error, stackTrace) {
+      debugPrint('❌ ClaudeAIProvider calculateCoreUpdates error: $error');
+      AIServiceErrorTracker.logError(
+        'calculateCoreUpdates',
+        error,
+        stackTrace: stackTrace,
+        context: {
+          'entryId': entry.id,
+          'coresCount': currentCores.length,
+          'coreNames': currentCores.map((c) => c.name).toList(),
+        },
+        provider: 'ClaudeAIProvider',
+      );
+      
+      AIServiceErrorTracker.logFallback(
+        'Core updates calculation failed: ${error.toString()}',
+        'ClaudeAIProvider',
+        context: {
+          'entryId': entry.id,
+          'errorType': error.runtimeType.toString(),
+        },
+      );
+      
       return _fallbackCoreUpdates(entry, currentCores);
     }
   }
 
   // Private methods with comprehensive error handling
-  Future<String> _callClaudeAPI(String prompt) async {
-    // Use the fallback mechanism that tries multiple models
-    return await _callClaudeAPIWithFallback(prompt);
+  /// Call API with specific model configuration
+  Future<String> _callClaudeAPIWithModel(String prompt, AIModelConfig model) async {
+    return await _callClaudeAPIWithModelId(prompt, model.modelId, model);
   }
 
-  Future<String> _makeApiRequest(String prompt) async {
-    final model = _selectOptimalModel();
-    final requestBody = _buildRequestBody(model, prompt);
-    
-    final response = await http.post(
-      Uri.parse('https://api.anthropic.com/v1/messages'),
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': _config.apiKey,
-        'anthropic-version': _apiVersion,
-      },
-      body: jsonEncode(requestBody),
-    ).timeout(
-      _requestTimeout,
-      onTimeout: () => throw TimeoutException('Claude API request timed out', _requestTimeout),
-    );
-
-    _lastApiCall = DateTime.now();
-    
-    // Extract response headers for tracking
-    _lastRequestId = response.headers['request-id'];
-    _lastOrganizationId = response.headers['anthropic-organization-id'];
-    
-    if (kDebugMode && _lastRequestId != null) {
-      debugPrint('Claude API Request ID: $_lastRequestId');
-    }
-
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      if (data['content'] != null && data['content'].isNotEmpty) {
-        return data['content'][0]['text'];
-      } else {
-        throw FormatException('Invalid response structure from Claude API');
-      }
-    } else {
-      throw HttpException(
-        'Claude API error: ${response.statusCode} - ${response.body}',
-        uri: Uri.parse('https://api.anthropic.com/v1/messages'),
-      );
-    }
-  }
-
-  /// Select the optimal Claude model based on configuration and availability
-  String _selectOptimalModel() {
-    // Try Claude 4 first for premium analysis, fallback to 3.5 Sonnet
-    return _premiumModel;
-  }
-
-  /// Try with fallback model if premium model fails
-  Future<String> _callClaudeAPIWithFallback(String prompt) async {
-    try {
-      // First try with premium model (Claude 4)
-      return await _callClaudeAPIWithModel(prompt, _premiumModel);
-    } catch (e) {
-      debugPrint('Premium model failed, trying fallback: $e');
-      try {
-        // Fallback to Claude 3.5 Sonnet
-        return await _callClaudeAPIWithModel(prompt, _defaultModel);
-      } catch (e2) {
-        debugPrint('Default model failed, trying final fallback: $e2');
-        // Final fallback to Haiku
-        return await _callClaudeAPIWithModel(prompt, _fallbackModel);
-      }
-    }
-  }
-
-  /// Make API call with specific model
-  Future<String> _callClaudeAPIWithModel(String prompt, String model) async {
+  /// Make API call with specific model ID and configuration
+  Future<String> _callClaudeAPIWithModelId(String prompt, String modelId, AIModelConfig modelConfig) async {
     // Rate limiting
     await _enforceRateLimit();
 
@@ -255,7 +400,7 @@ class ClaudeAIProvider implements AIServiceInterface {
     Exception? lastException;
     for (int attempt = 1; attempt <= _maxRetries; attempt++) {
       try {
-        final response = await _makeApiRequestWithModel(prompt, model);
+        final response = await _makeApiRequestWithModel(prompt, modelId, modelConfig);
         return response;
       } on SocketException catch (e) {
         lastException = _handleNetworkError(e, attempt);
@@ -291,36 +436,54 @@ class ClaudeAIProvider implements AIServiceInterface {
     );
   }
 
-  Future<String> _makeApiRequestWithModel(String prompt, String model) async {
-    final requestBody = _buildRequestBody(model, prompt);
+  Future<String> _makeApiRequestWithModel(String prompt, String modelId, AIModelConfig modelConfig) async {
+    final requestBody = _buildRequestBody(modelId, prompt, modelConfig);
     
-    final response = await http.post(
-      Uri.parse('https://api.anthropic.com/v1/messages'),
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': _config.apiKey,
-        'anthropic-version': _apiVersion,
+    // Use NetworkErrorHandler for robust API requests with DNS error handling
+    final response = await NetworkErrorHandler.handleNetworkRequest<http.Response>(
+      () async {
+        return await http.post(
+          Uri.parse('https://api.anthropic.com/v1/messages'),
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': _config.apiKey,
+            'anthropic-version': _apiVersion,
+          },
+          body: jsonEncode(requestBody),
+        ).timeout(
+          _requestTimeout,
+          onTimeout: () => throw TimeoutException('Claude API request timed out', _requestTimeout),
+        );
       },
-      body: jsonEncode(requestBody),
-    ).timeout(
-      _requestTimeout,
-      onTimeout: () => throw TimeoutException('Claude API request timed out', _requestTimeout),
+      timeout: _requestTimeout,
+      operation: 'claude_api_request',
     );
 
     _lastApiCall = DateTime.now();
     
     // Extract response headers for tracking
     _lastRequestId = response.headers['request-id'];
-    _lastOrganizationId = response.headers['anthropic-organization-id'];
     
     if (kDebugMode && _lastRequestId != null) {
-      debugPrint('Claude API Request ID: $_lastRequestId (Model: $model)');
+      debugPrint('Claude API Request ID: $_lastRequestId (Model: $modelId)');
     }
 
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
       if (data['content'] != null && data['content'].isNotEmpty) {
-        return data['content'][0]['text'];
+        // Extract token usage information for optimization tracking
+        final responseText = data['content'][0]['text'];
+        final usage = data['usage'] as Map<String, dynamic>?;
+        
+        if (kDebugMode && usage != null) {
+          final inputTokens = usage['input_tokens'] as int? ?? 0;
+          final outputTokens = usage['output_tokens'] as int? ?? 0;
+          final cost = modelConfig.calculateCost(inputTokens, outputTokens);
+          debugPrint('🔢 Token usage - Input: $inputTokens, Output: $outputTokens');
+          debugPrint('💰 Estimated cost: \$${cost.toStringAsFixed(4)}');
+        }
+        
+        return responseText;
       } else {
         throw FormatException('Invalid response structure from Claude API');
       }
@@ -333,11 +496,11 @@ class ClaudeAIProvider implements AIServiceInterface {
   }
 
   /// Build the request body with modern Claude API parameters
-  Map<String, dynamic> _buildRequestBody(String model, String prompt) {
+  Map<String, dynamic> _buildRequestBody(String modelId, String prompt, AIModelConfig modelConfig) {
     final body = <String, dynamic>{
-      'model': model,
-      'max_tokens': _getMaxTokensForModel(model),
-      'temperature': 1.0, // High creativity for comprehensive emotional analysis
+      'model': modelId,
+      'max_tokens': modelConfig.maxTokens,
+      'temperature': modelConfig.temperature,
       'system': _getSystemPrompt(),
       'messages': [
         {
@@ -347,34 +510,29 @@ class ClaudeAIProvider implements AIServiceInterface {
       ],
     };
 
-    // Add Extended Thinking for Claude 4 models (if supported)
-    if (_supportsExtendedThinking(model)) {
-      body['thinking'] = {
-        'type': 'enabled',
-        'budget_tokens': 2048, // Reasonable budget for emotional analysis
-      };
-    }
+    // Extended Thinking not supported by Haiku - removed for cost optimization
 
     return body;
   }
 
-  /// Get maximum tokens based on model capabilities
-  int _getMaxTokensForModel(String model) {
-    if (model.contains('claude-sonnet-4') || model.contains('claude-opus-4')) {
-      return 20000; // Match workspace implementation for comprehensive analysis
-    } else if (model.contains('claude-3-5-sonnet')) {
-      return 8000; // High token limit for detailed analysis
-    } else {
-      return 4000; // Fallback models get reasonable limit
+  /// Get model configuration for display
+  AIModelConfig get currentModel => _currentModel ?? AIModels.defaultModel;
+  
+  /// Set model selection strategy
+  Future<void> setModelStrategy(ModelSelectionStrategy strategy) async {
+    _strategy = strategy;
+    await AIModelManager.setStrategy(strategy);
+  }
+  
+  /// Manually set the model to use
+  Future<void> setModel(String modelId) async {
+    final model = AIModels.getById(modelId);
+    if (model != null && model.isEnabled) {
+      _currentModel = model;
+      await AIModelManager.setSelectedModel(modelId);
     }
   }
 
-  /// Check if model supports Extended Thinking
-  bool _supportsExtendedThinking(String model) {
-    return model.contains('claude-sonnet-4') || 
-           model.contains('claude-opus-4') || 
-           model.contains('claude-3-7-sonnet');
-  }
 
 
 
@@ -391,64 +549,114 @@ class ClaudeAIProvider implements AIServiceInterface {
 
   // Error handling methods
   Exception _handleNetworkError(SocketException e, int attempt) {
-    return AIServiceException(
+    final error = AIServiceException(
       'Network connection failed (attempt $attempt/$_maxRetries)',
       type: AIErrorType.network,
       isRetryable: true,
       originalError: e,
     );
+    
+    AIServiceErrorTracker.logError(
+      'networkError',
+      error,
+      context: {
+        'attempt': attempt,
+        'maxRetries': _maxRetries,
+        'address': e.address?.toString(),
+        'port': e.port,
+        'osError': e.osError?.toString(),
+      },
+      provider: 'ClaudeAIProvider',
+    );
+    
+    return error;
   }
 
   Exception _handleHttpError(HttpException e, int attempt) {
     final statusCode = _extractStatusCode(e.message);
+    AIServiceException error;
     
     if (statusCode == 401) {
-      return AIServiceException(
+      error = AIServiceException(
         'Invalid API key or authentication failed',
         type: AIErrorType.authentication,
         isRetryable: false,
         originalError: e,
       );
     } else if (statusCode == 429) {
-      return AIServiceException(
+      error = AIServiceException(
         'Rate limit exceeded (attempt $attempt/$_maxRetries)',
         type: AIErrorType.rateLimit,
         isRetryable: true,
         originalError: e,
       );
     } else if (statusCode != null && statusCode >= 500) {
-      return AIServiceException(
+      error = AIServiceException(
         'Claude API server error (attempt $attempt/$_maxRetries)',
         type: AIErrorType.serverError,
         isRetryable: true,
         originalError: e,
       );
     } else {
-      return AIServiceException(
+      error = AIServiceException(
         'Claude API client error: ${e.message}',
         type: AIErrorType.clientError,
         isRetryable: false,
         originalError: e,
       );
     }
+    
+    AIServiceErrorTracker.logError(
+      'httpError',
+      error,
+      context: {
+        'statusCode': statusCode,
+        'attempt': attempt,
+        'maxRetries': _maxRetries,
+        'message': e.message,
+        'uri': e.uri?.toString(),
+        'isRetryable': error.isRetryable,
+        'errorType': error.type.toString(),
+      },
+      provider: 'ClaudeAIProvider',
+    );
+    
+    return error;
   }
 
   Exception _handleGenericError(dynamic e, int attempt) {
+    AIServiceException error;
+    
     if (e is TimeoutException) {
-      return AIServiceException(
+      error = AIServiceException(
         'Request timeout (attempt $attempt/$_maxRetries)',
         type: AIErrorType.timeout,
         isRetryable: true,
         originalError: e,
       );
     } else {
-      return AIServiceException(
+      error = AIServiceException(
         'Unexpected error: ${e.toString()} (attempt $attempt/$_maxRetries)',
         type: AIErrorType.unknown,
         isRetryable: true,
         originalError: e,
       );
     }
+    
+    AIServiceErrorTracker.logError(
+      'genericError',
+      error,
+      context: {
+        'attempt': attempt,
+        'maxRetries': _maxRetries,
+        'errorType': e.runtimeType.toString(),
+        'isTimeout': e is TimeoutException,
+        'timeout': e is TimeoutException ? e.duration?.toString() : null,
+      },
+      provider: 'ClaudeAIProvider',
+    );
+    
+    return error;
   }
 
   int? _extractStatusCode(String message) {
@@ -464,156 +672,79 @@ class ClaudeAIProvider implements AIServiceInterface {
   }
 
   String _getSystemPrompt() {
-    return '''You are an AI emotional intelligence analyst for Spiral Journal, a personal growth app. Your role is to analyze journal entries and provide insights that help users understand their emotional patterns and personality development.
+    return '''You are an AI emotional analyst for Spiral Journal. Analyze journal entries and provide concise emotional insights.
 
-## Core Personality Framework
+IMPORTANT: Respond ONLY with valid JSON. No extra text or markdown blocks.
 
-The app tracks six personality cores:
-1. **Optimism** - Hope, positive outlook, resilience in face of challenges
-2. **Resilience** - Ability to bounce back, adaptability, emotional strength  
-3. **Self-Awareness** - Understanding of emotions, self-reflection, mindfulness
-4. **Creativity** - Innovation, artistic expression, problem-solving approaches
-5. **Social Connection** - Relationships, empathy, community engagement
-6. **Growth Mindset** - Learning orientation, embracing challenges, continuous improvement
+## Six Personality Cores:
+1. **Optimism** - Hope, positive outlook
+2. **Resilience** - Bouncing back, adaptability  
+3. **Self-Awareness** - Emotional understanding, reflection
+4. **Creativity** - Innovation, problem-solving
+5. **Social Connection** - Relationships, empathy
+6. **Growth Mindset** - Learning, embracing challenges
 
-## Required Response Format
-
-You MUST respond with a valid JSON object containing exactly this structure:
-
-```json
+## Required JSON Format:
 {
   "primary_emotions": ["emotion1", "emotion2"],
   "emotional_intensity": 0.65,
-  "growth_indicators": ["indicator1", "indicator2", "indicator3"],
+  "growth_indicators": ["indicator1", "indicator2"],
   "core_adjustments": {
     "Optimism": 0.1,
-    "Resilience": 0.05,
+    "Resilience": 0.0,
     "Self-Awareness": 0.2,
     "Creativity": 0.0,
-    "Social Connection": 0.05,
+    "Social Connection": 0.0,
     "Growth Mindset": 0.1
   },
   "mind_reflection": {
-    "title": "Emotional Pattern Analysis",
-    "summary": "A compassionate 2-3 sentence summary of the user's emotional state and growth",
-    "insights": ["Specific insight 1", "Specific insight 2", "Specific insight 3"]
+    "title": "Brief Emotional Theme",
+    "summary": "1-2 encouraging sentences about growth",
+    "insights": ["Insight 1", "Insight 2"]
   },
   "emotional_patterns": [
     {
       "category": "Pattern Category",
       "title": "Pattern Title", 
-      "description": "Detailed description of the emotional pattern observed",
+      "description": "Brief pattern description",
       "type": "growth"
     }
   ],
-  "entry_insight": "A brief, encouraging insight about this specific journal entry"
+  "entry_insight": "Brief encouraging insight"
 }
-```
 
-## Analysis Guidelines
+## Guidelines:
+- Core adjustments: -0.5 to +0.5 (small, evidence-based changes)
+- Emotional intensity: 0.0-1.0 scale (0.5 = typical daily reflection)
+- Keep all text brief and impactful
+- Focus on strongest emotional patterns
+- Always encouraging and growth-focused
+- Return valid JSON only
 
-### Core Adjustments (-0.5 to +0.5):
-- **Optimism**: Look for gratitude, hope, positive language, silver linings
-- **Resilience**: Identify overcoming challenges, adapting to change, emotional recovery
-- **Self-Awareness**: Notice emotional recognition, self-reflection, mindfulness
-- **Creativity**: Find novel solutions, artistic expression, innovative thinking
-- **Social Connection**: Observe relationships, empathy, community involvement
-- **Growth Mindset**: Detect learning from mistakes, embracing challenges, curiosity
-
-### Emotional Intensity (0.0-1.0 scale):
-**IMPORTANT**: Use 0.0 to 1.0 scale, NOT 0-10. Examples:
-- 0.1-0.3: Low intensity (calm, peaceful entries)
-- 0.4-0.6: Medium intensity (typical daily reflection)
-- 0.7-0.9: High intensity (strong emotions, significant events)
-- 1.0: Maximum intensity (life-changing events, extreme emotions)
-
-### Growth Indicators:
-Identify 2-4 specific areas where the user is showing personal development or positive patterns. These become `keyThemes` in the app.
-
-### Mind Reflection:
-- **Title**: Create an engaging title that captures the main emotional theme
-- **Summary**: 2-3 encouraging sentences about their emotional journey  
-- **Insights**: 3 specific, actionable insights based on the entry content
-
-### Emotional Patterns:
-Identify recurring themes or behaviors. Types can be: "growth", "challenge", "awareness", "connection", "creativity"
-
-## Critical Requirements:
-
-1. **Evidence-Based**: Only adjust cores that are clearly demonstrated in the entry
-2. **Realistic Changes**: Core adjustments should be small (-0.5 to +0.5)
-3. **Encouraging Tone**: Always supportive and growth-focused
-4. **Specific References**: Insights should reference actual content from the entry
-5. **Balanced Analysis**: Not every core needs adjustment; some may remain at 0.0
-6. **Correct Intensity Scale**: Use 0.0-1.0 scale for emotional_intensity
-
-## Example Analysis:
-
-**Input**: "Today was challenging at work, but I managed to find a creative solution to the problem that's been bothering me for weeks. I realized that instead of getting frustrated, I could approach it from a completely different angle. I'm proud of how I handled the stress and turned it into something productive."
-
-**Output**:
-```json
-{
-  "primary_emotions": ["pride", "satisfaction", "determination"],
-  "emotional_intensity": 0.7,
-  "growth_indicators": ["problem-solving", "emotional regulation", "creative thinking"],
-  "core_adjustments": {
-    "Optimism": 0.2,
-    "Resilience": 0.3,
-    "Self-Awareness": 0.1,
-    "Creativity": 0.4,
-    "Social Connection": 0.0,
-    "Growth Mindset": 0.2
-  },
-  "mind_reflection": {
-    "title": "Creative Problem-Solving Breakthrough",
-    "summary": "You've shown remarkable growth in transforming challenges into opportunities. Your ability to shift perspective and find innovative solutions demonstrates real emotional maturity and creative thinking.",
-    "insights": [
-      "Your creative approach to workplace challenges shows growing problem-solving skills",
-      "Managing stress by reframing problems demonstrates strong emotional regulation", 
-      "Taking pride in your accomplishments builds confidence and resilience"
-    ]
-  },
-  "emotional_patterns": [
-    {
-      "category": "Problem-Solving",
-      "title": "Creative Challenge Resolution",
-      "description": "You're developing a pattern of approaching obstacles with innovative thinking rather than frustration",
-      "type": "growth"
-    }
-  ],
-  "entry_insight": "Your ability to transform workplace stress into creative solutions shows real emotional intelligence and growth mindset development."
-}
-```
-
-## Data Storage Notes:
-
-The app stores analysis data in the following structure:
-- `primary_emotions` → `EmotionalAnalysis.primaryEmotions`
-- `emotional_intensity` → `EmotionalAnalysis.emotionalIntensity` (0.0-1.0)
-- `growth_indicators` → `EmotionalAnalysis.keyThemes` 
-- `entry_insight` → `EmotionalAnalysis.personalizedInsight`
-- `core_adjustments` → Used to update personality cores in database
-- `mind_reflection` → Processed by UI but not stored directly in database
-- `emotional_patterns` → Processed by EmotionalAnalyzer for pattern recognition
-
-Now analyze the following journal entry and provide insights in the exact format specified above.''';
+Analyze this journal entry:''';
   }
 
   String _buildAnalysisPrompt(JournalEntry entry) {
+    // Truncate content to 500 characters for cost optimization
+    final truncatedContent = entry.content.length > 500 
+        ? '${entry.content.substring(0, 500)}...'
+        : entry.content;
+    
     return '''
 JOURNAL ENTRY:
 Date: ${entry.formattedDate} (${entry.dayOfWeek})
 Selected Moods: ${entry.moods.join(', ')}
-Content: "${entry.content}"
+Content: "$truncatedContent"
 ''';
   }
 
   String _buildInsightPrompt(List<JournalEntry> entries) {
+    // Limit to max 10 entries for cost optimization
+    final limitedEntries = entries.take(10).toList();
     final moodCounts = <String, int>{};
-    final totalWords = entries.fold(0, (sum, entry) => sum + entry.content.split(' ').length);
+    final totalWords = limitedEntries.fold(0, (sum, entry) => sum + entry.content.split(' ').length);
     
-    for (final entry in entries) {
+    for (final entry in limitedEntries) {
       for (final mood in entry.moods) {
         moodCounts[mood] = (moodCounts[mood] ?? 0) + 1;
       }
@@ -625,12 +756,12 @@ Content: "${entry.content}"
     return '''
 Generate a compassionate monthly insight based on these journal entries:
 
-Total entries: ${entries.length}
-Average words per entry: ${totalWords / entries.length}
+Total entries: ${limitedEntries.length}
+Average words per entry: ${totalWords / limitedEntries.length}
 Top moods: ${topMoods.take(3).map((e) => '${e.key} (${e.value}x)').join(', ')}
 
 Recent entries preview:
-${entries.take(3).map((e) => '${e.formattedDate}: ${e.preview}').join('\n')}
+${limitedEntries.take(3).map((e) => '${e.formattedDate}: ${e.preview}').join('\n')}
 
 Provide a warm, encouraging 2-3 sentence insight that:
 1. Acknowledges their journaling consistency
@@ -643,7 +774,18 @@ Keep it personal, supportive, and focused on their emotional journey.
 
   Map<String, dynamic> _parseAnalysisResponse(String response) {
     try {
-      final parsed = jsonDecode(response);
+      // Handle Haiku's tendency to wrap JSON in markdown code blocks
+      String cleanedResponse = response;
+      
+      // Remove markdown code blocks if present
+      if (response.contains('```json')) {
+        cleanedResponse = response
+            .replaceAll('```json', '')
+            .replaceAll('```', '')
+            .trim();
+      }
+      
+      final parsed = jsonDecode(cleanedResponse);
       
       // If it's the new format with emotional_analysis and core_updates
       if (parsed.containsKey('emotional_analysis') && parsed.containsKey('core_updates')) {
@@ -653,6 +795,7 @@ Keep it personal, supportive, and focused on their emotional journey.
       // Otherwise return as-is (legacy format)
       return parsed;
     } catch (e) {
+      debugPrint('Failed to parse AI response: $e');
       return _getDefaultAnalysis();
     }
   }
@@ -695,7 +838,7 @@ Keep it personal, supportive, and focused on their emotional journey.
 
     return {
       "primary_emotions": emotionalAnalysis['primary_emotions'],
-      "emotional_intensity": (emotionalAnalysis['emotional_intensity'] as num).toDouble() * 10, // Convert 0-1 to 0-10
+      "emotional_intensity": (emotionalAnalysis['emotional_intensity'] as num).toDouble(), // Keep 0-1 scale consistent
       "growth_indicators": emotionalAnalysis['key_themes'],
       "core_adjustments": coreAdjustments,
       "mind_reflection": {
@@ -832,6 +975,75 @@ Keep it personal, supportive, and focused on their emotional journey.
       return "You've maintained thoughtful, detailed reflections this month with an average of ${avgWordsPerEntry.round()} words per entry. Your commitment to deep self-reflection is inspiring!";
     } else {
       return "You've been consistent with your journaling this month! Consider writing a bit more in each entry to deepen your self-reflection journey.";
+    }
+  }
+
+  /// Analyze multiple journal entries in a single batch for cost efficiency
+  Future<Map<String, dynamic>> analyzeDailyBatch(String combinedEntryContent) async {
+    try {
+      final prompt = '''
+Analyze this batch of daily journal entries for emotional intelligence insights:
+
+$combinedEntryContent
+
+Please provide a JSON response with this structure:
+{
+  "individual_analyses": [
+    {
+      "primary_emotions": ["emotion1", "emotion2"],
+      "emotional_intensity": 7.5,
+      "growth_indicators": ["indicator1", "indicator2"],
+      "core_strengths": {
+        "optimism": 0.2,
+        "resilience": 0.1,
+        "self_awareness": 0.3,
+        "creativity": 0.0,
+        "social_connection": 0.1,
+        "growth_mindset": 0.2
+      },
+      "insight": "Brief encouraging insight about the entry",
+      "patterns": ["pattern1", "pattern2"],
+      "suggestions": ["suggestion1", "suggestion2"]
+    }
+    // ... one object per entry
+  ],
+  "aggregated_core_updates": {
+    "optimism": 0.4,
+    "resilience": 0.2,
+    "self_awareness": 0.6,
+    "creativity": 0.1,
+    "social_connection": 0.3,
+    "growth_mindset": 0.5
+  },
+  "daily_summary": "Overall reflection on the day's emotional journey"
+}
+
+Provide core_strengths as small incremental values (-0.5 to +0.5) for each entry, and aggregated_core_updates as the sum of all individual increments.
+''';
+
+      // Use current model for batch analysis
+      final model = _currentModel ?? AIModels.defaultModel;
+      final response = await _makeApiRequestWithModel(prompt, model.modelId, model);
+
+      return _parseAnalysisResponse(response);
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('ClaudeAIProvider analyzeDailyBatch error: $e');
+      }
+      
+      // Return fallback batch analysis
+      return {
+        "individual_analyses": [],
+        "aggregated_core_updates": {
+          "optimism": 0.0,
+          "resilience": 0.0,
+          "self_awareness": 0.1,
+          "creativity": 0.0,
+          "social_connection": 0.0,
+          "growth_mindset": 0.0
+        },
+        "daily_summary": "Your commitment to daily journaling shows dedication to personal growth."
+      };
     }
   }
 

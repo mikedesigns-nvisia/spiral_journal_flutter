@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/semantics.dart';
@@ -165,8 +164,8 @@ class AccessibilityService {
         onPrimary: theme.colorScheme.onPrimary,
         secondary: theme.colorScheme.secondary,
         onSecondary: theme.colorScheme.onSecondary,
-        background: theme.colorScheme.background,
-        onBackground: theme.colorScheme.onBackground,
+        background: theme.colorScheme.surface,
+        onBackground: theme.colorScheme.onSurface,
         surface: theme.colorScheme.surface,
         onSurface: theme.colorScheme.onSurface,
         error: theme.colorScheme.error,
@@ -260,7 +259,7 @@ class AccessibilityService {
         ? '${content.substring(0, 100)}...' 
         : content;
     
-    return '${dateText}${moodText}Entry: $contentPreview';
+    return '$dateText${moodText}Entry: $contentPreview';
   }
 
   /// Get semantic label for mood selector
@@ -273,6 +272,256 @@ class AccessibilityService {
     final percentageText = '${percentage.round()} percent';
     final trendText = trend != 'stable' ? ', $trend' : '';
     return '$coreName core at $percentageText$trendText';
+  }
+
+  /// Get comprehensive semantic label for core card
+  String getCoreCardSemanticLabel(String coreName, double currentLevel, double previousLevel, String trend, bool hasRecentUpdate) {
+    final percentage = (currentLevel * 100).round();
+    final previousPercentage = (previousLevel * 100).round();
+    final change = percentage - previousPercentage;
+    
+    String label = '$coreName core at $percentage percent';
+    
+    // Add trend information
+    switch (trend) {
+      case 'rising':
+        label += ', trending upward';
+        break;
+      case 'declining':
+        label += ', trending downward';
+        break;
+      default:
+        label += ', stable';
+    }
+    
+    // Add change information if significant
+    if (change.abs() > 0) {
+      final changeText = change > 0 ? 'increased' : 'decreased';
+      label += ', $changeText by ${change.abs()} percent';
+    }
+    
+    // Add recent update indicator
+    if (hasRecentUpdate) {
+      label += ', recently updated';
+    }
+    
+    return label;
+  }
+
+  /// Get semantic label for core navigation context
+  String getCoreNavigationSemanticLabel(String action, String? coreName, String? sourceContext) {
+    String label = action;
+    
+    if (coreName != null) {
+      label += ' $coreName core';
+    }
+    
+    if (sourceContext != null) {
+      switch (sourceContext) {
+        case 'journal':
+          label += ' from journal screen';
+          break;
+        case 'explore_all':
+          label += ' to explore all cores';
+          break;
+        default:
+          label += ' from $sourceContext';
+      }
+    }
+    
+    return label;
+  }
+
+  /// Get semantic hint for core interactions
+  String getCoreInteractionHint(String action, String? coreName) {
+    switch (action) {
+      case 'view_details':
+        return 'Double tap to view ${coreName ?? 'core'} details and insights';
+      case 'explore_all':
+        return 'Double tap to explore all personality cores';
+      case 'navigate_back':
+        return 'Double tap to return to previous screen';
+      case 'refresh':
+        return 'Double tap to refresh core data';
+      case 'view_progress':
+        return 'Double tap to view detailed progress for ${coreName ?? 'core'}';
+      default:
+        return 'Double tap to activate';
+    }
+  }
+
+  /// Announce core update to screen reader with context-aware messaging
+  void announceCoreUpdate(String coreName, String updateType, Map<String, dynamic> updateData) {
+    if (!_screenReaderEnabled) return;
+    
+    String message;
+    switch (updateType) {
+      case 'level_changed':
+        final newLevel = ((updateData['newLevel'] as double? ?? 0.0) * 100).round();
+        final change = updateData['change'] as double? ?? 0.0;
+        final changePercent = (change * 100).round();
+        
+        if (changePercent > 0) {
+          message = '$coreName core increased by $changePercent percent to $newLevel percent';
+        } else if (changePercent < 0) {
+          message = '$coreName core decreased by ${changePercent.abs()} percent to $newLevel percent';
+        } else {
+          message = '$coreName core updated to $newLevel percent';
+        }
+        break;
+        
+      case 'trend_changed':
+        final newTrend = updateData['newTrend'] as String? ?? 'stable';
+        final previousTrend = updateData['previousTrend'] as String? ?? 'unknown';
+        message = '$coreName core trend changed from $previousTrend to $newTrend';
+        break;
+        
+      case 'milestone_achieved':
+        final milestone = updateData['milestone'] as String? ?? 'milestone';
+        final level = updateData['level'] as int? ?? 0;
+        message = 'Congratulations! $coreName core achieved $milestone at level $level';
+        break;
+        
+      case 'batch_update':
+        final affectedCount = updateData['affectedCoreCount'] as int? ?? 1;
+        message = '$affectedCount cores updated from your recent journal entry';
+        break;
+        
+      case 'analysis_completed':
+        message = 'Core analysis completed for $coreName';
+        break;
+        
+      default:
+        message = '$coreName core has been updated';
+    }
+    
+    announceToScreenReader(message, assertiveness: Assertiveness.polite);
+  }
+
+  /// Announce navigation context changes for cores
+  void announceCoreNavigation(String action, String? coreName, String? sourceContext, String? targetContext) {
+    if (!_screenReaderEnabled) return;
+    
+    String message = action;
+    
+    if (coreName != null) {
+      message += ' $coreName core';
+    }
+    
+    if (sourceContext != null && targetContext != null) {
+      message += ' from $sourceContext to $targetContext';
+    } else if (sourceContext != null) {
+      message += ' from $sourceContext';
+    } else if (targetContext != null) {
+      message += ' to $targetContext';
+    }
+    
+    announceToScreenReader(message, assertiveness: Assertiveness.polite);
+  }
+
+  /// Get comprehensive accessibility label for core impact indicators
+  String getCoreImpactSemanticLabel(String coreName, double impactValue, String? relatedContext) {
+    final absValue = impactValue.abs();
+    final percentage = (impactValue * 100).round();
+    
+    String impactDescription;
+    if (absValue < 0.1) {
+      impactDescription = 'stable with no significant change';
+    } else if (absValue < 0.3) {
+      impactDescription = impactValue > 0 ? 'showing growth' : 'showing decline';
+    } else if (absValue < 0.6) {
+      impactDescription = impactValue > 0 ? 'showing strong growth' : 'showing notable decline';
+    } else {
+      impactDescription = impactValue > 0 ? 'showing major growth' : 'showing significant decline';
+    }
+    
+    String label = '$coreName core is $impactDescription';
+    
+    if (absValue >= 0.1) {
+      label += ', ${impactValue > 0 ? 'increased' : 'decreased'} by ${percentage.abs()} percent';
+    }
+    
+    if (relatedContext != null) {
+      label += ' from $relatedContext';
+    }
+    
+    return label;
+  }
+
+  /// Get semantic label for core correlation charts
+  String getCoreCorrelationSemanticLabel(String theme, String coreName, double correlationStrength, int occurrenceCount) {
+    final percentage = (correlationStrength * 100).round();
+    final strengthDescription = correlationStrength.abs() > 0.5 
+        ? 'strong' 
+        : correlationStrength.abs() > 0.3 
+            ? 'moderate' 
+            : 'weak';
+    
+    final direction = correlationStrength > 0 ? 'positive' : 'negative';
+    
+    return 'Writing about $theme has a $strengthDescription $direction correlation with $coreName core, $percentage percent impact over $occurrenceCount entries';
+  }
+
+  /// Get semantic label for core notification widgets
+  String getCoreNotificationSemanticLabel(String title, String message, String notificationType, double? impactValue) {
+    String label = '$title. $message';
+    
+    if (impactValue != null && impactValue.abs() > 0.05) {
+      final percentage = (impactValue * 100).round();
+      label += '. Impact: ${impactValue > 0 ? 'increased' : 'decreased'} by ${percentage.abs()} percent';
+    }
+    
+    // Add interaction hint based on notification type
+    switch (notificationType) {
+      case 'milestone_achieved':
+        label += '. Double tap to view achievement details';
+        break;
+      case 'significant_growth':
+        label += '. Double tap to view growth details';
+        break;
+      default:
+        label += '. Double tap to view core details';
+    }
+    
+    return label;
+  }
+
+  /// Get accessible focus order for core elements
+  List<String> getCoreElementFocusOrder() {
+    return [
+      'core_header',
+      'core_overview',
+      'core_grid_item_0',
+      'core_grid_item_1',
+      'core_grid_item_2',
+      'core_grid_item_3',
+      'core_grid_item_4',
+      'core_grid_item_5',
+      'core_actions',
+    ];
+  }
+
+  /// Create semantic properties for core elements
+  SemanticsProperties createCoreSemantics({
+    required String label,
+    String? hint,
+    String? value,
+    bool? button,
+    bool? focusable,
+    bool? selected,
+    VoidCallback? onTap,
+    VoidCallback? onLongPress,
+  }) {
+    return SemanticsProperties(
+      label: label,
+      hint: hint,
+      value: value,
+      button: button ?? false,
+      focusable: focusable ?? true,
+      selected: selected,
+      onTap: onTap,
+      onLongPress: onLongPress,
+    );
   }
 
   /// Get semantic hint for interactive elements
@@ -378,6 +627,34 @@ class AccessibilityService {
            mediaQuery.boldText || 
            mediaQuery.highContrast ||
            mediaQuery.invertColors;
+  }
+
+  /// Get system accessibility settings for iOS integration
+  Map<String, bool> getSystemAccessibilitySettings(BuildContext context) {
+    final mediaQuery = MediaQuery.of(context);
+    return {
+      'accessibleNavigation': mediaQuery.accessibleNavigation,
+      'boldText': mediaQuery.boldText,
+      'highContrast': mediaQuery.highContrast,
+      'invertColors': mediaQuery.invertColors,
+      'disableAnimations': mediaQuery.disableAnimations,
+    };
+  }
+
+  /// Check if system high contrast is enabled (iOS specific)
+  bool isSystemHighContrastEnabled(BuildContext context) {
+    return MediaQuery.of(context).highContrast;
+  }
+
+  /// Check if system large text is enabled (iOS Dynamic Type)
+  bool isSystemLargeTextEnabled(BuildContext context) {
+    final mediaQuery = MediaQuery.of(context);
+    return mediaQuery.textScaler.scale(1.0) > 1.0;
+  }
+
+  /// Check if system reduce motion is enabled
+  bool isSystemReduceMotionEnabled(BuildContext context) {
+    return MediaQuery.of(context).disableAnimations;
   }
 
   /// Get recommended minimum touch target size

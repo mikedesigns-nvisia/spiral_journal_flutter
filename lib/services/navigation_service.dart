@@ -62,13 +62,7 @@ class NavigationService {
     }
   }
 
-  /// Navigate to PIN setup screen (if requested during onboarding)
-  Future<void> navigateToPinSetup() async {
-    final context = navigatorKey.currentContext;
-    if (context != null) {
-      Navigator.of(context).pushNamed('/pin-setup');
-    }
-  }
+  // PIN setup navigation removed - using biometrics-only authentication
 
   /// Navigate back
   void goBack() {

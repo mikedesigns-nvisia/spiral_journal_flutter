@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
@@ -8,6 +7,7 @@ import 'package:crypto/crypto.dart';
 import 'package:encrypt/encrypt.dart' as encrypt;
 
 import '../models/export_data.dart';
+import '../utils/secure_crypto_utils.dart';
 import '../models/journal_entry.dart';
 import '../models/core.dart';
 import '../models/user_preferences.dart';
@@ -112,6 +112,14 @@ class DataExportService extends ChangeNotifier {
       if (encrypt && (password == null || password.isEmpty)) {
         throw ArgumentError('Password required for encrypted export');
       }
+      
+      // Validate password strength if encryption requested
+      if (encrypt && password != null) {
+        final passwordValidation = SecureCryptoUtils.validatePassword(password);
+        if (!passwordValidation.isValid) {
+          throw ArgumentError('Password does not meet security requirements: ${passwordValidation.issues.join(', ')}');
+        }
+      }
 
       // Gather all data
       _exportStatus = 'Collecting journal entries...';
@@ -169,7 +177,7 @@ class DataExportService extends ChangeNotifier {
         _exportProgress = 0.9;
         notifyListeners();
 
-        jsonString = await _encryptData(jsonString, password);
+        jsonString = await _encryptDataSecure(jsonString, password);
       }
 
       // Save to file
@@ -226,7 +234,7 @@ class DataExportService extends ChangeNotifier {
       // Try to decrypt if password provided
       if (password != null && password.isNotEmpty) {
         try {
-          jsonString = await _decryptData(jsonString, password);
+          jsonString = await _decryptDataSecure(jsonString, password);
         } catch (e) {
           return ImportResult.failure('Failed to decrypt data. Check password.');
         }
@@ -319,7 +327,24 @@ class DataExportService extends ChangeNotifier {
     return exportFiles;
   }
 
-  /// Encrypt data using AES-256
+  /// Secure encryption using PBKDF2 key derivation
+  Future<String> _encryptDataSecure(String data, String password) async {
+    return compute(_encryptDataSecureIsolate, {
+      'data': data,
+      'password': password,
+    });
+  }
+
+  /// Secure decryption using PBKDF2 key derivation  
+  Future<String> _decryptDataSecure(String encryptedData, String password) async {
+    return compute(_decryptDataSecureIsolate, {
+      'encryptedData': encryptedData,
+      'password': password,
+    });
+  }
+  
+  /// Legacy encryption support - maintained for backward compatibility
+  @Deprecated('Use _encryptDataSecure instead for better security')
   Future<String> _encryptData(String data, String password) async {
     return compute(_encryptDataIsolate, {
       'data': data,
@@ -327,7 +352,7 @@ class DataExportService extends ChangeNotifier {
     });
   }
 
-  /// Decrypt data using AES-256
+  @Deprecated('Use _decryptDataSecure instead for better security')
   Future<String> _decryptData(String encryptedData, String password) async {
     return compute(_decryptDataIsolate, {
       'encryptedData': encryptedData,
@@ -399,7 +424,45 @@ class DataExportService extends ChangeNotifier {
   bool get isImporting => _isImporting;
 }
 
-/// Isolate function for encryption
+/// Secure isolate function for encryption using PBKDF2
+String _encryptDataSecureIsolate(Map<String, String> params) {
+  final data = params['data']!;
+  final password = params['password']!;
+  
+  try {
+    final encryptionResult = SecureCryptoUtils.encryptData(data, password);
+    return jsonEncode(encryptionResult.toJson());
+  } catch (e) {
+    throw Exception('Secure encryption failed: $e');
+  }
+}
+
+/// Secure isolate function for decryption using PBKDF2
+String _decryptDataSecureIsolate(Map<String, String> params) {
+  final encryptedData = params['encryptedData']!;
+  final password = params['password']!;
+  
+  try {
+    final jsonData = jsonDecode(encryptedData) as Map<String, dynamic>;
+    
+    // Check version for backward compatibility
+    final version = jsonData['version'] ?? '1.0';
+    
+    if (version == '2.0') {
+      // Use secure decryption
+      final encryptionResult = EncryptionResult.fromJson(jsonData);
+      return SecureCryptoUtils.decryptData(encryptionResult, password);
+    } else {
+      // Fall back to legacy decryption for older exports
+      return _decryptDataIsolate(params);
+    }
+  } catch (e) {
+    throw Exception('Secure decryption failed: $e');
+  }
+}
+
+/// Legacy isolate function for encryption 
+@Deprecated('Use _encryptDataSecureIsolate instead for better security')
 String _encryptDataIsolate(Map<String, String> params) {
   final data = params['data']!;
   final password = params['password']!;
@@ -425,7 +488,8 @@ String _encryptDataIsolate(Map<String, String> params) {
   return jsonEncode(result);
 }
 
-/// Isolate function for decryption
+/// Legacy isolate function for decryption
+@Deprecated('Use _decryptDataSecureIsolate instead for better security')
 String _decryptDataIsolate(Map<String, String> params) {
   final encryptedData = params['encryptedData']!;
   final password = params['password']!;

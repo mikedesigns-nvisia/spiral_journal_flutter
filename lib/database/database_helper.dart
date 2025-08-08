@@ -7,6 +7,9 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:crypto/crypto.dart';
 import 'migrations/schema_migration_v3.dart';
 import 'migrations/schema_migration_v4.dart';
+import 'migrations/schema_migration_v6.dart';
+import 'migrations/schema_migration_v7.dart';
+import 'migrations/schema_migration_v8.dart';
 import '../utils/database_exceptions.dart';
 
 /// Result class for database clearing operations
@@ -75,7 +78,7 @@ class DatabaseHelper {
       
       return await openDatabase(
         path,
-        version: 4, // Increment version for new AI analysis fields
+        version: 8, // Increment version for emotion_matrix column addition
         onCreate: _onCreate,
         onUpgrade: _onUpgrade,
       );
@@ -108,8 +111,8 @@ class DatabaseHelper {
   }
 
   Future<void> _onCreate(Database db, int version) async {
-    // Create tables with enhanced schema (version 4 with AI analysis fields)
-    // Journal entries table with AI analysis support
+    // Create tables with simplified schema (version 6 without AI analysis fields)
+    // Journal entries table focused on local processing
     await db.execute('''
       CREATE TABLE journal_entries (
         id TEXT PRIMARY KEY,
@@ -117,35 +120,37 @@ class DatabaseHelper {
         date TEXT NOT NULL,
         content TEXT NOT NULL,
         moods TEXT NOT NULL,
+        emotion_matrix TEXT DEFAULT '{}',
         dayOfWeek TEXT NOT NULL,
         createdAt TEXT NOT NULL,
         updatedAt TEXT NOT NULL,
         isSynced INTEGER NOT NULL DEFAULT 1,
         metadata TEXT NOT NULL DEFAULT '{}',
-        aiAnalysis TEXT,
-        isAnalyzed INTEGER NOT NULL DEFAULT 0,
         draftContent TEXT,
-        aiDetectedMoods TEXT NOT NULL DEFAULT '[]',
-        emotionalIntensity REAL,
-        keyThemes TEXT NOT NULL DEFAULT '[]',
-        personalizedInsight TEXT
+        status TEXT NOT NULL DEFAULT 'draft'
       )
     ''');
 
-    // Emotional cores table
+    // Emotional cores table with resonance depth system
     await db.execute('''
       CREATE TABLE emotional_cores (
         id TEXT PRIMARY KEY,
         name TEXT NOT NULL,
         description TEXT NOT NULL,
-        percentage REAL NOT NULL,
+        current_level REAL NOT NULL DEFAULT 0.0,
+        previous_level REAL NOT NULL DEFAULT 0.0,
+        last_updated TEXT NOT NULL,
+        last_transition_date TEXT,
+        entries_at_current_depth INTEGER DEFAULT 0,
         trend TEXT NOT NULL,
         color TEXT NOT NULL,
-        iconPath TEXT NOT NULL,
+        icon_path TEXT NOT NULL,
         insight TEXT NOT NULL,
-        relatedCores TEXT NOT NULL,
-        createdAt TEXT NOT NULL,
-        updatedAt TEXT NOT NULL
+        related_cores TEXT NOT NULL,
+        transition_signals TEXT,
+        supporting_evidence TEXT,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
       )
     ''');
 
@@ -189,15 +194,27 @@ class DatabaseHelper {
       )
     ''');
 
-    // Create comprehensive indexes for better query performance
+    // Core transition history table
+    await db.execute('''
+      CREATE TABLE core_transition_history (
+        id TEXT PRIMARY KEY,
+        core_id TEXT NOT NULL,
+        from_depth TEXT NOT NULL,
+        to_depth TEXT NOT NULL,
+        transition_date TEXT NOT NULL,
+        contributing_entry_id TEXT,
+        transition_reason TEXT,
+        FOREIGN KEY (core_id) REFERENCES emotional_cores (id) ON DELETE CASCADE,
+        FOREIGN KEY (contributing_entry_id) REFERENCES journal_entries (id) ON DELETE SET NULL
+      )
+    ''');
+
+    // Create indexes for better query performance (simplified for local processing)
     await db.execute('CREATE INDEX idx_journal_entries_date ON journal_entries(date)');
     await db.execute('CREATE INDEX idx_journal_entries_created_at ON journal_entries(createdAt)');
     await db.execute('CREATE INDEX idx_journal_entries_moods ON journal_entries(moods)');
-    await db.execute('CREATE INDEX idx_journal_entries_analyzed ON journal_entries(isAnalyzed)');
     await db.execute('CREATE INDEX idx_journal_entries_content_fts ON journal_entries(content)');
-    await db.execute('CREATE INDEX idx_journal_entries_ai_moods ON journal_entries(aiDetectedMoods)');
-    await db.execute('CREATE INDEX idx_journal_entries_intensity ON journal_entries(emotionalIntensity)');
-    await db.execute('CREATE INDEX idx_journal_entries_themes ON journal_entries(keyThemes)');
+    await db.execute('CREATE INDEX idx_journal_entries_status ON journal_entries(status)');
     await db.execute('CREATE INDEX idx_monthly_summaries_year_month ON monthly_summaries(year, month)');
   }
 
@@ -212,6 +229,98 @@ class DatabaseHelper {
       // Migrate from version 3 to version 4 (add AI analysis fields)
       await SchemaMigrationV4.migrate(db);
     }
+    
+    if (oldVersion < 5 && newVersion >= 5) {
+      // Migrate from version 4 to version 5 (resonance depth system)
+      await _migrateToResonanceDepthSystem(db);
+    }
+    
+    if (oldVersion < 6 && newVersion >= 6) {
+      // Migrate from version 5 to version 6 (remove AI analysis fields)
+      await SchemaMigrationV6.migrate(db);
+    }
+    
+    if (oldVersion < 7 && newVersion >= 7) {
+      // Migrate from version 6 to version 7 (add status column for processing state tracking)
+      await SchemaMigrationV7.migrate(db);
+    }
+    
+    if (oldVersion < 8 && newVersion >= 8) {
+      // Migrate from version 7 to version 8 (add emotion_matrix column for comprehensive emotional data)
+      await SchemaMigrationV8.migrate(db);
+    }
+  }
+
+  Future<void> _migrateToResonanceDepthSystem(Database db) async {
+    await db.transaction((txn) async {
+      // Check if the new columns already exist
+      final columns = await txn.rawQuery('PRAGMA table_info(emotional_cores)');
+      final columnNames = columns.map((c) => c['name'] as String).toSet();
+      
+      if (!columnNames.contains('current_level')) {
+        // Add new resonance depth columns
+        await txn.execute('ALTER TABLE emotional_cores ADD COLUMN current_level REAL DEFAULT 0.0');
+        await txn.execute('ALTER TABLE emotional_cores ADD COLUMN previous_level REAL DEFAULT 0.0');
+        await txn.execute('ALTER TABLE emotional_cores ADD COLUMN last_transition_date TEXT');
+        await txn.execute('ALTER TABLE emotional_cores ADD COLUMN entries_at_current_depth INTEGER DEFAULT 0');
+        await txn.execute('ALTER TABLE emotional_cores ADD COLUMN transition_signals TEXT');
+        await txn.execute('ALTER TABLE emotional_cores ADD COLUMN supporting_evidence TEXT');
+      }
+      
+      // Add last_updated column if it doesn't exist
+      if (!columnNames.contains('last_updated')) {
+        await txn.execute('ALTER TABLE emotional_cores ADD COLUMN last_updated TEXT');
+        // Update existing rows with current timestamp
+        await txn.execute('UPDATE emotional_cores SET last_updated = datetime(\'now\') WHERE last_updated IS NULL');
+      }
+      
+      if (!columnNames.contains('current_level')) {
+        
+        // Migrate percentage data to current_level (percentage/100)
+        await txn.execute('''
+          UPDATE emotional_cores 
+          SET current_level = COALESCE(percentage, 0.0) / 100.0,
+              previous_level = COALESCE(percentage, 0.0) / 100.0
+        ''');
+        
+        // Update last_updated to use existing updated_at or updatedAt
+        try {
+          await txn.execute('''
+            UPDATE emotional_cores 
+            SET last_updated = COALESCE(updated_at, datetime('now'))
+          ''');
+        } catch (e) {
+          // If updated_at doesn't exist, try updatedAt
+          try {
+            await txn.execute('''
+              UPDATE emotional_cores 
+              SET last_updated = COALESCE(updatedAt, datetime('now'))
+            ''');
+          } catch (e2) {
+            // If neither exists, just set to current time
+            await txn.execute('''
+              UPDATE emotional_cores 
+              SET last_updated = datetime('now')
+            ''');
+          }
+        }
+      }
+      
+      // Create core transition history table if it doesn't exist
+      await txn.execute('''
+        CREATE TABLE IF NOT EXISTS core_transition_history (
+          id TEXT PRIMARY KEY,
+          core_id TEXT NOT NULL,
+          from_depth TEXT NOT NULL,
+          to_depth TEXT NOT NULL,
+          transition_date TEXT NOT NULL,
+          contributing_entry_id TEXT,
+          transition_reason TEXT,
+          FOREIGN KEY (core_id) REFERENCES emotional_cores (id) ON DELETE CASCADE,
+          FOREIGN KEY (contributing_entry_id) REFERENCES journal_entries (id) ON DELETE SET NULL
+        )
+      ''');
+    });
   }
 
   /// Export all journal data to JSON format
@@ -513,5 +622,10 @@ class DatabaseHelper {
     final db = await database;
     await db.close();
     _database = null;
+  }
+
+  /// Close database connection for backup/restore operations
+  Future<void> closeDatabase() async {
+    await close();
   }
 }

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../design_system/design_tokens.dart';
+import 'skeleton_loader.dart';
+import 'animated_button.dart';
 
 /// Comprehensive loading state widget with various loading indicators
 class LoadingStateWidget extends StatefulWidget {
@@ -119,6 +121,12 @@ class _LoadingStateWidgetState extends State<LoadingStateWidget>
 
       case LoadingType.spinner:
         return _buildSpinnerIndicator(color);
+      
+      case LoadingType.skeleton:
+        return SkeletonLoader(
+          width: widget.size,
+          height: widget.size,
+        );
     }
   }
 
@@ -166,7 +174,7 @@ class _LoadingStateWidgetState extends State<LoadingStateWidget>
             width: widget.size,
             height: widget.size,
             decoration: BoxDecoration(
-              color: color.withOpacity(opacity),
+              color: color.withValues(alpha: opacity),
               shape: BoxShape.circle,
             ),
           ),
@@ -218,7 +226,7 @@ class _LoadingStateWidgetState extends State<LoadingStateWidget>
                 width: 6,
                 height: 6,
                 decoration: BoxDecoration(
-                  color: color.withOpacity(opacity),
+                  color: color.withValues(alpha: opacity),
                   shape: BoxShape.circle,
                 ),
               ),
@@ -240,7 +248,7 @@ class _LoadingStateWidgetState extends State<LoadingStateWidget>
             height: widget.size,
             decoration: BoxDecoration(
               border: Border.all(
-                color: color.withOpacity(0.3),
+                color: color.withValues(alpha: 0.3),
                 width: 3,
               ),
               borderRadius: BorderRadius.circular(widget.size / 2),
@@ -268,6 +276,7 @@ enum LoadingType {
   wave,
   typing,
   spinner,
+  skeleton,
 }
 
 /// Full-screen loading overlay
@@ -296,7 +305,7 @@ class LoadingOverlay extends StatelessWidget {
         child,
         if (isLoading)
           Container(
-            color: backgroundColor ?? Colors.black.withOpacity(0.5),
+            color: backgroundColor ?? Colors.black.withValues(alpha: 0.5),
             child: Center(
               child: Card(
                 child: Padding(
@@ -346,20 +355,26 @@ class _LoadingButtonState extends State<LoadingButton> {
   Widget build(BuildContext context) {
     final isLoading = widget.isLoading || _isLoading;
     
-    return ElevatedButton(
+    return AnimatedButton(
       onPressed: isLoading ? null : _handlePress,
-      style: widget.style,
-      child: isLoading
-          ? SizedBox(
-              height: 20,
-              width: 20,
-              child: LoadingStateWidget(
-                type: widget.loadingType,
-                size: 20,
-                color: Colors.white,
-              ),
-            )
-          : widget.child,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: isLoading ? Colors.grey : Theme.of(context).primaryColor,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: isLoading
+            ? SizedBox(
+                height: 20,
+                width: 20,
+                child: LoadingStateWidget(
+                  type: widget.loadingType,
+                  size: 20,
+                  color: Colors.white,
+                ),
+              )
+            : widget.child,
+      ),
     );
   }
 
@@ -451,7 +466,7 @@ class _ShimmerLoadingState extends State<ShimmerLoading>
 
     final theme = Theme.of(context);
     final baseColor = widget.baseColor ?? theme.colorScheme.surface;
-    final highlightColor = widget.highlightColor ?? theme.colorScheme.onSurface.withOpacity(0.1);
+    final highlightColor = widget.highlightColor ?? theme.colorScheme.onSurface.withValues(alpha: 0.1);
 
     return AnimatedBuilder(
       animation: _animation,

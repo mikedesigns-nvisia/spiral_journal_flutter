@@ -1,127 +1,180 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
-<dict>
-	<key>CADisableMinimumFrameDurationOnPhone</key>
-	<true/>
-	<key>CFBundleDevelopmentRegion</key>
-	<string>$(DEVELOPMENT_LANGUAGE)</string>
-	<key>CFBundleDisplayName</key>
-	<string>Spiral Journal</string>
-	<key>CFBundleExecutable</key>
-	<string>$(EXECUTABLE_NAME)</string>
-	<key>CFBundleIdentifier</key>
-	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
-	<key>CFBundleInfoDictionaryVersion</key>
-	<string>6.0</string>
-	<key>CFBundleName</key>
-	<string>spiral_journal</string>
-	<key>CFBundlePackageType</key>
-	<string>APPL</string>
-	<key>CFBundleShortVersionString</key>
-	<string>$(FLUTTER_BUILD_NAME)</string>
-	<key>CFBundleSignature</key>
-	<string>????</string>
-	<key>CFBundleURLTypes</key>
-	<array>
-		<dict>
-			<key>CFBundleTypeRole</key>
-			<string>Editor</string>
-			<key>CFBundleURLName</key>
-			<string>com.mikearce.spiralJournal</string>
-			<key>CFBundleURLSchemes</key>
-			<array>
-				<string>spiraljournal</string>
-			</array>
-		</dict>
-	</array>
-	<key>CFBundleVersion</key>
-	<string>$(FLUTTER_BUILD_NUMBER)</string>
-	<key>ITSAppUsesNonExemptEncryption</key>
-	<false/>
-	<key>LSApplicationQueriesSchemes</key>
-	<array>
-		<string>itms-beta</string>
-	</array>
-	<key>LSRequiresIPhoneOS</key>
-	<true/>
-	<key>NSAppTransportSecurity</key>
 	<dict>
-		<key>NSAllowsArbitraryLoads</key>
-		<false/>
-		<key>NSExceptionDomains</key>
-		<dict>
-			<key>fonts.googleapis.com</key>
+		<key>CADisableMinimumFrameDurationOnPhone</key>
+		<true/>
+		<key>CFBundleDevelopmentRegion</key>
+		<string>$(DEVELOPMENT_LANGUAGE)</string>
+		<key>CFBundleDisplayName</key>
+		<string>Spiral Journal</string>
+		<key>CFBundleExecutable</key>
+		<string>$(EXECUTABLE_NAME)</string>
+		<key>CFBundleIdentifier</key>
+		<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+		<key>CFBundleInfoDictionaryVersion</key>
+		<string>6.0</string>
+		<key>CFBundleName</key>
+		<string>spiral_journal</string>
+		<key>CFBundlePackageType</key>
+		<string>APPL</string>
+		<key>CFBundleShortVersionString</key>
+		<string>$(FLUTTER_BUILD_NAME)</string>
+		<key>CFBundleSignature</key>
+		<string>????</string>
+		<key>CFBundleURLTypes</key>
+		<array>
 			<dict>
-				<key>NSExceptionAllowsInsecureHTTPLoads</key>
-				<false/>
-				<key>NSExceptionMinimumTLSVersion</key>
-				<string>TLSv1.2</string>
-				<key>NSExceptionRequiresForwardSecrecy</key>
-				<false/>
+				<key>CFBundleTypeRole</key>
+				<string>Editor</string>
+				<key>CFBundleURLName</key>
+				<string>com.mikearce.spiralJournal</string>
+				<key>CFBundleURLSchemes</key>
+				<array>
+					<string>spiraljournal</string>
+				</array>
 			</dict>
-			<key>fonts.gstatic.com</key>
+		</array>
+		<key>CFBundleVersion</key>
+		<string>$(FLUTTER_BUILD_NUMBER)</string>
+		<key>ITSAppUsesNonExemptEncryption</key>
+		<false/>
+		<key>LSApplicationQueriesSchemes</key>
+		<array>
+			<string>itms-beta</string>
+		</array>
+		<key>LSRequiresIPhoneOS</key>
+		<true/>
+		<key>NSAppTransportSecurity</key>
+		<dict>
+			<key>NSAllowsArbitraryLoads</key>
+			<false/>
+			<key>NSExceptionDomains</key>
 			<dict>
-				<key>NSExceptionAllowsInsecureHTTPLoads</key>
-				<false/>
-				<key>NSExceptionMinimumTLSVersion</key>
-				<string>TLSv1.2</string>
-				<key>NSExceptionRequiresForwardSecrecy</key>
-				<false/>
+				<key>fonts.googleapis.com</key>
+				<dict>
+					<key>NSExceptionAllowsInsecureHTTPLoads</key>
+					<false/>
+					<key>NSExceptionMinimumTLSVersion</key>
+					<string>TLSv1.2</string>
+					<key>NSExceptionRequiresForwardSecrecy</key>
+					<false/>
+				</dict>
+				<key>fonts.gstatic.com</key>
+				<dict>
+					<key>NSExceptionAllowsInsecureHTTPLoads</key>
+					<false/>
+					<key>NSExceptionMinimumTLSVersion</key>
+					<string>TLSv1.2</string>
+					<key>NSExceptionRequiresForwardSecrecy</key>
+					<false/>
+				</dict>
+				<key>api.anthropic.com</key>
+				<dict>
+					<key>NSExceptionAllowsInsecureHTTPLoads</key>
+					<false/>
+					<key>NSExceptionMinimumTLSVersion</key>
+					<string>TLSv1.3</string>
+					<key>NSExceptionRequiresForwardSecrecy</key>
+					<true/>
+					<key>NSIncludesSubdomains</key>
+					<true/>
+				</dict>
 			</dict>
 		</dict>
+		<key>NSCameraUsageDescription</key>
+		<string>This app does not use the camera.</string>
+		<key>NSFaceIDUsageDescription</key>
+		<string>Use Face ID to quickly and securely access your journal entries.</string>
+		<key>NSLocalNetworkUsageDescription</key>
+		<string>This app does not access the local network.</string>
+		<key>NSLocationWhenInUseUsageDescription</key>
+		<string>This app does not use location services.</string>
+		<key>NSMicrophoneUsageDescription</key>
+		<string>Spiral Journal uses the microphone for voice-to-text transcription to help you create journal entries by speaking instead of typing. All speech processing happens on-device for privacy.</string>
+		<key>NSSpeechRecognitionUsageDescription</key>
+		<string>Spiral Journal uses speech recognition to convert your spoken words into text for journal entries. All speech processing happens on your device to protect your privacy.</string>
+		<key>NSPhotoLibraryUsageDescription</key>
+		<string>This app does not access your photo library.</string>
+		<key>NSUserNotificationUsageDescription</key>
+		<string>Spiral Journal sends daily reminders to help you maintain your journaling habit and track your emotional growth.</string>
+		<key>NSSupportsAutomaticTermination</key>
+		<false/>
+		<key>NSUserTrackingUsageDescription</key>
+		<string>Your data is used to improve the app experience and is never shared with third parties.</string>
+		<!-- AI/ML Privacy Declarations for App Store Compliance -->
+		<key>NSPrivacyCollectedDataTypes</key>
+		<array>
+			<dict>
+				<key>NSPrivacyCollectedDataType</key>
+				<string>NSPrivacyCollectedDataTypeOtherUserContent</string>
+				<key>NSPrivacyCollectedDataTypeLinked</key>
+				<false/>
+				<key>NSPrivacyCollectedDataTypeTracking</key>
+				<false/>
+				<key>NSPrivacyCollectedDataTypePurposes</key>
+				<array>
+					<string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+					<string>NSPrivacyCollectedDataTypePurposeAnalytics</string>
+				</array>
+			</dict>
+		</array>
+		<!-- AI/ML Processing Disclosure -->
+		<key>NSPrivacyUsageDescription</key>
+		<string>Spiral Journal uses AI to analyze your journal entries and provide personalized emotional insights. Your journal content is processed by Claude AI (Anthropic) to identify emotional patterns, themes, and provide growth recommendations. All data processing happens securely over encrypted connections, and your personal data is never stored by the AI provider. You maintain full control over your data and can disable AI analysis at any time in settings.</string>
+		<!-- Data Processing Transparency -->
+		<key>NSPrivacyTrackingDomains</key>
+		<array>
+			<string>api.anthropic.com</string>
+		</array>
+		<!-- Third-Party AI Service Disclosure -->
+		<key>NSAppTransportSecurityDefinitions</key>
+		<dict>
+			<key>api.anthropic.com</key>
+			<dict>
+				<key>NSAppTransportSecurityPurpose</key>
+				<string>AI emotional analysis and insights generation</string>
+				<key>NSAppTransportSecurityDataType</key>
+				<string>Journal content for AI processing</string>
+				<key>NSAppTransportSecurityRetention</key>
+				<string>Not retained by third-party service</string>
+			</dict>
+		</dict>
+		<key>UIApplicationSupportsIndirectInputEvents</key>
+		<true/>
+		<!-- Background Task Identifiers for BGTaskScheduler -->
+		<key>BGTaskSchedulerPermittedIdentifiers</key>
+		<array>
+			<string>com.spiraljournal.daily-processing</string>
+		</array>
+		<key>UIBackgroundRefreshStatusDidChangeNotification</key>
+		<true/>
+		<key>UILaunchStoryboardName</key>
+		<string>LaunchScreen</string>
+		<key>UIMainStoryboardFile</key>
+		<string>Main</string>
+		<key>UIRequiresFullScreen</key>
+		<false/>
+		<key>UIStatusBarHidden</key>
+		<false/>
+		<key>UIStatusBarStyle</key>
+		<string></string>
+		<key>UISupportedInterfaceOrientations</key>
+		<array>
+			<string>UIInterfaceOrientationLandscapeLeft</string>
+			<string>UIInterfaceOrientationLandscapeRight</string>
+			<string>UIInterfaceOrientationPortrait</string>
+		</array>
+		<key>UISupportedInterfaceOrientations~ipad</key>
+		<array>
+			<string>UIInterfaceOrientationLandscapeLeft</string>
+			<string>UIInterfaceOrientationLandscapeRight</string>
+			<string>UIInterfaceOrientationPortrait</string>
+			<string>UIInterfaceOrientationPortraitUpsideDown</string>
+		</array>
+		<key>UIUserInterfaceStyle</key>
+		<string>Automatic</string>
+		<key>UIViewControllerBasedStatusBarAppearance</key>
+		<true/>
 	</dict>
-	<key>NSCameraUsageDescription</key>
-	<string>This app does not use the camera.</string>
-	<key>NSFaceIDUsageDescription</key>
-	<string>Use Face ID to quickly and securely access your journal entries.</string>
-	<key>NSLocalNetworkUsageDescription</key>
-	<string>This app uses the local network to connect to development servers and enable wireless debugging.</string>
-	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>This app does not use location services.</string>
-	<key>NSMicrophoneUsageDescription</key>
-	<string>This app does not use the microphone.</string>
-	<key>NSPhotoLibraryUsageDescription</key>
-	<string>This app does not access your photo library.</string>
-	<key>NSSupportsAutomaticTermination</key>
-	<false/>
-	<key>NSUserTrackingUsageDescription</key>
-	<string>Your data is used to improve the app experience and is never shared with third parties.</string>
-	<key>UIApplicationSupportsIndirectInputEvents</key>
-	<true/>
-	<key>UIBackgroundModes</key>
-	<array>
-		<string>fetch</string>
-		<string>remote-notification</string>
-	</array>
-	<key>UIBackgroundRefreshStatusDidChangeNotification</key>
-	<true/>
-	<key>UILaunchStoryboardName</key>
-	<string>LaunchScreen</string>
-	<key>UIMainStoryboardFile</key>
-	<string>Main</string>
-	<key>UIRequiresFullScreen</key>
-	<false/>
-	<key>UIStatusBarHidden</key>
-	<true/>
-	<key>UIStatusBarStyle</key>
-	<string></string>
-	<key>UISupportedInterfaceOrientations</key>
-	<array>
-		<string>UIInterfaceOrientationLandscapeLeft</string>
-		<string>UIInterfaceOrientationLandscapeRight</string>
-		<string>UIInterfaceOrientationPortrait</string>
-	</array>
-	<key>UISupportedInterfaceOrientations~ipad</key>
-	<array>
-		<string>UIInterfaceOrientationLandscapeLeft</string>
-		<string>UIInterfaceOrientationLandscapeRight</string>
-		<string>UIInterfaceOrientationPortrait</string>
-		<string>UIInterfaceOrientationPortraitUpsideDown</string>
-	</array>
-	<key>UIUserInterfaceStyle</key>
-	<string>Automatic</string>
-	<key>UIViewControllerBasedStatusBarAppearance</key>
-	<true/>
-</dict>
 </plist>

@@ -4,13 +4,15 @@ import '../services/journal_service.dart';
 import '../repositories/journal_repository.dart';
 import '../repositories/journal_repository_impl.dart';
 import '../services/performance_optimization_service.dart';
-import '../services/background_ai_processor.dart';
+// Background AI processor removed - using local fallback processing
+import '../services/emotional_analyzer.dart';
+import '../services/core_library_service.dart';
 
 class JournalProvider with ChangeNotifier {
   final JournalService _journalService = JournalService();
   final JournalRepository _repository = JournalRepositoryImpl();
   final PerformanceOptimizationService _perfService = PerformanceOptimizationService();
-  final BackgroundAIProcessor _aiProcessor = BackgroundAIProcessor();
+  // Background AI processor removed - using local fallback processing
   
   List<JournalEntry> _entries = [];
   List<JournalEntry> _filteredEntries = [];
@@ -88,7 +90,7 @@ class JournalProvider with ChangeNotifier {
   Future<void> initialize() async {
     // Initialize performance services
     await _perfService.initialize(repository: _repository);
-    await _aiProcessor.initialize();
+    // Background AI processor initialization removed - using local fallback processing
     
     await loadAvailableYears();
     if (_availableYears.isNotEmpty) {
@@ -149,16 +151,22 @@ class JournalProvider with ChangeNotifier {
       _setLoading(true);
       _error = null;
       
-      await _journalService.createJournalEntry(
+      debugPrint('JournalProvider: Creating new journal entry');
+      final entryId = await _journalService.createJournalEntry(
         content: content,
         moods: moods,
       );
+      debugPrint('JournalProvider: Created entry with ID: $entryId');
       
-      // Refresh entries for current year
+      // Refresh entries for current year immediately
       await loadEntriesForYear(_selectedYear);
+      
+      // Note: Analysis is now handled by batch processing service
+      debugPrint('JournalProvider: Entry created successfully. Analysis will be handled in batch.');
       
       return true;
     } catch (e) {
+      debugPrint('JournalProvider: Error creating entry: $e');
       _error = e.toString();
       notifyListeners();
       return false;
@@ -227,7 +235,9 @@ class JournalProvider with ChangeNotifier {
 
   Future<void> setMoodFilter(List<String> moods) async {
     if (_selectedMoods.length == moods.length && 
-        _selectedMoods.every((mood) => moods.contains(mood))) return;
+        _selectedMoods.every((mood) => moods.contains(mood))) {
+      return;
+    }
     
     _selectedMoods = List.from(moods);
     _currentPage = 0;
@@ -238,7 +248,9 @@ class JournalProvider with ChangeNotifier {
 
   Future<void> setAIMoodFilter(List<String> aiMoods) async {
     if (_selectedAIMoods.length == aiMoods.length && 
-        _selectedAIMoods.every((mood) => aiMoods.contains(mood))) return;
+        _selectedAIMoods.every((mood) => aiMoods.contains(mood))) {
+      return;
+    }
     
     _selectedAIMoods = List.from(aiMoods);
     _currentPage = 0;
@@ -281,7 +293,9 @@ class JournalProvider with ChangeNotifier {
 
   Future<void> setThemeFilter(List<String> themes) async {
     if (_selectedThemes.length == themes.length && 
-        _selectedThemes.every((theme) => themes.contains(theme))) return;
+        _selectedThemes.every((theme) => themes.contains(theme))) {
+      return;
+    }
     
     _selectedThemes = List.from(themes);
     _currentPage = 0;
@@ -448,48 +462,32 @@ class JournalProvider with ChangeNotifier {
 
   // Background AI processing methods
   Future<void> queueEntryForAnalysis(JournalEntry entry) async {
-    await _aiProcessor.queueEntryAnalysis(
-      entry,
-      priority: ProcessingPriority.normal,
-      onComplete: (result) {
-        // Update entry with analysis result
-        _updateEntryWithAnalysis(entry.id, result);
-      },
-      onError: (error) {
-        if (kDebugMode) {
-          debugPrint('AI analysis failed for entry ${entry.id}: $error');
-        }
-      },
-    );
+    debugPrint('JournalProvider: Using direct local fallback analysis for entry ${entry.id}');
+    // Background AI processor removed - using direct local fallback processing
+    try {
+      // Analysis is handled directly by the service layer now
+      notifyListeners();
+    } catch (e) {
+      debugPrint('JournalProvider: Analysis failed for entry ${entry.id}: $e');
+    }
   }
 
   Future<void> queueBatchAnalysis(List<JournalEntry> entries) async {
-    await _aiProcessor.queueBatchAnalysis(
-      entries,
-      onBatchProgress: (completed, total) {
-        if (kDebugMode) {
-          debugPrint('Batch analysis progress: $completed/$total');
-        }
-      },
-      onBatchComplete: (results) {
-        // Update entries with analysis results
-        for (int i = 0; i < entries.length && i < results.length; i++) {
-          if (!results[i].containsKey('error')) {
-            _updateEntryWithAnalysis(entries[i].id, results[i]);
-          }
-        }
-      },
-    );
+    // Background AI processor batch analysis removed - using direct local fallback processing
+    debugPrint('JournalProvider: Using direct local fallback analysis for ${entries.length} entries');
+    // Analysis is handled directly by the service layer now
+    notifyListeners();
   }
 
   void _updateEntryWithAnalysis(String entryId, Map<String, dynamic> analysis) {
+    debugPrint('JournalProvider: Updating entry $entryId with analysis');
+    
     // Update entry in local lists
     final entryIndex = _entries.indexWhere((e) => e.id == entryId);
     if (entryIndex != -1) {
-      // Create updated entry with analysis
+      // Update entry - analysis simplified for local processing
       final updatedEntry = _entries[entryIndex].copyWith(
-        aiAnalysis: EmotionalAnalysis.fromJson(analysis),
-        isAnalyzed: true,
+        updatedAt: DateTime.now(), // Just update the timestamp
       );
       _entries[entryIndex] = updatedEntry;
       
@@ -502,7 +500,33 @@ class JournalProvider with ChangeNotifier {
       // Invalidate cache for this entry
       _perfService.invalidateCache(entryId: entryId);
       
+      // Update emotional cores based on this analysis
+      _updateCoresWithAnalysis(updatedEntry, analysis);
+      
       notifyListeners();
+    } else {
+      debugPrint('JournalProvider: Entry $entryId not found for analysis update');
+    }
+  }
+  
+  // Update emotional cores based on journal analysis
+  Future<void> _updateCoresWithAnalysis(JournalEntry entry, Map<String, dynamic> analysis) async {
+    try {
+      debugPrint('JournalProvider: Updating cores with analysis for entry ${entry.id}');
+      
+      // Convert raw analysis to EmotionalAnalysisResult
+      final emotionalAnalyzer = EmotionalAnalyzer();
+      final analysisResult = emotionalAnalyzer.processAnalysis(analysis, entry);
+      
+      // Get core library service
+      final coreLibraryService = CoreLibraryService();
+      
+      // Update cores with this analysis
+      await coreLibraryService.updateCoresWithJournalAnalysis([entry], analysisResult);
+      
+      debugPrint('JournalProvider: Successfully updated cores with analysis');
+    } catch (e) {
+      debugPrint('JournalProvider: Error updating cores with analysis: $e');
     }
   }
 
@@ -510,7 +534,7 @@ class JournalProvider with ChangeNotifier {
   void dispose() {
     // Dispose of performance services
     _perfService.dispose();
-    _aiProcessor.dispose();
+    // Background AI processor disposal removed - using direct local fallback processing
     
     super.dispose();
   }

@@ -2,14 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../models/user_profile.dart';
 import '../services/profile_service.dart';
+import '../services/settings_service.dart';
+import '../services/app_info_service.dart';
 import '../theme/app_theme.dart';
-import '../constants/app_constants.dart';
+import '../core/app_constants.dart';
 import '../screens/main_screen.dart';
 import '../widgets/app_background.dart';
 import '../services/navigation_flow_controller.dart';
 
 /// Profile setup screen for TestFlight version
-/// Collects basic user information: first name and birthday
+/// Collects basic user information: first name
 class ProfileSetupScreen extends StatefulWidget {
   const ProfileSetupScreen({super.key});
 
@@ -21,8 +23,8 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
   final _formKey = GlobalKey<FormState>();
   final _firstNameController = TextEditingController();
   final _profileService = ProfileService();
+  final _appInfoService = AppInfoService();
   
-  DateTime? _selectedBirthday;
   bool _isLoading = false;
   String? _errorMessage;
 
@@ -32,38 +34,6 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
     super.dispose();
   }
 
-  /// Show date picker for birthday selection
-  Future<void> _selectBirthday() async {
-    final now = DateTime.now();
-    final initialDate = _selectedBirthday ?? DateTime(now.year - 25, now.month, now.day);
-    
-    final pickedDate = await showDatePicker(
-      context: context,
-      initialDate: initialDate,
-      firstDate: DateTime(now.year - 120), // 120 years ago
-      lastDate: DateTime(now.year - 13), // Must be at least 13 years old
-      helpText: 'Select your birthday',
-      cancelText: 'Cancel',
-      confirmText: 'Select',
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: Theme.of(context).colorScheme.copyWith(
-              primary: AppTheme.getPrimaryColor(context),
-            ),
-          ),
-          child: child!,
-        );
-      },
-    );
-
-    if (pickedDate != null) {
-      setState(() {
-        _selectedBirthday = pickedDate;
-        _errorMessage = null; // Clear any previous errors
-      });
-    }
-  }
 
   /// Validate and save profile
   Future<void> _saveProfile() async {
@@ -71,22 +41,13 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
       return;
     }
 
-    if (_selectedBirthday == null) {
-      setState(() {
-        _errorMessage = 'Please select your birthday';
-      });
-      return;
-    }
 
     final firstName = _firstNameController.text.trim();
 
     // Validate profile data
-    if (!_profileService.validateProfile(
-      firstName: firstName,
-      birthday: _selectedBirthday!,
-    )) {
+    if (firstName.isEmpty) {
       setState(() {
-        _errorMessage = 'Please check your information and try again';
+        _errorMessage = 'Please enter your first name';
       });
       return;
     }
@@ -100,12 +61,17 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
       // Create and save profile
       final profile = UserProfile.create(
         firstName: firstName,
-        birthday: _selectedBirthday!,
+        birthday: DateTime.now(), // Default birthday since it's not collected
       );
 
       final success = await _profileService.saveProfile(profile);
 
       if (success) {
+        // Mark onboarding as completed when profile is saved
+        final settingsService = SettingsService();
+        await settingsService.initialize();
+        await settingsService.setOnboardingCompleted(true);
+        
         // Provide haptic feedback
         HapticFeedback.lightImpact();
         
@@ -145,10 +111,6 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
     }
   }
 
-  /// Format birthday for display
-  String _formatBirthday(DateTime birthday) {
-    return '${birthday.month}/${birthday.day}/${birthday.year}';
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -178,7 +140,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                 
                     // Welcome header
                     Text(
-                  'Welcome to Spiral Journal',
+                  'Welcome to ${_appInfoService.appName}',
                   style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                     color: AppTheme.getTextPrimary(context),
                     fontWeight: FontWeight.bold,
@@ -252,61 +214,6 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                     }
                     return null;
                   },
-                ),
-                
-                    const SizedBox(height: AppConstants.largePadding),
-                    
-                    // Birthday selection
-                    Text(
-                  'Birthday',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    color: AppTheme.getTextPrimary(context),
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                
-                    const SizedBox(height: AppConstants.smallPadding),
-                    
-                    InkWell(
-                  onTap: _selectBirthday,
-                  borderRadius: BorderRadius.circular(AppConstants.borderRadius),
-                  child: Container(
-                    padding: const EdgeInsets.all(AppConstants.defaultPadding),
-                    decoration: BoxDecoration(
-                      border: Border.all(
-                        color: AppTheme.getBorderColor(context),
-                      ),
-                      borderRadius: BorderRadius.circular(AppConstants.borderRadius),
-                      color: AppTheme.getBackgroundSecondary(context),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.calendar_today,
-                          color: AppTheme.getPrimaryColor(context),
-                          size: 20,
-                        ),
-                        const SizedBox(width: AppConstants.smallPadding),
-                        Expanded(
-                          child: Text(
-                            _selectedBirthday != null
-                                ? _formatBirthday(_selectedBirthday!)
-                                : 'Select your birthday',
-                            style: TextStyle(
-                              color: _selectedBirthday != null
-                                  ? AppTheme.getTextPrimary(context)
-                                  : AppTheme.getTextSecondary(context),
-                              fontSize: 16,
-                            ),
-                          ),
-                        ),
-                        Icon(
-                          Icons.arrow_drop_down,
-                          color: AppTheme.getTextSecondary(context),
-                        ),
-                      ],
-                    ),
-                  ),
                 ),
                 
                     const Spacer(),

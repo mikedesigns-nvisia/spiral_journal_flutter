@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:spiral_journal/design_system/design_tokens.dart';
 import 'package:spiral_journal/design_system/component_library.dart';
+import 'package:spiral_journal/design_system/heading_system.dart';
 import 'package:spiral_journal/services/journal_service.dart';
 
 class MoodSelector extends StatelessWidget {
@@ -40,127 +41,6 @@ class MoodSelector extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // AI-detected moods section
-          if (aiDetectedMoods.isNotEmpty) ...[
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(DesignTokens.spaceM),
-              decoration: BoxDecoration(
-                color: DesignTokens.getColorWithOpacity(
-                  DesignTokens.getPrimaryColor(context), 
-                  0.1
-                ),
-                borderRadius: BorderRadius.circular(DesignTokens.radiusS),
-                border: Border.all(
-                  color: DesignTokens.getColorWithOpacity(
-                    DesignTokens.getPrimaryColor(context), 
-                    0.3
-                  ),
-                ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.psychology_rounded,
-                        size: DesignTokens.iconSizeS,
-                        color: DesignTokens.getPrimaryColor(context),
-                      ),
-                      const SizedBox(width: DesignTokens.spaceS),
-                      Expanded(
-                        child: Text(
-                          'AI detected these emotions:',
-                          style: DesignTokens.getTextStyle(
-                            fontSize: DesignTokens.fontSizeM,
-                            fontWeight: DesignTokens.fontWeightSemiBold,
-                            color: DesignTokens.getPrimaryColor(context),
-                          ),
-                        ),
-                      ),
-                      if (onAcceptAIMoods != null)
-                        ComponentLibrary.textButton(
-                          text: 'Accept All',
-                          onPressed: onAcceptAIMoods,
-                          size: ButtonSize.small,
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: DesignTokens.spaceS),
-                  Wrap(
-                    spacing: ComponentTokens.moodSelectorSpacing,
-                    runSpacing: ComponentTokens.moodSelectorRunSpacing,
-                    children: aiDetectedMoods.map((mood) {
-                      final isAlreadySelected = selectedMoods.any((selected) => 
-                          selected.toLowerCase() == mood.toLowerCase());
-                      
-                      return ComponentLibrary.moodChip(
-                        label: _capitalizeMood(mood),
-                        isSelected: isAlreadySelected,
-                        moodType: mood,
-                        onTap: () {
-                          if (!isAlreadySelected) {
-                            final newMoods = List<String>.from(selectedMoods);
-                            newMoods.add(_capitalizeMood(mood));
-                            onMoodChanged(newMoods);
-                          }
-                        },
-                      );
-                    }).toList(),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: DesignTokens.spaceL),
-          ],
-          
-          // AI analysis in progress indicator
-          if (isAnalyzing) ...[
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(DesignTokens.spaceM),
-              decoration: BoxDecoration(
-                color: DesignTokens.getColorWithOpacity(
-                  DesignTokens.getPrimaryColor(context), 
-                  0.1
-                ),
-                borderRadius: BorderRadius.circular(DesignTokens.radiusS),
-                border: Border.all(
-                  color: DesignTokens.getColorWithOpacity(
-                    DesignTokens.getPrimaryColor(context), 
-                    0.3
-                  ),
-                ),
-              ),
-              child: Row(
-                children: [
-                  SizedBox(
-                    width: DesignTokens.iconSizeS,
-                    height: DesignTokens.iconSizeS,
-                    child: CircularProgressIndicator(
-                      strokeWidth: DesignTokens.loadingStrokeWidth,
-                      valueColor: AlwaysStoppedAnimation<Color>(
-                        DesignTokens.getPrimaryColor(context)
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: DesignTokens.spaceM),
-                  Expanded(
-                    child: Text(
-                      'AI is analyzing your emotions...',
-                      style: DesignTokens.getTextStyle(
-                        fontSize: DesignTokens.fontSizeM,
-                        fontWeight: DesignTokens.fontWeightMedium,
-                        color: DesignTokens.getPrimaryColor(context),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: DesignTokens.spaceL),
-          ],
           
           // Primary moods - always visible
           Wrap(
@@ -200,9 +80,7 @@ class MoodSelector extends StatelessWidget {
                   Flexible(
                     child: Text(
                       'More moods:',
-                      style: DesignTokens.getTextStyle(
-                        fontSize: DesignTokens.fontSizeM,
-                        fontWeight: DesignTokens.fontWeightMedium,
+                      style: HeadingSystem.getTitleMedium(context).copyWith(
                         color: DesignTokens.getTextSecondary(context),
                       ),
                     ),
@@ -211,9 +89,7 @@ class MoodSelector extends StatelessWidget {
                   Flexible(
                     child: Text(
                       'Swipe to see more →',
-                      style: DesignTokens.getTextStyle(
-                        fontSize: DesignTokens.fontSizeS,
-                        fontWeight: DesignTokens.fontWeightRegular,
+                      style: HeadingSystem.getBodySmall(context).copyWith(
                         color: DesignTokens.getTextTertiary(context),
                       ),
                       overflow: TextOverflow.ellipsis,
@@ -297,8 +173,7 @@ class MoodSelector extends StatelessWidget {
                       Expanded(
                         child: Text(
                           'Selected moods:',
-                          style: DesignTokens.getTextStyle(
-                            fontSize: DesignTokens.fontSizeS,
+                          style: HeadingSystem.getBodySmall(context).copyWith(
                             fontWeight: DesignTokens.fontWeightMedium,
                             color: DesignTokens.getTextSecondary(context),
                           ),
@@ -331,9 +206,7 @@ class MoodSelector extends StatelessWidget {
                         ),
                         child: Text(
                           mood,
-                          style: DesignTokens.getTextStyle(
-                            fontSize: DesignTokens.fontSizeXS,
-                            fontWeight: DesignTokens.fontWeightRegular,
+                          style: HeadingSystem.getLabelSmall(context).copyWith(
                             color: DesignTokens.getTextSecondary(context),
                           ),
                         ),

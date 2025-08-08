@@ -1,9 +1,12 @@
-import 'package:flutter/foundation.dart';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/user_preferences.dart';
 import 'theme_service.dart';
+import 'core_background_sync_service.dart';
+import 'notification_service.dart';
+import 'analytics_service.dart';
+import 'accessibility_service.dart';
 
 /// Comprehensive settings management service for application preferences.
 /// 
@@ -50,6 +53,9 @@ class SettingsService extends ChangeNotifier {
   bool _isInitialized = false;
   
   final ThemeService _themeService = ThemeService();
+  final NotificationService _notificationService = NotificationService();
+  final AnalyticsService _analyticsService = AnalyticsService();
+  final AccessibilityService _accessibilityService = AccessibilityService();
 
   // Settings keys
   static const String _userPreferencesKey = 'user_preferences';
@@ -62,6 +68,9 @@ class SettingsService extends ChangeNotifier {
     try {
       _prefs = await SharedPreferences.getInstance();
       await _themeService.initialize();
+      await _notificationService.initialize();
+      await _analyticsService.initialize();
+      await _accessibilityService.initialize();
       await _loadPreferences();
       _isInitialized = true;
     } catch (e) {
@@ -222,6 +231,22 @@ class SettingsService extends ChangeNotifier {
       _currentPreferences = _currentPreferences.copyWith(
         analyticsEnabled: enabled,
       );
+      
+      // Track the analytics setting change in analytics service
+      if (enabled) {
+        await _analyticsService.logEvent('analytics_enabled', {
+          'timestamp': DateTime.now().toIso8601String(),
+          'user_action': 'settings_toggle',
+        });
+      } else {
+        await _analyticsService.logEvent('analytics_disabled', {
+          'timestamp': DateTime.now().toIso8601String(),
+          'user_action': 'settings_toggle',
+        });
+        // Clear analytics data when disabled for privacy
+        await _analyticsService.clearAnalyticsData();
+      }
+      
       await _savePreferences();
       notifyListeners();
     } catch (e) {
@@ -243,6 +268,29 @@ class SettingsService extends ChangeNotifier {
     if (_currentPreferences.dailyRemindersEnabled == enabled) return;
     
     try {
+      if (enabled) {
+        // Request notification permissions
+        final hasPermissions = await _notificationService.requestPermissions();
+        if (!hasPermissions) {
+          throw Exception('Notification permissions denied');
+        }
+        
+        // Schedule daily reminder with current time setting
+        final timeParts = _currentPreferences.reminderTime.split(':');
+        final hour = int.parse(timeParts[0]);
+        final minute = int.parse(timeParts[1]);
+        
+        await _notificationService.scheduleDailyReminder(
+          hour: hour,
+          minute: minute,
+          title: 'Journal Time 📝',
+          body: 'Take a moment to reflect and write in your journal',
+        );
+      } else {
+        // Cancel daily reminder
+        await _notificationService.cancelDailyReminder();
+      }
+      
       _currentPreferences = _currentPreferences.copyWith(
         dailyRemindersEnabled: enabled,
       );
@@ -268,6 +316,21 @@ class SettingsService extends ChangeNotifier {
     
     try {
       _currentPreferences = _currentPreferences.copyWith(reminderTime: time);
+      
+      // If daily reminders are enabled, reschedule with new time
+      if (_currentPreferences.dailyRemindersEnabled) {
+        final timeParts = time.split(':');
+        final hour = int.parse(timeParts[0]);
+        final minute = int.parse(timeParts[1]);
+        
+        await _notificationService.scheduleDailyReminder(
+          hour: hour,
+          minute: minute,
+          title: 'Journal Time 📝',
+          body: 'Take a moment to reflect and write in your journal',
+        );
+      }
+      
       await _savePreferences();
       notifyListeners();
     } catch (e) {
@@ -296,6 +359,106 @@ class SettingsService extends ChangeNotifier {
       notifyListeners();
     } catch (e) {
       debugPrint('SettingsService setSplashScreenEnabled error: $e');
+      rethrow;
+    }
+  }
+
+  /// Get high contrast enabled status
+  Future<bool> getHighContrastEnabled() async {
+    await _ensureInitialized();
+    return _currentPreferences.highContrastEnabled;
+  }
+
+  /// Set high contrast enabled/disabled
+  Future<void> setHighContrastEnabled(bool enabled) async {
+    await _ensureInitialized();
+    
+    if (_currentPreferences.highContrastEnabled == enabled) return;
+    
+    try {
+      _currentPreferences = _currentPreferences.copyWith(
+        highContrastEnabled: enabled,
+      );
+      await _accessibilityService.setHighContrastMode(enabled);
+      await _savePreferences();
+      notifyListeners();
+    } catch (e) {
+      debugPrint('SettingsService setHighContrastEnabled error: $e');
+      rethrow;
+    }
+  }
+
+  /// Get large text enabled status
+  Future<bool> getLargeTextEnabled() async {
+    await _ensureInitialized();
+    return _currentPreferences.largeTextEnabled;
+  }
+
+  /// Set large text enabled/disabled
+  Future<void> setLargeTextEnabled(bool enabled) async {
+    await _ensureInitialized();
+    
+    if (_currentPreferences.largeTextEnabled == enabled) return;
+    
+    try {
+      _currentPreferences = _currentPreferences.copyWith(
+        largeTextEnabled: enabled,
+      );
+      await _accessibilityService.setLargeTextMode(enabled);
+      await _savePreferences();
+      notifyListeners();
+    } catch (e) {
+      debugPrint('SettingsService setLargeTextEnabled error: $e');
+      rethrow;
+    }
+  }
+
+  /// Get reduced motion enabled status
+  Future<bool> getReducedMotionEnabled() async {
+    await _ensureInitialized();
+    return _currentPreferences.reducedMotionEnabled;
+  }
+
+  /// Set reduced motion enabled/disabled
+  Future<void> setReducedMotionEnabled(bool enabled) async {
+    await _ensureInitialized();
+    
+    if (_currentPreferences.reducedMotionEnabled == enabled) return;
+    
+    try {
+      _currentPreferences = _currentPreferences.copyWith(
+        reducedMotionEnabled: enabled,
+      );
+      await _accessibilityService.setReducedMotionMode(enabled);
+      await _savePreferences();
+      notifyListeners();
+    } catch (e) {
+      debugPrint('SettingsService setReducedMotionEnabled error: $e');
+      rethrow;
+    }
+  }
+
+  /// Get screen reader enabled status
+  Future<bool> getScreenReaderEnabled() async {
+    await _ensureInitialized();
+    return _currentPreferences.screenReaderEnabled;
+  }
+
+  /// Set screen reader enabled/disabled
+  Future<void> setScreenReaderEnabled(bool enabled) async {
+    await _ensureInitialized();
+    
+    if (_currentPreferences.screenReaderEnabled == enabled) return;
+    
+    try {
+      _currentPreferences = _currentPreferences.copyWith(
+        screenReaderEnabled: enabled,
+      );
+      await _accessibilityService.setScreenReaderEnabled(enabled);
+      await _savePreferences();
+      notifyListeners();
+    } catch (e) {
+      debugPrint('SettingsService setScreenReaderEnabled error: $e');
       rethrow;
     }
   }
@@ -382,23 +545,129 @@ class SettingsService extends ChangeNotifier {
     return await getDailyRemindersEnabled();
   }
 
-  /// Set PIN setup requested flag
-  Future<void> setPinSetupRequested(bool requested) async {
+  // PIN setup methods removed - using biometrics-only authentication
+
+  /// Set onboarding completed status
+  /// 
+  /// This method persists the onboarding completion state using SharedPreferences.
+  /// When true, the app will skip the onboarding flow on subsequent launches.
+  /// 
+  /// @param completed Whether onboarding has been completed
+  Future<void> setOnboardingCompleted([bool completed = true]) async {
     await _ensureInitialized();
     
     try {
-      await _prefs?.setBool('pin_setup_requested', requested);
+      await _prefs?.setBool('onboarding_completed', completed);
       notifyListeners();
     } catch (e) {
-      debugPrint('SettingsService setPinSetupRequested error: $e');
+      debugPrint('SettingsService setOnboardingCompleted error: $e');
       rethrow;
     }
   }
 
-  /// Get PIN setup requested status
-  Future<bool> getPinSetupRequested() async {
+  /// Check if onboarding has been completed
+  /// 
+  /// Returns true if the user has completed the onboarding flow,
+  /// false otherwise or if the status cannot be determined.
+  /// 
+  /// @return Whether onboarding has been completed
+  Future<bool> hasCompletedOnboarding() async {
     await _ensureInitialized();
-    return _prefs?.getBool('pin_setup_requested') ?? false;
+    return _prefs?.getBool('onboarding_completed') ?? false;
+  }
+
+  /// Reset onboarding completion status
+  /// 
+  /// This method is primarily for testing and debugging purposes.
+  /// It marks onboarding as not completed, forcing the user to go through
+  /// the onboarding flow again on next app launch.
+  Future<void> resetOnboardingStatus() async {
+    await _ensureInitialized();
+    
+    try {
+      await _prefs?.remove('onboarding_completed');
+      notifyListeners();
+    } catch (e) {
+      debugPrint('SettingsService resetOnboardingStatus error: $e');
+      rethrow;
+    }
+  }
+
+  /// Trigger manual backup to iCloud
+  Future<bool> triggerManualBackup() async {
+    await _ensureInitialized();
+    
+    try {
+      final syncService = CoreBackgroundSyncService();
+      final result = await syncService.performManualBackup();
+      
+      if (result) {
+        debugPrint('SettingsService: Manual backup completed successfully');
+      } else {
+        debugPrint('SettingsService: Manual backup failed');
+      }
+      
+      return result;
+    } catch (e) {
+      debugPrint('SettingsService triggerManualBackup error: $e');
+      return false;
+    }
+  }
+
+  /// Restore from iCloud backup
+  Future<bool> restoreFromBackup() async {
+    await _ensureInitialized();
+    
+    try {
+      final syncService = CoreBackgroundSyncService();
+      final result = await syncService.restoreFromBackup();
+      
+      if (result) {
+        debugPrint('SettingsService: Restore from backup completed successfully');
+      } else {
+        debugPrint('SettingsService: Restore from backup failed');
+      }
+      
+      return result;
+    } catch (e) {
+      debugPrint('SettingsService restoreFromBackup error: $e');
+      return false;
+    }
+  }
+
+  /// Check if backup is available
+  Future<bool> isBackupAvailable() async {
+    await _ensureInitialized();
+    
+    try {
+      final syncService = CoreBackgroundSyncService();
+      return await syncService.hasBackupAvailable();
+    } catch (e) {
+      debugPrint('SettingsService isBackupAvailable error: $e');
+      return false;
+    }
+  }
+
+  /// Get backup status information
+  Future<Map<String, dynamic>?> getBackupStatus() async {
+    await _ensureInitialized();
+    
+    try {
+      final syncService = CoreBackgroundSyncService();
+      final statistics = syncService.getBackupStatistics();
+      final metadata = await syncService.getBackupMetadata();
+      
+      return {
+        'lastBackup': statistics.lastSuccessfulBackup?.toIso8601String(),
+        'nextBackup': statistics.nextBackupEstimate.toIso8601String(),
+        'isActive': statistics.isActive,
+        'hasBackup': await syncService.hasBackupAvailable(),
+        'metadata': metadata,
+      };
+    } catch (e) {
+      debugPrint('SettingsService getBackupStatus error: $e');
+      return null;
+    }
   }
 
   // Legacy compatibility methods (deprecated - use new methods instead)
