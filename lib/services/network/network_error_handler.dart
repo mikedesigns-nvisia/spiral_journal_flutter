@@ -24,7 +24,7 @@ class NetworkErrorHandler {
     
     for (int attempt = 1; attempt <= maxRetries; attempt++) {
       try {
-        debugPrint('🌐 NetworkErrorHandler: Attempting $operation (${attempt}/$maxRetries)');
+        debugPrint('🌐 NetworkErrorHandler: Attempting $operation ($attempt/$maxRetries)');
         
         return await request().timeout(
           timeout,

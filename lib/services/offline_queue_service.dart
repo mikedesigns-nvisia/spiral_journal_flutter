@@ -377,17 +377,13 @@ class JournalSaveOperation extends QueuedOperation {
   final JournalEntry entry;
 
   JournalSaveOperation({
-    required String id,
+    required super.id,
     required this.entry,
-    required DateTime createdAt,
-    int retryCount = 0,
-    DateTime? lastAttemptAt,
+    required super.createdAt,
+    super.retryCount,
+    super.lastAttemptAt,
   }) : super(
-          id: id,
           type: 'journal_save',
-          createdAt: createdAt,
-          retryCount: retryCount,
-          lastAttemptAt: lastAttemptAt,
         );
 
   @override
@@ -434,17 +430,13 @@ class AIAnalysisOperation extends QueuedOperation {
   final JournalEntry entry;
 
   AIAnalysisOperation({
-    required String id,
+    required super.id,
     required this.entry,
-    required DateTime createdAt,
-    int retryCount = 0,
-    DateTime? lastAttemptAt,
+    required super.createdAt,
+    super.retryCount,
+    super.lastAttemptAt,
   }) : super(
-          id: id,
           type: 'ai_analysis',
-          createdAt: createdAt,
-          retryCount: retryCount,
-          lastAttemptAt: lastAttemptAt,
         );
 
   @override
@@ -489,18 +481,14 @@ class CoreUpdateOperation extends QueuedOperation {
   final List<EmotionalCore> cores;
 
   CoreUpdateOperation({
-    required String id,
+    required super.id,
     required this.entryId,
     required this.cores,
-    required DateTime createdAt,
-    int retryCount = 0,
-    DateTime? lastAttemptAt,
+    required super.createdAt,
+    super.retryCount,
+    super.lastAttemptAt,
   }) : super(
-          id: id,
           type: 'core_update',
-          createdAt: createdAt,
-          retryCount: retryCount,
-          lastAttemptAt: lastAttemptAt,
         );
 
   @override

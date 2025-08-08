@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:spiral_journal/design_system/design_tokens.dart';
 import 'package:spiral_journal/design_system/component_library.dart';
-import 'package:spiral_journal/design_system/responsive_layout.dart';
 import 'package:spiral_journal/models/journal_entry.dart';
 
 /// Widget that displays local processing results for journal entries

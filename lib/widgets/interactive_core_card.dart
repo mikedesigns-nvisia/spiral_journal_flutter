@@ -1,12 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:provider/provider.dart';
 import 'package:spiral_journal/models/core.dart';
-import 'package:spiral_journal/providers/core_provider_refactored.dart';
 import 'package:spiral_journal/services/accessibility_service.dart';
 import 'package:spiral_journal/services/core_animation_service.dart';
 import 'package:spiral_journal/services/core_visual_consistency_service.dart';
-import 'package:spiral_journal/services/navigation_service.dart';
 import 'package:spiral_journal/theme/app_theme.dart';
 import 'package:spiral_journal/design_system/design_tokens.dart';
 
@@ -530,7 +527,7 @@ class _InteractiveCoreCardState extends State<InteractiveCoreCard>
           SizedBox(height: DesignTokens.spaceM),
           ...widget.core.milestones.take(3).map((milestone) => 
             _buildMilestoneItem(milestone)
-          ).toList(),
+          ),
         ],
       ),
     );

@@ -8,9 +8,7 @@ import 'package:spiral_journal/design_system/design_tokens.dart';
 import 'package:spiral_journal/design_system/responsive_layout.dart';
 import 'package:spiral_journal/utils/iphone_detector.dart';
 import 'package:spiral_journal/services/navigation_service.dart';
-import 'package:spiral_journal/theme/app_theme.dart';
 import 'package:spiral_journal/services/navigation_flow_controller.dart';
-import 'package:spiral_journal/widgets/animated_gradient_background.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});

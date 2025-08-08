@@ -184,12 +184,12 @@ void main() {
         MaterialApp(
           home: Scaffold(
             body: AnimatedButton(
-              child: const Text('Styled Button'),
               onPressed: () {},
               backgroundColor: Colors.blue,
               padding: const EdgeInsets.all(16),
               borderRadius: BorderRadius.circular(12),
               pressedScale: 0.8,
+              child: const Text('Styled Button'),
             ),
           ),
         ),
@@ -214,10 +214,10 @@ void main() {
         MaterialApp(
           home: Scaffold(
             body: AnimatedButton(
-              child: const Text('Custom Animation'),
               onPressed: () {},
               duration: const Duration(milliseconds: 500),
               curve: Curves.bounceOut,
+              child: const Text('Custom Animation'),
             ),
           ),
         ),
@@ -317,9 +317,9 @@ void main() {
         MaterialApp(
           home: Scaffold(
             body: AnimatedButton(
-              child: const Text('Scale Test'),
               onPressed: () {},
               pressedScale: 0.5,
+              child: const Text('Scale Test'),
             ),
           ),
         ),

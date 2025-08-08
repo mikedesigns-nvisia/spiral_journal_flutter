@@ -494,7 +494,7 @@ class ClaudeIntegrationTester {
       final data = {
         'networkFailureSimulated': networkFailure,
         'fallbackUsed': fallbackUsed,
-        'analysisProvided': analysis != null && analysis.isNotEmpty,
+        'analysisProvided': analysis.isNotEmpty,
         'analysis': analysis,
       };
       

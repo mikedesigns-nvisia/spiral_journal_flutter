@@ -15,6 +15,7 @@ import 'package:spiral_journal/core/app_constants.dart';
 import 'package:spiral_journal/design_system/design_tokens.dart';
 import 'package:spiral_journal/design_system/heading_system.dart';
 import 'package:spiral_journal/design_system/responsive_layout.dart';
+import 'package:spiral_journal/design_system/component_library.dart';
 import 'package:spiral_journal/models/emotional_mirror_data.dart';
 import 'package:spiral_journal/models/emotional_state.dart';
 import 'package:spiral_journal/models/journal_entry.dart';
@@ -892,58 +893,9 @@ class _JournalScreenState extends State<JournalScreen> {
 
 
   Widget _buildNormalJournalInput() {
-    final now = DateTime.now();
-    final dateFormatter = DateFormat('EEEE, MMMM d');
-    
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Simplified header - more space efficient
-        Row(
-          children: [
-            // Compact app branding
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: DesignTokens.getColorWithOpacity(
-                  DesignTokens.getPrimaryColor(context), 
-                  0.1
-                ),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(
-                Icons.auto_stories_rounded,
-                color: DesignTokens.getPrimaryColor(context),
-                size: 20,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Spiral Journal',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                      color: DesignTokens.getTextPrimary(context),
-                    ),
-                  ),
-                  Text(
-                    dateFormatter.format(now),
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: DesignTokens.getTextTertiary(context),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-        
-        const SizedBox(height: 24),
         
         // Conditional greeting and analysis status - only show when no analysis is complete
         Consumer<JournalProvider>(
@@ -953,7 +905,7 @@ class _JournalScreenState extends State<JournalScreen> {
             
             if (hasAnalyzedEntry) {
               // Skip greeting when analysis is complete - minimal spacing
-              return const SizedBox(height: 8);
+              return SizedBox(height: ComponentLibrary.spaceGR1);
             } else {
               // Compact greeting and analysis status
               return Column(
@@ -970,7 +922,7 @@ class _JournalScreenState extends State<JournalScreen> {
                     ),
                   ),
                   
-                  const SizedBox(height: 20),
+                  SizedBox(height: ComponentLibrary.spaceGR3),
                 ],
               );
             }
@@ -998,7 +950,7 @@ class _JournalScreenState extends State<JournalScreen> {
                             color: DesignTokens.getPrimaryColor(context),
                             size: 24,
                           ),
-                          const SizedBox(width: 8),
+                          SizedBox(width: ComponentLibrary.spaceGR1),
                           Text(
                             'Your Emotional Mirror',
                             style: TextStyle(
@@ -1009,77 +961,12 @@ class _JournalScreenState extends State<JournalScreen> {
                           ),
                         ],
                       ),
-                      const SizedBox(height: 16),
+                      SizedBox(height: ComponentLibrary.spaceGR2),
                       
                       // Enhanced Emotional State using real analysis data
                       _buildEnhancedEmotionalState(mirrorProvider, todaysAnalyzedEntry),
                       
-                      const SizedBox(height: 20),
                       
-                      // Entry summary
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          gradient: DesignTokens.getCardGradient(context),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Today\'s Reflection',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                                color: DesignTokens.getTextPrimary(context),
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              todaysAnalyzedEntry.preview,
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: DesignTokens.getTextSecondary(context),
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-                            Wrap(
-                              spacing: 8,
-                              runSpacing: 8,
-                              children: todaysAnalyzedEntry.moods.map((mood) => Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                decoration: BoxDecoration(
-                                  color: _getMoodColor(mood).withValues(alpha: 0.2),
-                                  borderRadius: BorderRadius.circular(16),
-                                  border: Border.all(color: _getMoodColor(mood)),
-                                ),
-                                child: Text(
-                                  mood,
-                                  style: TextStyle(
-                                    color: _getMoodColor(mood),
-                                    fontWeight: FontWeight.w500,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              )).toList(),
-                            ),
-                          ],
-                        ),
-                      ),
-                      
-                      const SizedBox(height: 16),
-                      
-                      // Action to write tomorrow
-                      Center(
-                        child: TextButton.icon(
-                          onPressed: _resetToInputMode,
-                          icon: Icon(Icons.edit_note_rounded),
-                          label: Text('Write Tomorrow\'s Entry'),
-                          style: TextButton.styleFrom(
-                            foregroundColor: DesignTokens.getPrimaryColor(context),
-                          ),
-                        ),
-                      ),
                     ],
                   );
                 },
@@ -1093,7 +980,7 @@ class _JournalScreenState extends State<JournalScreen> {
                     recentEntries: _savedEntry != null ? [_savedEntry!] : [],
                     dominantMoods: _savedEntry?.moods ?? [],
                   ),
-                  const SizedBox(height: 24),
+                  SizedBox(height: ComponentLibrary.spaceGR4),
                   TextButton(
                     onPressed: _resetToInputMode,
                     child: const Text('Write Another Entry Tomorrow'),
@@ -1117,7 +1004,7 @@ class _JournalScreenState extends State<JournalScreen> {
                     },
                   ),
                   
-                  const SizedBox(height: 20),
+                  SizedBox(height: ComponentLibrary.spaceGR3),
                   
                   // Journal Input
                   JournalInput(
@@ -1136,7 +1023,7 @@ class _JournalScreenState extends State<JournalScreen> {
           },
         ),
         
-        const SizedBox(height: 20),
+        SizedBox(height: ComponentLibrary.spaceGR3),
         
         // Your Cores Card - always show
         const YourCoresCard(),
@@ -1146,25 +1033,51 @@ class _JournalScreenState extends State<JournalScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final now = DateTime.now();
+    final dateFormatter = DateFormat('EEEE, MMMM d');
 
     // Use iOS-specific keyboard dismissal and safe area handling
     Widget body = AdaptiveScaffold(
         backgroundColor: DesignTokens.getBackgroundPrimary(context),
         padding: EdgeInsets.zero, // Remove default padding to avoid double padding
-        body: RefreshIndicator(
-          onRefresh: _handleRefresh,
-          color: DesignTokens.getPrimaryColor(context),
-          backgroundColor: DesignTokens.getBackgroundPrimary(context),
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(20, 20, 20, 120), // Optimized padding - more space for content
-            physics: const AlwaysScrollableScrollPhysics(), // Ensure pull-to-refresh works even when content doesn't fill screen
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildNormalJournalInput(),
+        body: Column(
+          children: [
+            // Add the AppHeader
+            ComponentLibrary.appHeader(
+              context: context,
+              title: 'Spiral Journal',
+              subtitle: dateFormatter.format(now),
+              icon: Icons.auto_stories_rounded,
+              actions: [
+                IconButton(
+                  onPressed: _handleRefresh,
+                  icon: Icon(
+                    Icons.refresh_rounded,
+                    color: DesignTokens.getPrimaryColor(context),
+                  ),
+                  tooltip: 'Refresh',
+                ),
               ],
             ),
-          ),
+            // Main content area
+            Expanded(
+              child: RefreshIndicator(
+                onRefresh: _handleRefresh,
+                color: DesignTokens.getPrimaryColor(context),
+                backgroundColor: DesignTokens.getBackgroundPrimary(context),
+                child: SingleChildScrollView(
+                  padding: EdgeInsets.fromLTRB(ComponentLibrary.spaceGR3, ComponentLibrary.spaceGR3, ComponentLibrary.spaceGR3, ComponentLibrary.spaceGR7), // Golden ratio padding
+                  physics: const AlwaysScrollableScrollPhysics(), // Ensure pull-to-refresh works even when content doesn't fill screen
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildNormalJournalInput(),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
     );
     

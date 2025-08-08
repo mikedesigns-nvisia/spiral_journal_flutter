@@ -55,8 +55,14 @@ class DailyJournalProcessor {
           endOfDay,
         );
         
-        // Filter for draft entries
+        // Filter for draft entries only - ensures no duplicate processing
         final draftEntries = allEntries.where((entry) => entry.status == EntryStatus.draft).toList();
+        
+        // Validate no entry has already been processed to prevent duplicates
+        final alreadyProcessedCount = allEntries.where((entry) => entry.status == EntryStatus.processed).length;
+        if (kDebugMode && alreadyProcessedCount > 0) {
+          debugPrint('DailyJournalProcessor: Found $alreadyProcessedCount already processed entries for today (skipping)');
+        }
         
         if (draftEntries.isEmpty) {
           if (kDebugMode) {
@@ -93,9 +99,9 @@ class DailyJournalProcessor {
           );
         }
 
-        // Process entries using batch processing for efficiency
+        // Process entries using batch processing for efficiency with chunking for large datasets
         try {
-          final success = await _processBatchOfEntries(draftEntries);
+          final success = await _processBatchOfEntriesWithChunking(draftEntries);
           
           if (success) {
             if (kDebugMode) {
@@ -154,6 +160,43 @@ class DailyJournalProcessor {
     );
   }
 
+  /// Process entries with chunking for large datasets to prevent memory issues
+  Future<bool> _processBatchOfEntriesWithChunking(List<JournalEntry> entries) async {
+    if (entries.isEmpty) return true;
+    
+    const chunkSize = 50; // Process in chunks of 50 entries to prevent memory issues
+    bool allSuccessful = true;
+    
+    if (kDebugMode) {
+      debugPrint('DailyJournalProcessor: Processing ${entries.length} entries in chunks of $chunkSize');
+    }
+    
+    // Process entries in chunks
+    for (int i = 0; i < entries.length; i += chunkSize) {
+      final endIndex = (i + chunkSize < entries.length) ? i + chunkSize : entries.length;
+      final chunk = entries.sublist(i, endIndex);
+      
+      if (kDebugMode) {
+        debugPrint('DailyJournalProcessor: Processing chunk ${i ~/ chunkSize + 1} of ${(entries.length / chunkSize).ceil()} (${chunk.length} entries)');
+      }
+      
+      final chunkSuccess = await _processBatchOfEntries(chunk);
+      if (!chunkSuccess) {
+        allSuccessful = false;
+        if (kDebugMode) {
+          debugPrint('DailyJournalProcessor: Chunk ${i ~/ chunkSize + 1} failed, continuing with next chunk');
+        }
+      }
+      
+      // Small delay between chunks to prevent overwhelming the system
+      if (i + chunkSize < entries.length) {
+        await Future.delayed(const Duration(milliseconds: 100));
+      }
+    }
+    
+    return allSuccessful;
+  }
+  
   /// Process a batch of journal entries using Claude API batch processing
   Future<bool> _processBatchOfEntries(List<JournalEntry> entries) async {
     if (entries.isEmpty) return true;
@@ -170,11 +213,16 @@ class DailyJournalProcessor {
         return await _processBatchWithFallback(entries, startTime);
       }
       
-      // Combine all entry content for batch processing
+      // Combine all entry content for batch processing with size limits
       final combinedContent = entries.map((entry) {
+        // Truncate very long entries to prevent token limit issues
+        final contentPreview = entry.content.length > 2000 
+            ? '${entry.content.substring(0, 2000)}...'
+            : entry.content;
+        
         return 'Entry ${entry.id} (${entry.date.toIso8601String().split('T')[0]}):\n'
                'Moods: ${entry.moods.join(', ')}\n'
-               'Content: ${entry.content}\n'
+               'Content: $contentPreview\n'
                'Word Count: ${entry.content.split(' ').length}';
       }).join('\n\n---ENTRY---\n\n');
       
@@ -238,9 +286,19 @@ class DailyJournalProcessor {
   ) async {
     final processingTime = DateTime.now().difference(startTime).inMilliseconds;
     
-    // Update the entry and mark as processed
+    // Double-check entry hasn't been processed already to prevent race conditions
+    final currentEntry = await _journalRepository.getEntryById(entry.id);
+    if (currentEntry?.status == EntryStatus.processed) {
+      if (kDebugMode) {
+        debugPrint('DailyJournalProcessor: Entry ${entry.id} already processed, skipping duplicate processing');
+      }
+      return;
+    }
+    
+    // Update the entry and mark as processed with timestamp for audit trail
     final updatedEntry = entry.copyWith(
       status: EntryStatus.processed,
+      updatedAt: DateTime.now(), // Add processing timestamp
       // Note: aiAnalysis expects EmotionalAnalysis type, not Map
       // For now, just mark as processed; full analysis integration would need type conversion
     );
@@ -341,8 +399,18 @@ class DailyJournalProcessor {
 
   /// Mark entry as skipped
   Future<void> _markEntryAsSkipped(JournalEntry entry, String reason) async {
+    // Double-check entry hasn't been processed already
+    final currentEntry = await _journalRepository.getEntryById(entry.id);
+    if (currentEntry?.status == EntryStatus.processed) {
+      if (kDebugMode) {
+        debugPrint('DailyJournalProcessor: Entry ${entry.id} already processed, skipping duplicate skip');
+      }
+      return;
+    }
+    
     final updatedEntry = entry.copyWith(
       status: EntryStatus.processed,
+      updatedAt: DateTime.now(), // Add skip timestamp
       // Entry marked as processed but skipped due to limits
     );
     

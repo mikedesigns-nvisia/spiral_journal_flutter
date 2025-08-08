@@ -1,9 +1,33 @@
 import 'package:flutter/material.dart';
 import 'design_tokens.dart';
+import 'heading_system.dart';
 
 /// Component library that provides pre-built, consistent UI components
 /// following the Spiral Journal design system.
 class ComponentLibrary {
+  
+  // ============================================================================
+  // GOLDEN RATIO SPACING CONSTANTS
+  // ============================================================================
+  
+  /// Golden ratio constant (phi)
+  static const double goldenRatio = 1.618;
+  
+  /// Base spacing unit for golden ratio calculations
+  static const double baseSpacing = 8.0;
+  
+  /// Golden ratio spacing scale
+  static const double spaceGR1 = baseSpacing; // 8
+  static const double spaceGR2 = baseSpacing * goldenRatio; // ~13
+  static const double spaceGR3 = spaceGR2 * goldenRatio; // ~21
+  static const double spaceGR4 = spaceGR3 * goldenRatio; // ~34
+  static const double spaceGR5 = spaceGR4 * goldenRatio; // ~55
+  static const double spaceGR6 = spaceGR5 * goldenRatio; // ~89
+  static const double spaceGR7 = spaceGR6 * goldenRatio; // ~144
+  
+  /// Fractional golden ratio spacing for fine adjustments
+  static const double spaceGRHalf = baseSpacing / goldenRatio; // ~5
+  static const double spaceGRQuarter = spaceGRHalf / goldenRatio; // ~3
   
   // ============================================================================
   // BUTTON COMPONENTS
@@ -326,20 +350,35 @@ class ComponentLibrary {
         ? DesignTokens.getMoodColor(moodType)
         : DesignTokens.primaryOrange;
     
+    // Calculate contrast-safe text color
+    final textColor = isSelected 
+        ? _getContrastingTextColor(moodColor)
+        : moodColor;
+    
+    // For selected state, use a slightly transparent background with border
+    final backgroundColor = isSelected 
+        ? DesignTokens.getColorWithOpacity(moodColor, 0.85)
+        : DesignTokens.getColorWithOpacity(moodColor, 0.1);
+    
     return GestureDetector(
       onTap: onTap,
       child: Container(
         height: ComponentTokens.moodChipHeight,
         padding: ComponentTokens.moodChipPadding,
         decoration: BoxDecoration(
-          color: isSelected 
-              ? moodColor
-              : DesignTokens.getColorWithOpacity(moodColor, 0.1),
+          color: backgroundColor,
           borderRadius: BorderRadius.circular(DesignTokens.chipRadius),
           border: Border.all(
             color: moodColor,
-            width: 1,
+            width: isSelected ? 2 : 1,
           ),
+          boxShadow: isSelected ? [
+            BoxShadow(
+              color: moodColor.withValues(alpha: 0.3),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+            ),
+          ] : null,
         ),
         child: Center(
           child: Text(
@@ -349,7 +388,7 @@ class ComponentLibrary {
               fontWeight: isSelected 
                   ? DesignTokens.fontWeightSemiBold 
                   : DesignTokens.fontWeightMedium,
-              color: isSelected ? Colors.white : moodColor,
+              color: textColor,
             ),
           ),
         ),
@@ -436,6 +475,68 @@ class ComponentLibrary {
               ),
             ),
           ),
+        ],
+      ),
+    );
+  }
+  
+  // ============================================================================
+  // HEADER COMPONENTS
+  // ============================================================================
+  
+  /// App header following design system - consistent header for all pages
+  static Widget appHeader({
+    required BuildContext context,
+    required String title,
+    required IconData icon,
+    String? subtitle,
+    List<Widget>? actions,
+    Color? iconBackgroundColor,
+  }) {
+    return Container(
+      padding: EdgeInsets.all(DesignTokens.spaceL),
+      decoration: BoxDecoration(
+        color: DesignTokens.getBackgroundPrimary(context),
+        border: Border(
+          bottom: BorderSide(
+            color: DesignTokens.getBackgroundTertiary(context),
+            width: 1,
+          ),
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: EdgeInsets.all(DesignTokens.spaceS),
+            decoration: BoxDecoration(
+              color: iconBackgroundColor ?? 
+                DesignTokens.getColorWithOpacity(DesignTokens.getPrimaryColor(context), 0.15),
+              borderRadius: BorderRadius.circular(DesignTokens.radiusM),
+            ),
+            child: Icon(
+              icon,
+              color: DesignTokens.getPrimaryColor(context),
+              size: DesignTokens.iconSizeM,
+            ),
+          ),
+          SizedBox(width: DesignTokens.spaceM),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: HeadingSystem.getHeadlineMedium(context),
+                ),
+                if (subtitle != null)
+                  Text(
+                    subtitle,
+                    style: HeadingSystem.getBodySmall(context),
+                  ),
+              ],
+            ),
+          ),
+          if (actions != null) ...actions,
         ],
       ),
     );
@@ -583,6 +684,16 @@ class ComponentLibrary {
       default:
         return Icons.info;
     }
+  }
+  
+  /// Calculate contrasting text color based on background
+  static Color _getContrastingTextColor(Color backgroundColor) {
+    // Calculate relative luminance using WCAG formula
+    final luminance = backgroundColor.computeLuminance();
+    
+    // Use dark text for light backgrounds, white text for dark backgrounds
+    // Threshold of 0.5 provides good contrast for most colors
+    return luminance > 0.5 ? Colors.black87 : Colors.white;
   }
 }
 

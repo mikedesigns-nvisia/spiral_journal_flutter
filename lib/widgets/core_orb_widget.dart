@@ -100,7 +100,7 @@ class _CoreOrbWidgetState extends State<CoreOrbWidget>
         ...(_particleControllers.take(3))
       ]),
       builder: (context, child) {
-        return Container(
+        return SizedBox(
           width: widget.size,
           height: widget.size,
           child: Stack(

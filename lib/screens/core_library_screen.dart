@@ -4,6 +4,8 @@ import 'package:provider/provider.dart';
 import 'dart:math' as math;
 import '../theme/app_theme.dart';
 import '../design_system/heading_system.dart';
+import '../design_system/component_library.dart';
+import '../design_system/design_tokens.dart';
 import '../models/core.dart';
 import '../models/core_error.dart';
 import '../models/journal_entry.dart';
@@ -12,7 +14,6 @@ import '../providers/journal_provider.dart';
 import '../services/core_navigation_context_service.dart';
 import '../services/accessibility_service.dart';
 import '../services/core_visual_consistency_service.dart';
-import '../widgets/resonance_depth_visualizer.dart';
 import '../widgets/simple_resonance_visualizer.dart';
 
 class CoreLibraryScreen extends StatefulWidget {
@@ -204,7 +205,7 @@ class _CoreLibraryScreenState extends State<CoreLibraryScreen> with TickerProvid
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.getBackgroundPrimary(context),
+      backgroundColor: DesignTokens.getBackgroundPrimary(context),
       body: SafeArea(
         child: Consumer<CoreProvider>(
           builder: (context, coreProvider, child) {
@@ -231,22 +232,57 @@ class _CoreLibraryScreenState extends State<CoreLibraryScreen> with TickerProvid
                 
                 return FadeTransition(
                   opacity: _fadeAnimation,
-                  child: RefreshIndicator(
-                    onRefresh: () => _refreshCoreData(coreProvider),
-                    child: SingleChildScrollView(
-                      padding: const EdgeInsets.all(24.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _buildHeader(),
-                          const SizedBox(height: 32),
-                          _buildCoreGrid(coreProvider.allCores),
-                          // TODO: Implement combinations and recommendations through CoreProvider
-                          // These will be added in future enhancements
-                          const SizedBox(height: 100), // Extra space for bottom navigation
+                  child: Column(
+                    children: [
+                      // AppHeader
+                      ComponentLibrary.appHeader(
+                        context: context,
+                        title: _getContextualTitle(),
+                        subtitle: _getContextualSubtitle(),
+                        icon: Icons.auto_awesome_rounded,
+                        actions: [
+                          // Show back button if we have navigation context
+                          if (widget.navigationContext != null && _navigationService.canNavigateBack())
+                            IconButton(
+                              onPressed: () => _handleBackNavigation(),
+                              icon: const Icon(Icons.arrow_back),
+                              tooltip: 'Back',
+                            ),
+                          // Refresh button
+                          IconButton(
+                            onPressed: () => _refreshCoreData(coreProvider),
+                            icon: Icon(
+                              Icons.refresh_rounded,
+                              color: DesignTokens.getPrimaryColor(context),
+                            ),
+                            tooltip: 'Refresh',
+                          ),
                         ],
                       ),
-                    ),
+                      // Main content
+                      Expanded(
+                        child: RefreshIndicator(
+                          onRefresh: () => _refreshCoreData(coreProvider),
+                          child: SingleChildScrollView(
+                            padding: EdgeInsets.all(ComponentLibrary.spaceGR4),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // Show contextual banner if from journal
+                                if (widget.navigationContext?.sourceScreen == 'journal') ...[
+                                  _buildJournalContextBanner(),
+                                  SizedBox(height: ComponentLibrary.spaceGR5),
+                                ],
+                                _buildCoreGrid(coreProvider.allCores),
+                                // TODO: Implement combinations and recommendations through CoreProvider
+                                // These will be added in future enhancements
+                                SizedBox(height: ComponentLibrary.spaceGR6), // Extra space for bottom navigation
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 );
               },
@@ -289,7 +325,7 @@ class _CoreLibraryScreenState extends State<CoreLibraryScreen> with TickerProvid
                 size: 24,
               ),
             ),
-            const SizedBox(width: 16),
+            SizedBox(width: ComponentLibrary.spaceGR2),
             Expanded(
               child: Text(
                 _getContextualTitle(),
@@ -307,7 +343,7 @@ class _CoreLibraryScreenState extends State<CoreLibraryScreen> with TickerProvid
         ),
         // Show contextual banner if from journal
         if (navigationContext?.sourceScreen == 'journal') ...[
-          const SizedBox(height: 16),
+          SizedBox(height: ComponentLibrary.spaceGR2),
           _buildJournalContextBanner(),
         ],
       ],
@@ -342,13 +378,13 @@ class _CoreLibraryScreenState extends State<CoreLibraryScreen> with TickerProvid
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            AppTheme.getPrimaryColor(context).withValues(alpha: 0.1),
-            AppTheme.getPrimaryColor(context).withValues(alpha: 0.05),
+            DesignTokens.getPrimaryColor(context).withValues(alpha: 0.1),
+            DesignTokens.getPrimaryColor(context).withValues(alpha: 0.05),
           ],
         ),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: AppTheme.getPrimaryColor(context).withValues(alpha: 0.2),
+          color: DesignTokens.getPrimaryColor(context).withValues(alpha: 0.2),
           width: 1,
         ),
       ),
@@ -356,7 +392,7 @@ class _CoreLibraryScreenState extends State<CoreLibraryScreen> with TickerProvid
         children: [
           Icon(
             Icons.auto_stories,
-            color: AppTheme.getPrimaryColor(context),
+            color: DesignTokens.getPrimaryColor(context),
             size: 20,
           ),
           const SizedBox(width: 12),
@@ -364,7 +400,7 @@ class _CoreLibraryScreenState extends State<CoreLibraryScreen> with TickerProvid
             child: Text(
               'Witnessing how your latest reflections have shaped your inner landscape',
               style: HeadingSystem.getBodyMedium(context).copyWith(
-                color: AppTheme.getPrimaryColor(context),
+                color: DesignTokens.getPrimaryColor(context),
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -393,7 +429,7 @@ class _CoreLibraryScreenState extends State<CoreLibraryScreen> with TickerProvid
             fontWeight: FontWeight.w600,
           ),
         ),
-        const SizedBox(height: 16),
+        SizedBox(height: ComponentLibrary.spaceGR2),
         if (cores.isEmpty)
           _buildEmptyState()
         else
@@ -433,7 +469,7 @@ class _CoreLibraryScreenState extends State<CoreLibraryScreen> with TickerProvid
             size: 48,
             color: AppTheme.getTextTertiary(context),
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: ComponentLibrary.spaceGR2),
           Text(
             'Your Cores Are Waiting to Bloom',
             style: HeadingSystem.getHeadlineSmall(context).copyWith(
@@ -600,13 +636,13 @@ class _CoreLibraryScreenState extends State<CoreLibraryScreen> with TickerProvid
                 ),
                 child: Text(
                   'UPDATED',
-                  style: HeadingSystem.getLabelSmall(context)?.copyWith(
+                  style: HeadingSystem.getLabelSmall(context).copyWith(
                     color: AppTheme.accentGreen,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
               ),
-              const SizedBox(height: 8),
+              SizedBox(height: ComponentLibrary.spaceGR1),
             ],
             
             // Simplified Resonance Depth Visualizer
@@ -662,7 +698,7 @@ class _CoreLibraryScreenState extends State<CoreLibraryScreen> with TickerProvid
                   // Core name
                   Text(
                     core.name,
-                    style: HeadingSystem.getTitleSmall(context)?.copyWith(
+                    style: HeadingSystem.getTitleSmall(context).copyWith(
                       fontWeight: FontWeight.w600,
                     ),
                     textAlign: TextAlign.center,
@@ -670,12 +706,12 @@ class _CoreLibraryScreenState extends State<CoreLibraryScreen> with TickerProvid
                     overflow: TextOverflow.ellipsis,
                   ),
                   
-                  const SizedBox(height: 2),
+                  SizedBox(height: ComponentLibrary.spaceGRQuarter),
                   
                   // Resonance depth label
                   Text(
                     core.resonanceDepth.displayName,
-                    style: HeadingSystem.getBodySmall(context)?.copyWith(
+                    style: HeadingSystem.getBodySmall(context).copyWith(
                       color: color,
                       fontWeight: FontWeight.w500,
                     ),
@@ -709,7 +745,7 @@ class _CoreLibraryScreenState extends State<CoreLibraryScreen> with TickerProvid
                           Flexible(
                             child: Text(
                               core.trend.toUpperCase(),
-                              style: HeadingSystem.getLabelSmall(context)?.copyWith(
+                              style: HeadingSystem.getLabelSmall(context).copyWith(
                                 color: trendColor,
                                 fontWeight: FontWeight.w500,
                                 fontSize: 9,
@@ -730,7 +766,7 @@ class _CoreLibraryScreenState extends State<CoreLibraryScreen> with TickerProvid
                           ),
                           child: Text(
                             'Transitioning',
-                            style: HeadingSystem.getLabelSmall(context)?.copyWith(
+                            style: HeadingSystem.getLabelSmall(context).copyWith(
                               color: AppTheme.getAccentColor(context),
                               fontSize: 8,
                             ),
@@ -1173,7 +1209,7 @@ class _CoreDetailSheetState extends State<CoreDetailSheet> {
                     size: 24,
                   ),
                 ),
-                const SizedBox(width: 16),
+                SizedBox(width: ComponentLibrary.spaceGR2),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -1252,7 +1288,7 @@ class _CoreDetailSheetState extends State<CoreDetailSheet> {
             fontWeight: FontWeight.w600,
           ),
         ),
-        const SizedBox(height: 16),
+        SizedBox(height: ComponentLibrary.spaceGR2),
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
@@ -1283,13 +1319,13 @@ class _CoreDetailSheetState extends State<CoreDetailSheet> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 8),
+                    SizedBox(height: ComponentLibrary.spaceGR1),
                     LinearProgressIndicator(
                       value: widget.core.currentLevel,
                       backgroundColor: color.withValues(alpha: 0.2),
                       valueColor: AlwaysStoppedAnimation<Color>(color),
                     ),
-                    const SizedBox(height: 8),
+                    SizedBox(height: ComponentLibrary.spaceGR1),
                     Text(
                       'Previous: ${widget.core.previousResonanceDepth.displayName}',
                       style: HeadingSystem.getBodySmall(context).copyWith(
@@ -1316,7 +1352,7 @@ class _CoreDetailSheetState extends State<CoreDetailSheet> {
             fontWeight: FontWeight.w600,
           ),
         ),
-        const SizedBox(height: 16),
+        SizedBox(height: ComponentLibrary.spaceGR2),
         ...(insights.map((insight) => Container(
           margin: const EdgeInsets.only(bottom: 12),
           padding: const EdgeInsets.all(16),
@@ -1333,7 +1369,7 @@ class _CoreDetailSheetState extends State<CoreDetailSheet> {
                   fontWeight: FontWeight.w600,
                 ),
               ),
-              const SizedBox(height: 8),
+              SizedBox(height: ComponentLibrary.spaceGR1),
               Text(
                 insight.description,
                 style: HeadingSystem.getBodyMedium(context),
@@ -1355,7 +1391,7 @@ class _CoreDetailSheetState extends State<CoreDetailSheet> {
             fontWeight: FontWeight.w600,
           ),
         ),
-        const SizedBox(height: 16),
+        SizedBox(height: ComponentLibrary.spaceGR2),
         ...(milestones.map((milestone) => Container(
           margin: const EdgeInsets.only(bottom: 12),
           padding: const EdgeInsets.all(16),
@@ -1431,7 +1467,7 @@ class _CoreDetailSheetState extends State<CoreDetailSheet> {
                 fontWeight: FontWeight.w600,
               ),
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: ComponentLibrary.spaceGR2),
             
             if (supportingEntries.isEmpty)
               Container(
@@ -1448,7 +1484,7 @@ class _CoreDetailSheetState extends State<CoreDetailSheet> {
                       color: AppTheme.getTextSecondary(context),
                       size: 24,
                     ),
-                    const SizedBox(height: 8),
+                    SizedBox(height: ComponentLibrary.spaceGR1),
                     Text(
                       'No supporting entries yet',
                       style: HeadingSystem.getTitleSmall(context).copyWith(
@@ -1513,7 +1549,7 @@ class _CoreDetailSheetState extends State<CoreDetailSheet> {
                         ],
                       ],
                     ),
-                    const SizedBox(height: 8),
+                    SizedBox(height: ComponentLibrary.spaceGR1),
                     Text(
                       _getEntryPreview(entry.content),
                       style: HeadingSystem.getBodySmall(context).copyWith(
@@ -1529,7 +1565,7 @@ class _CoreDetailSheetState extends State<CoreDetailSheet> {
               )),
               
             if (supportingEntries.length > 5) ...[
-              const SizedBox(height: 8),
+              SizedBox(height: ComponentLibrary.spaceGR1),
               Center(
                 child: Text(
                   '+${supportingEntries.length - 5} more supporting entries',

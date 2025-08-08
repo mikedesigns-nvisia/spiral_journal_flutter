@@ -221,7 +221,7 @@ class _EmotionalJourneyTimelineCardState extends State<EmotionalJourneyTimelineC
       return _buildEmptyState();
     }
 
-    return Container(
+    return SizedBox(
       height: iPhoneDetector.getAdaptiveValue(context, compact: 200, regular: 250, large: 300),
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
@@ -252,7 +252,7 @@ class _EmotionalJourneyTimelineCardState extends State<EmotionalJourneyTimelineC
           _selectedMilestoneIndex = isSelected ? -1 : index;
         });
       },
-      child: Container(
+      child: SizedBox(
         width: iPhoneDetector.getAdaptiveValue(context, compact: 120, regular: 140, large: 160),
         child: Column(
           children: [
@@ -566,7 +566,7 @@ class _EmotionalJourneyTimelineCardState extends State<EmotionalJourneyTimelineC
   }
 
   Widget _buildEmptyState() {
-    return Container(
+    return SizedBox(
       height: 200,
       child: Center(
         child: Column(
@@ -637,7 +637,7 @@ class _EmotionalJourneyTimelineCardState extends State<EmotionalJourneyTimelineC
         
         AdaptiveSpacing.vertical(baseSize: DesignTokens.spaceL),
         
-        Container(
+        SizedBox(
           height: iPhoneDetector.getAdaptiveValue(context, compact: 120, regular: 140, large: 160),
           child: ListView.builder(
             scrollDirection: Axis.horizontal,

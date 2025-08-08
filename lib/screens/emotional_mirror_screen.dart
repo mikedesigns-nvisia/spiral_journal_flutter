@@ -1770,7 +1770,7 @@ class _EmotionalMirrorScreenState extends State<EmotionalMirrorScreen>
       return 'Start journaling to see your personalized emotional visualization. As you write, the particles will reflect your unique emotional patterns and growth.';
     }
     
-    return 'This visualization represents your emotional landscape with ${moodCount} dominant ${moodCount == 1 ? 'mood' : 'moods'} and ${varietyScore.round()}% emotional variety. The ${balanceDesc} pattern shows your emotional processing style and evolves with each journal entry.';
+    return 'This visualization represents your emotional landscape with $moodCount dominant ${moodCount == 1 ? 'mood' : 'moods'} and ${varietyScore.round()}% emotional variety. The $balanceDesc pattern shows your emotional processing style and evolves with each journal entry.';
   }
   
   String _generateInsightIntroText(EmotionalMirrorProvider provider) {
@@ -1786,7 +1786,7 @@ class _EmotionalMirrorScreenState extends State<EmotionalMirrorScreen>
                          daysBack <= 90 ? 'the past 3 months' : 
                          'your recent entries';
     
-    return 'Based on analysis of your ${entryCount} journal ${entryCount == 1 ? 'entry' : 'entries'} from ${timeRangeText}:';
+    return 'Based on analysis of your $entryCount journal ${entryCount == 1 ? 'entry' : 'entries'} from $timeRangeText:';
   }
 
   EnhancedRecommendation? _generateCoreRecommendation(String coreName, double resonance) {

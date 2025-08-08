@@ -4,7 +4,6 @@ import '../constants/validation_constants.dart';
 import '../models/journal_entry.dart';
 import '../models/core.dart';
 import '../models/monthly_summary.dart';
-import '../models/emotional_analysis.dart';
 import '../database/journal_dao.dart';
 import '../database/core_dao.dart';
 import 'ai_service_manager.dart';

@@ -34,9 +34,6 @@ class ICloudBackupService {
     try {
       // Export all data
       final exportData = await _exportService.exportAllData();
-      if (exportData == null) {
-        return BackupResult.failure('No data to backup');
-      }
 
       // Get iCloud Documents directory
       final documentsDir = await getApplicationDocumentsDirectory();
@@ -179,7 +176,7 @@ class ICloudBackupService {
 
       final size = info['size'] as int;
       if (size < 1024) {
-        return '${size} B';
+        return '$size B';
       } else if (size < 1024 * 1024) {
         return '${(size / 1024).toStringAsFixed(1)} KB';
       } else {

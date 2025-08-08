@@ -119,6 +119,7 @@ class JournalDao {
         'metadata': entryWithId.metadata.isNotEmpty ? 
                    jsonEncode(entryWithId.metadata) : '{}',
         'draftContent': entryWithId.draftContent,
+        'status': entryWithId.status.name,
       },
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
@@ -264,6 +265,8 @@ class JournalDao {
         'metadata': updatedEntry.metadata.isNotEmpty ? 
                    jsonEncode(updatedEntry.metadata) : '{}',
         'draftContent': updatedEntry.draftContent,
+        // Critical: Add status field to prevent duplicate processing
+        'status': updatedEntry.status.name,
       },
       where: 'id = ?',
       whereArgs: [entry.id],
@@ -658,6 +661,10 @@ class JournalDao {
       isSynced: (map['isSynced'] ?? 1) == 1,
       metadata: metadata,
       draftContent: map['draftContent'],
+      status: EntryStatus.values.firstWhere(
+        (status) => status.name == (map['status'] ?? 'draft'),
+        orElse: () => EntryStatus.draft,
+      ),
     );
   }
 }

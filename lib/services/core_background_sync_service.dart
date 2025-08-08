@@ -3,7 +3,6 @@ import 'dart:io';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:sqflite/sqflite.dart';
 import '../database/database_helper.dart';
 
 /// Simple iCloud backup service for SQLite database
@@ -212,7 +211,7 @@ class CoreBackgroundSyncService {
       final dbPath = db.path;
       
       // Backup current database first
-      final currentBackup = File('${dbPath}.restore_backup');
+      final currentBackup = File('$dbPath.restore_backup');
       if (await File(dbPath).exists()) {
         await File(dbPath).copy(currentBackup.path);
       }

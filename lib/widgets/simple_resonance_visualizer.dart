@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/core.dart';
 import '../models/resonance_depth.dart';
-import '../theme/app_theme.dart';
 
 /// Simplified, performance-optimized core visualizer
 class SimpleResonanceVisualizer extends StatelessWidget {
@@ -10,11 +9,11 @@ class SimpleResonanceVisualizer extends StatelessWidget {
   final double animationValue;
   
   const SimpleResonanceVisualizer({
-    Key? key,
+    super.key,
     required this.core,
     this.size = 80,
     this.animationValue = 0.0,
-  }) : super(key: key);
+  });
   
   @override
   Widget build(BuildContext context) {

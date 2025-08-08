@@ -2,7 +2,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:spiral_journal/services/providers/claude_ai_provider.dart';
 import 'package:spiral_journal/services/ai_service_interface.dart';
 import 'package:spiral_journal/models/journal_entry.dart';
-import '../utils/mock_haiku_service.dart';
 import '../utils/test_setup_helper.dart';
 
 void main() {

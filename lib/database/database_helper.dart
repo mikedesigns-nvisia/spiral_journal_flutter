@@ -8,6 +8,7 @@ import 'package:crypto/crypto.dart';
 import 'migrations/schema_migration_v3.dart';
 import 'migrations/schema_migration_v4.dart';
 import 'migrations/schema_migration_v6.dart';
+import 'migrations/schema_migration_v7.dart';
 import '../utils/database_exceptions.dart';
 
 /// Result class for database clearing operations
@@ -76,7 +77,7 @@ class DatabaseHelper {
       
       return await openDatabase(
         path,
-        version: 6, // Increment version for AI field removal
+        version: 7, // Increment version for status column addition
         onCreate: _onCreate,
         onUpgrade: _onUpgrade,
       );
@@ -123,7 +124,8 @@ class DatabaseHelper {
         updatedAt TEXT NOT NULL,
         isSynced INTEGER NOT NULL DEFAULT 1,
         metadata TEXT NOT NULL DEFAULT '{}',
-        draftContent TEXT
+        draftContent TEXT,
+        status TEXT NOT NULL DEFAULT 'draft'
       )
     ''');
 
@@ -210,6 +212,7 @@ class DatabaseHelper {
     await db.execute('CREATE INDEX idx_journal_entries_created_at ON journal_entries(createdAt)');
     await db.execute('CREATE INDEX idx_journal_entries_moods ON journal_entries(moods)');
     await db.execute('CREATE INDEX idx_journal_entries_content_fts ON journal_entries(content)');
+    await db.execute('CREATE INDEX idx_journal_entries_status ON journal_entries(status)');
     await db.execute('CREATE INDEX idx_monthly_summaries_year_month ON monthly_summaries(year, month)');
   }
 
@@ -233,6 +236,11 @@ class DatabaseHelper {
     if (oldVersion < 6 && newVersion >= 6) {
       // Migrate from version 5 to version 6 (remove AI analysis fields)
       await SchemaMigrationV6.migrate(db);
+    }
+    
+    if (oldVersion < 7 && newVersion >= 7) {
+      // Migrate from version 6 to version 7 (add status column for processing state tracking)
+      await SchemaMigrationV7.migrate(db);
     }
   }
 

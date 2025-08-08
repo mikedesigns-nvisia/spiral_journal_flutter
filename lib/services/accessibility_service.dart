@@ -629,6 +629,34 @@ class AccessibilityService {
            mediaQuery.invertColors;
   }
 
+  /// Get system accessibility settings for iOS integration
+  Map<String, bool> getSystemAccessibilitySettings(BuildContext context) {
+    final mediaQuery = MediaQuery.of(context);
+    return {
+      'accessibleNavigation': mediaQuery.accessibleNavigation,
+      'boldText': mediaQuery.boldText,
+      'highContrast': mediaQuery.highContrast,
+      'invertColors': mediaQuery.invertColors,
+      'disableAnimations': mediaQuery.disableAnimations,
+    };
+  }
+
+  /// Check if system high contrast is enabled (iOS specific)
+  bool isSystemHighContrastEnabled(BuildContext context) {
+    return MediaQuery.of(context).highContrast;
+  }
+
+  /// Check if system large text is enabled (iOS Dynamic Type)
+  bool isSystemLargeTextEnabled(BuildContext context) {
+    final mediaQuery = MediaQuery.of(context);
+    return mediaQuery.textScaler.scale(1.0) > 1.0;
+  }
+
+  /// Check if system reduce motion is enabled
+  bool isSystemReduceMotionEnabled(BuildContext context) {
+    return MediaQuery.of(context).disableAnimations;
+  }
+
   /// Get recommended minimum touch target size
   double getMinimumTouchTargetSize() {
     return 48.0; // Material Design minimum

@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -99,7 +98,7 @@ class TestExceptionHandler {
       try {
         debugPrint('🔄 Attempt $attempts/$maxRetries for operation: $operationName');
         return await operation();
-      } catch (e, stackTrace) {
+      } catch (e) {
         lastError = e;
         debugPrint('❌ Attempt $attempts failed for operation "$operationName": $e');
         

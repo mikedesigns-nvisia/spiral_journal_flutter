@@ -22,7 +22,7 @@ void main() {
     });
 
     test('should initialize with default templates', () async {
-      await service.initialize();
+      service.initialize();
       
       final templates = service.getAllTemplates();
       expect(templates, isNotEmpty, reason: 'Should have default templates after initialization');
@@ -32,7 +32,7 @@ void main() {
     });
 
     test('should get templates by category', () async {
-      await service.initialize();
+      service.initialize();
       
       final categories = service.getCategories();
       expect(categories, isNotEmpty, reason: 'Should have categories');
@@ -46,7 +46,7 @@ void main() {
     });
 
     test('should get templates by priority', () async {
-      await service.initialize();
+      service.initialize();
       
       final highPriorityTemplates = service.getTemplatesByPriority(TemplatePriority.high);
       final criticalTemplates = service.getTemplatesByPriority(TemplatePriority.critical);
@@ -58,7 +58,7 @@ void main() {
     });
 
     test('should select templates for journal entry', () async {
-      await service.initialize();
+      service.initialize();
       
       final testEntry = JournalEntry(
         id: 'test-entry',
@@ -80,7 +80,7 @@ void main() {
     });
 
     test('should handle empty journal entry', () async {
-      await service.initialize();
+      service.initialize();
       
       final emptyEntry = JournalEntry(
         id: 'empty-entry',
@@ -95,7 +95,7 @@ void main() {
     });
 
     test('should generate insights with proper content', () async {
-      await service.initialize();
+      service.initialize();
       
       final testEntry = JournalEntry(
         id: 'test-entry',
@@ -119,7 +119,7 @@ void main() {
     });
 
     test('should handle different mood combinations', () async {
-      await service.initialize();
+      service.initialize();
       
       final moodTestCases = [
         ['happy', 'grateful'],
@@ -145,7 +145,7 @@ void main() {
     });
 
     test('should validate template requirements', () async {
-      await service.initialize();
+      service.initialize();
       
       final templates = service.getAllTemplates();
       
@@ -161,7 +161,7 @@ void main() {
     });
 
     test('should handle template scoring correctly', () async {
-      await service.initialize();
+      service.initialize();
       
       final highRelevanceEntry = JournalEntry(
         id: 'high-relevance',
@@ -190,7 +190,7 @@ void main() {
     });
 
     test('should filter templates by content length', () async {
-      await service.initialize();
+      service.initialize();
       
       final shortEntry = JournalEntry(
         id: 'short',
@@ -214,7 +214,7 @@ void main() {
     });
 
     test('should handle template caching', () async {
-      await service.initialize();
+      service.initialize();
       
       final startTime = DateTime.now();
       final templates1 = service.getAllTemplates();
@@ -231,7 +231,7 @@ void main() {
     });
 
     test('should generate diverse insights for similar entries', () async {
-      await service.initialize();
+      service.initialize();
       
       final entries = List.generate(3, (index) => JournalEntry(
         id: 'similar-$index',
@@ -253,7 +253,7 @@ void main() {
     });
 
     test('should respect maximum template limit', () async {
-      await service.initialize();
+      service.initialize();
       
       final comprehensiveEntry = JournalEntry(
         id: 'comprehensive',
@@ -269,7 +269,7 @@ void main() {
     });
 
     test('should handle template validation rules', () async {
-      await service.initialize();
+      service.initialize();
       
       final templates = service.getAllTemplates();
       final templatesWithRules = templates.where((t) => t.validationRules.isNotEmpty).toList();

@@ -4,6 +4,8 @@ import 'package:provider/provider.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:spiral_journal/theme/app_theme.dart';
 import 'package:spiral_journal/design_system/heading_system.dart';
+import 'package:spiral_journal/design_system/component_library.dart';
+import 'package:spiral_journal/design_system/design_tokens.dart';
 import 'package:spiral_journal/providers/journal_provider.dart';
 import 'package:spiral_journal/providers/core_provider_refactored.dart';
 import 'package:spiral_journal/services/settings_service.dart';
@@ -17,7 +19,6 @@ import 'package:spiral_journal/services/app_info_service.dart';
 import 'package:spiral_journal/widgets/testflight_feedback_widget.dart';
 import 'package:spiral_journal/widgets/offline_queue_status_widget.dart';
 import 'package:spiral_journal/widgets/animated_card.dart';
-import 'package:spiral_journal/widgets/animated_button.dart';
 // Debug screens removed - using local fallback processing
 
 class SettingsScreen extends StatefulWidget {
@@ -125,7 +126,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget build(BuildContext context) {
     if (_isLoading) {
       return Scaffold(
-        backgroundColor: AppTheme.getBackgroundPrimary(context),
+        backgroundColor: DesignTokens.getBackgroundPrimary(context),
         body: const Center(
           child: CircularProgressIndicator(),
         ),
@@ -133,33 +134,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
 
     return Scaffold(
-      backgroundColor: AppTheme.getBackgroundPrimary(context),
+      backgroundColor: DesignTokens.getBackgroundPrimary(context),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: AppTheme.getColorWithOpacity(AppTheme.getPrimaryColor(context), 0.15),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Icon(
-                      Icons.settings_rounded,
-                      color: AppTheme.getPrimaryColor(context),
-                      size: HeadingSystem.iconSizeL,
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  HeadingSystem.pageHeading(context, 'Settings'),
-                ],
-              ),
-              const SizedBox(height: 32),
+        child: Column(
+          children: [
+            // AppHeader
+            ComponentLibrary.appHeader(
+              context: context,
+              title: 'Settings',
+              subtitle: 'Manage your preferences',
+              icon: Icons.settings_rounded,
+            ),
+            // Main content
+            Expanded(
+              child: SingleChildScrollView(
+                padding: EdgeInsets.all(ComponentLibrary.spaceGR4),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
               
               
               // Security & Authentication
@@ -170,7 +162,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     _buildSwitchItem(
                       Icons.fingerprint,
                       'Biometric Authentication',
-                      'Use Face ID, Touch ID, or fingerprint to unlock the app',
+                      'Use Face ID or Touch ID to securely unlock the app',
                       _currentPreferences.biometricAuthEnabled,
                       _toggleBiometricAuth,
                     ),
@@ -178,7 +170,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ],
               ),
               
-              const SizedBox(height: 24),
+              SizedBox(height: ComponentLibrary.spaceGR4),
               
               // Appearance & Theme
               _buildSettingsSection(
@@ -195,12 +187,44 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ],
               ),
               
-              const SizedBox(height: 24),
+              SizedBox(height: ComponentLibrary.spaceGR4),
               
-              // Accessibility section temporarily hidden for TestFlight
-              // Will be re-enabled in future updates
+              // Accessibility
+              _buildSettingsSection(
+                'Accessibility',
+                [
+                  _buildSwitchItem(
+                    Icons.contrast,
+                    'High Contrast',
+                    'Increase contrast for better visibility • Also respects iOS system settings',
+                    _currentPreferences.highContrastEnabled,
+                    _toggleHighContrast,
+                  ),
+                  _buildSwitchItem(
+                    Icons.text_increase,
+                    'Large Text',
+                    'Use larger text for better readability • Respects iOS Dynamic Type',
+                    _currentPreferences.largeTextEnabled,
+                    _toggleLargeText,
+                  ),
+                  _buildSwitchItem(
+                    Icons.motion_photos_off,
+                    'Reduce Motion',
+                    'Minimize animations and transitions • Respects iOS reduce motion setting',
+                    _currentPreferences.reducedMotionEnabled,
+                    _toggleReducedMotion,
+                  ),
+                  _buildSwitchItem(
+                    Icons.record_voice_over,
+                    'Screen Reader Support',
+                    'Enhanced VoiceOver compatibility and semantic labels',
+                    _currentPreferences.screenReaderEnabled,
+                    _toggleScreenReader,
+                  ),
+                ],
+              ),
               
-              const SizedBox(height: 24),
+              SizedBox(height: ComponentLibrary.spaceGR4),
               
               // Notifications & Reminders
               _buildSettingsSection(
@@ -209,7 +233,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   _buildSwitchItem(
                     Icons.notifications,
                     'Daily Reminders',
-                    'Get reminded to journal every day',
+                    'Get local push notifications to journal daily • Requires iOS notification permission',
                     _currentPreferences.dailyRemindersEnabled,
                     _toggleDailyReminders,
                   ),
@@ -218,7 +242,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ],
               ),
               
-              const SizedBox(height: 24),
+              SizedBox(height: ComponentLibrary.spaceGR4),
               
               // Data Management
               _buildSettingsSection(
@@ -235,9 +259,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                   
                   // Offline Queue Status
-                  const SizedBox(height: 8),
+                  SizedBox(height: ComponentLibrary.spaceGR1),
                   const OfflineQueueStatusWidget(),
-                  const SizedBox(height: 8),
+                  SizedBox(height: ComponentLibrary.spaceGR1),
                   
                   _buildActionItem(
                     Icons.privacy_tip,
@@ -294,7 +318,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ],
               ),
               
-              const SizedBox(height: 24),
+              SizedBox(height: ComponentLibrary.spaceGR4),
               
               // App Preferences
               _buildSettingsSection(
@@ -310,8 +334,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   _buildActionItem(
                     Icons.language, 
                     'Language', 
-                    'English', 
-                    null
+                    'English (System Default)', 
+                    _showLanguageInfo
                   ),
                   _buildActionItem(
                     Icons.help, 
@@ -322,7 +346,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ],
               ),
               
-              const SizedBox(height: 24),
+              SizedBox(height: ComponentLibrary.spaceGR4),
               
               
               // TestFlight Feedback
@@ -338,16 +362,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ],
               ),
               
-              const SizedBox(height: 40),
+              SizedBox(height: ComponentLibrary.spaceGR5),
               
               // App Version
               Center(
                 child: HeadingSystem.caption(context, _appInfoService.versionDisplay),
               ),
               
-              const SizedBox(height: 100), // Extra space for bottom navigation
-            ],
-          ),
+              SizedBox(height: ComponentLibrary.spaceGR6), // Extra space for bottom navigation
+                  ],
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -727,7 +754,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   // Accessibility Methods
   Future<void> _toggleHighContrast(bool enabled) async {
     try {
-      await _accessibilityService.setHighContrastMode(enabled);
+      await _settingsService.setHighContrastEnabled(enabled);
       
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -755,7 +782,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _toggleLargeText(bool enabled) async {
     try {
-      await _accessibilityService.setLargeTextMode(enabled);
+      await _settingsService.setLargeTextEnabled(enabled);
       
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -783,7 +810,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _toggleReducedMotion(bool enabled) async {
     try {
-      await _accessibilityService.setReducedMotionMode(enabled);
+      await _settingsService.setReducedMotionEnabled(enabled);
       
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -811,7 +838,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _toggleScreenReader(bool enabled) async {
     try {
-      await _accessibilityService.setScreenReaderEnabled(enabled);
+      await _settingsService.setScreenReaderEnabled(enabled);
       
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -1387,6 +1414,33 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
+  void _showLanguageInfo() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Language Settings'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('The app follows your system language settings.'),
+            SizedBox(height: ComponentLibrary.spaceGR2),
+            const Text('Currently Supported:'),
+            const Text('• English'),
+            SizedBox(height: ComponentLibrary.spaceGR2),
+            const Text('To change the app language, update your iOS system language in Settings > General > Language & Region.'),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _showHelpDialog() {
     showDialog(
       context: context,
@@ -1397,19 +1451,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(_appInfoService.fullTitle),
-            const SizedBox(height: 16),
+            SizedBox(height: ComponentLibrary.spaceGR2),
             const Text('Features:'),
             const Text('• Stream-of-consciousness journaling'),
             const Text('• Emotional pattern tracking'),
             const Text('• Personality core evolution tracking'),
             const Text('• Personal insights and reflections'),
             const Text('• Secure local data storage'),
-            const SizedBox(height: 16),
+            SizedBox(height: ComponentLibrary.spaceGR2),
             const Text('Privacy:'),
             const Text('• All data stored locally on your device'),
             const Text('• No external data sharing'),
             const Text('• Biometric authentication support'),
-            const SizedBox(height: 16),
+            SizedBox(height: ComponentLibrary.spaceGR2),
             Text('Need help? Contact us at ${_appInfoService.supportEmail}'),
           ],
         ),

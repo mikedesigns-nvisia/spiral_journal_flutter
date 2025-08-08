@@ -26,7 +26,7 @@ class OnboardingController extends ChangeNotifier {
   
   // Progressive Feature Disclosure State
   Set<String> _shownFeatures = <String>{};
-  Map<String, int> _featureUsageCount = <String, int>{};
+  final Map<String, int> _featureUsageCount = <String, int>{};
   String? _currentDisclosureFeature;
   bool _isShowingFeatureDisclosure = false;
 

@@ -4,7 +4,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import '../models/journal_entry.dart';
 import '../models/core.dart' hide EmotionalPattern;
-import '../models/journal_emotional_pattern.dart';
 import '../config/environment.dart';
 import 'ai_service_interface.dart';
 import 'ai_service_error_tracker.dart';

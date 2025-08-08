@@ -16,7 +16,7 @@ class ResonanceDepthVisualizer extends StatefulWidget {
   final bool showTabs;
   
   const ResonanceDepthVisualizer({
-    Key? key,
+    super.key,
     required this.core,
     this.size = 100,
     this.showLabel = true,
@@ -25,7 +25,7 @@ class ResonanceDepthVisualizer extends StatefulWidget {
     this.focusable = true,
     this.showTimestamp = false,
     this.showTabs = false,
-  }) : super(key: key);
+  });
   
   @override
   State<ResonanceDepthVisualizer> createState() => _ResonanceDepthVisualizerState();
@@ -112,7 +112,7 @@ class _ResonanceDepthVisualizerState extends State<ResonanceDepthVisualizer>
             SizedBox(height: DesignTokens.spaceS),
             Text(
               depth.displayName,
-              style: HeadingSystem.getTitleMedium(context)?.copyWith(
+              style: HeadingSystem.getTitleMedium(context).copyWith(
                 color: color,
                 fontWeight: FontWeight.w600,
                 fontSize: widget.isCompact ? 12 : 14,
@@ -139,7 +139,7 @@ class _ResonanceDepthVisualizerState extends State<ResonanceDepthVisualizer>
                 ),
                 child: Text(
                   'Transitioning',
-                  style: HeadingSystem.getBodySmall(context)?.copyWith(
+                  style: HeadingSystem.getBodySmall(context).copyWith(
                     color: color,
                     fontSize: 8,
                     fontWeight: FontWeight.w500,
@@ -169,7 +169,7 @@ class _ResonanceDepthVisualizerState extends State<ResonanceDepthVisualizer>
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
+          SizedBox(
             width: 20,
             height: 20,
             child: CustomPaint(
@@ -187,7 +187,7 @@ class _ResonanceDepthVisualizerState extends State<ResonanceDepthVisualizer>
           SizedBox(width: DesignTokens.spaceS),
           Text(
             depth.displayName,
-            style: HeadingSystem.getBodyMedium(context)?.copyWith(
+            style: HeadingSystem.getBodyMedium(context).copyWith(
               color: color,
               fontWeight: FontWeight.w600,
               fontSize: 14,
@@ -216,7 +216,7 @@ class _ResonanceDepthVisualizerState extends State<ResonanceDepthVisualizer>
         SizedBox(height: DesignTokens.spaceXS),
         Text(
           'Journey to ${nextDepth.displayName}',
-          style: HeadingSystem.getBodySmall(context)?.copyWith(
+          style: HeadingSystem.getBodySmall(context).copyWith(
             color: color.withOpacity(0.8),
             fontSize: 11,
           ),
@@ -913,10 +913,10 @@ class MiniOpalSphere extends StatefulWidget {
   final double size;
   
   const MiniOpalSphere({
-    Key? key,
+    super.key,
     required this.color,
     this.size = 24,
-  }) : super(key: key);
+  });
   
   @override
   State<MiniOpalSphere> createState() => _MiniOpalSphereState();

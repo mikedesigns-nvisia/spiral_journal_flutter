@@ -6,6 +6,7 @@ import 'theme_service.dart';
 import 'core_background_sync_service.dart';
 import 'notification_service.dart';
 import 'analytics_service.dart';
+import 'accessibility_service.dart';
 
 /// Comprehensive settings management service for application preferences.
 /// 
@@ -54,6 +55,7 @@ class SettingsService extends ChangeNotifier {
   final ThemeService _themeService = ThemeService();
   final NotificationService _notificationService = NotificationService();
   final AnalyticsService _analyticsService = AnalyticsService();
+  final AccessibilityService _accessibilityService = AccessibilityService();
 
   // Settings keys
   static const String _userPreferencesKey = 'user_preferences';
@@ -68,6 +70,7 @@ class SettingsService extends ChangeNotifier {
       await _themeService.initialize();
       await _notificationService.initialize();
       await _analyticsService.initialize();
+      await _accessibilityService.initialize();
       await _loadPreferences();
       _isInitialized = true;
     } catch (e) {
@@ -356,6 +359,106 @@ class SettingsService extends ChangeNotifier {
       notifyListeners();
     } catch (e) {
       debugPrint('SettingsService setSplashScreenEnabled error: $e');
+      rethrow;
+    }
+  }
+
+  /// Get high contrast enabled status
+  Future<bool> getHighContrastEnabled() async {
+    await _ensureInitialized();
+    return _currentPreferences.highContrastEnabled;
+  }
+
+  /// Set high contrast enabled/disabled
+  Future<void> setHighContrastEnabled(bool enabled) async {
+    await _ensureInitialized();
+    
+    if (_currentPreferences.highContrastEnabled == enabled) return;
+    
+    try {
+      _currentPreferences = _currentPreferences.copyWith(
+        highContrastEnabled: enabled,
+      );
+      await _accessibilityService.setHighContrastMode(enabled);
+      await _savePreferences();
+      notifyListeners();
+    } catch (e) {
+      debugPrint('SettingsService setHighContrastEnabled error: $e');
+      rethrow;
+    }
+  }
+
+  /// Get large text enabled status
+  Future<bool> getLargeTextEnabled() async {
+    await _ensureInitialized();
+    return _currentPreferences.largeTextEnabled;
+  }
+
+  /// Set large text enabled/disabled
+  Future<void> setLargeTextEnabled(bool enabled) async {
+    await _ensureInitialized();
+    
+    if (_currentPreferences.largeTextEnabled == enabled) return;
+    
+    try {
+      _currentPreferences = _currentPreferences.copyWith(
+        largeTextEnabled: enabled,
+      );
+      await _accessibilityService.setLargeTextMode(enabled);
+      await _savePreferences();
+      notifyListeners();
+    } catch (e) {
+      debugPrint('SettingsService setLargeTextEnabled error: $e');
+      rethrow;
+    }
+  }
+
+  /// Get reduced motion enabled status
+  Future<bool> getReducedMotionEnabled() async {
+    await _ensureInitialized();
+    return _currentPreferences.reducedMotionEnabled;
+  }
+
+  /// Set reduced motion enabled/disabled
+  Future<void> setReducedMotionEnabled(bool enabled) async {
+    await _ensureInitialized();
+    
+    if (_currentPreferences.reducedMotionEnabled == enabled) return;
+    
+    try {
+      _currentPreferences = _currentPreferences.copyWith(
+        reducedMotionEnabled: enabled,
+      );
+      await _accessibilityService.setReducedMotionMode(enabled);
+      await _savePreferences();
+      notifyListeners();
+    } catch (e) {
+      debugPrint('SettingsService setReducedMotionEnabled error: $e');
+      rethrow;
+    }
+  }
+
+  /// Get screen reader enabled status
+  Future<bool> getScreenReaderEnabled() async {
+    await _ensureInitialized();
+    return _currentPreferences.screenReaderEnabled;
+  }
+
+  /// Set screen reader enabled/disabled
+  Future<void> setScreenReaderEnabled(bool enabled) async {
+    await _ensureInitialized();
+    
+    if (_currentPreferences.screenReaderEnabled == enabled) return;
+    
+    try {
+      _currentPreferences = _currentPreferences.copyWith(
+        screenReaderEnabled: enabled,
+      );
+      await _accessibilityService.setScreenReaderEnabled(enabled);
+      await _savePreferences();
+      notifyListeners();
+    } catch (e) {
+      debugPrint('SettingsService setScreenReaderEnabled error: $e');
       rethrow;
     }
   }

@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:io';
-import 'package:flutter/foundation.dart';
 import 'package:sqflite/sqflite.dart';
 
 /// Standardized error types for the Spiral Journal application
@@ -407,7 +406,7 @@ class AppResult<T> {
   AppResult<R> map<R>(R Function(T data) mapper) {
     if (isSuccess && data != null) {
       try {
-        return AppResult.success(mapper(data!));
+        return AppResult.success(mapper(data as T));
       } catch (e, stackTrace) {
         return AppResult.failure(AppError.from(e, stackTrace: stackTrace));
       }
@@ -421,7 +420,7 @@ class AppResult<T> {
     R Function(T data) onSuccess,
   ) {
     if (isSuccess && data != null) {
-      return onSuccess(data!);
+      return onSuccess(data as T);
     }
     return onFailure(error!);
   }

@@ -7,8 +7,6 @@ import '../models/core.dart';
 import '../providers/emotional_mirror_provider.dart';
 import '../services/core_library_service.dart';
 import 'simple_resonance_visualizer.dart';
-import '../models/journal_entry.dart';
-import 'emotional_journey_visualization.dart';
 
 class EnhancedEmotionalAnalysisCard extends StatefulWidget {
   const EnhancedEmotionalAnalysisCard({super.key});
@@ -355,7 +353,7 @@ class _EnhancedEmotionalAnalysisCardState extends State<EnhancedEmotionalAnalysi
         .map((c) => c.currentLevel)
         .reduce((a, b) => a + b) / cores.length;
     
-    return Container(
+    return SizedBox(
       width: 100.0,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.end,

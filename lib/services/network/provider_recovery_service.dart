@@ -2,8 +2,6 @@ import 'dart:async';
 import 'dart:math';
 import 'package:flutter/foundation.dart';
 import '../ai_service_interface.dart';
-import '../providers/claude_ai_provider.dart';
-import '../providers/fallback_provider.dart';
 import '../ai_service_error_tracker.dart';
 import 'network_health_monitor.dart';
 import 'network_error_handler.dart';

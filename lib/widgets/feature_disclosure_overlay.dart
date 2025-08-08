@@ -10,14 +10,14 @@ class FeatureDisclosureOverlay extends StatefulWidget {
   final VoidCallback? onDismiss;
 
   const FeatureDisclosureOverlay({
-    Key? key,
+    super.key,
     required this.controller,
     required this.featureName,
     required this.title,
     required this.description,
     this.customIcon,
     this.onDismiss,
-  }) : super(key: key);
+  });
 
   @override
   State<FeatureDisclosureOverlay> createState() => _FeatureDisclosureOverlayState();
@@ -207,11 +207,11 @@ class FeatureDisclosureManager extends StatelessWidget {
   final Map<String, FeatureConfig> featureConfigs;
 
   const FeatureDisclosureManager({
-    Key? key,
+    super.key,
     required this.controller,
     required this.child,
     required this.featureConfigs,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

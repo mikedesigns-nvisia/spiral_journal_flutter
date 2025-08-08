@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
-import '../../lib/services/analytics_service.dart';
+import 'package:spiral_journal/services/analytics_service.dart';
 
 void main() {
   group('AnalyticsService', () {

@@ -546,9 +546,9 @@ class _SwipeableInsightsWidget extends StatefulWidget {
   final EmotionalState emotionalState;
 
   const _SwipeableInsightsWidget({
-    Key? key,
+    super.key,
     required this.emotionalState,
-  }) : super(key: key);
+  });
 
   @override
   State<_SwipeableInsightsWidget> createState() => _SwipeableInsightsWidgetState();
@@ -569,7 +569,7 @@ class _SwipeableInsightsWidgetState extends State<_SwipeableInsightsWidget> {
       _selectedInsightIndex = 0; // Reset selection when emotion changes
     }
 
-    return Container(
+    return SizedBox(
       height: 120,
       child: Column(
         children: [

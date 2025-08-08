@@ -10,11 +10,11 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../utils/test_setup_helper.dart';
 import '../utils/mock_service_factory.dart';
-import '../../lib/models/journal_entry.dart';
-import '../../lib/providers/journal_provider.dart';
-import '../../lib/screens/journal_history_screen.dart';
-import '../../lib/services/haiku_batch_processor.dart';
-import '../../lib/services/journal_service.dart';
+import 'package:spiral_journal/models/journal_entry.dart';
+import 'package:spiral_journal/providers/journal_provider.dart';
+import 'package:spiral_journal/screens/journal_history_screen.dart';
+import 'package:spiral_journal/services/haiku_batch_processor.dart';
+import 'package:spiral_journal/services/journal_service.dart';
 
 /// Comprehensive performance test suite for measuring app performance
 /// across various scenarios including scroll performance, memory usage,
@@ -559,6 +559,7 @@ class MockJournalProvider extends JournalProvider {
     // Mock initialization
   }
   
+  @override
   void optimizeMemoryUsage() {
     // Mock memory optimization
   }
@@ -1062,7 +1063,7 @@ class PerformanceProfiler {
 
 // Test widget for animation testing
 class AnimatedTestWidget extends StatefulWidget {
-  const AnimatedTestWidget({Key? key}) : super(key: key);
+  const AnimatedTestWidget({super.key});
   
   @override
   State<AnimatedTestWidget> createState() => _AnimatedTestWidgetState();

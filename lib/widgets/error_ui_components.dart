@@ -1,10 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
-import 'package:provider/provider.dart';
-import '../utils/app_error_handler.dart';
-import '../design_system/design_tokens.dart';
-import '../design_system/component_library.dart';
-import '../providers/core_provider_refactored.dart';
 
 /// Comprehensive error handling UI components for user-friendly error management
 /// Includes retry buttons, offline indicators, empty states, and graceful degradation
@@ -88,7 +83,7 @@ class _RetryButtonState extends State<RetryButton> {
             : (_isRetrying || widget.isLoading)
                 ? 'Retrying...'
                 : _retryCount > 0
-                    ? '${widget.text} (${_retryCount}/${widget.maxRetries})'
+                    ? '${widget.text} ($_retryCount/${widget.maxRetries})'
                     : widget.text,
       ),
       style: widget.style,

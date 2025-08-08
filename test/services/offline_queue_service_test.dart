@@ -2,7 +2,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:spiral_journal/services/offline_queue_service.dart';
 import 'package:spiral_journal/models/journal_entry.dart';
 import '../utils/test_setup_helper.dart';
-import '../utils/mock_haiku_service.dart';
 
 void main() {
   group('OfflineQueueService Tests', () {
@@ -25,13 +24,13 @@ void main() {
 
     tearDown(() async {
       await service.clearQueue();
-      await service.dispose();
+      service.dispose();
     });
 
     test('should initialize successfully', () async {
       expect(service, isNotNull, reason: 'Service should be created');
       
-      final status = await service.getQueueStatus();
+      final status = service.getQueueStatus();
       expect(status['pendingCount'], equals(0), reason: 'Should start with empty queue');
       expect(status['isProcessing'], isFalse, reason: 'Should not be processing initially');
     });
@@ -46,7 +45,7 @@ void main() {
 
       await service.queueForProcessing(testEntry, priority: 1);
 
-      final status = await service.getQueueStatus();
+      final status = service.getQueueStatus();
       expect(status['pendingCount'], equals(1), reason: 'Should have one queued entry');
     });
 
@@ -69,7 +68,7 @@ void main() {
       await service.queueForProcessing(entries[0], priority: 1);
       await service.queueForProcessing(entries[1], priority: 5);
 
-      final status = await service.getQueueStatus();
+      final status = service.getQueueStatus();
       expect(status['pendingCount'], equals(2), reason: 'Should have two queued entries');
     });
 
@@ -107,16 +106,16 @@ void main() {
       final newService = OfflineQueueService();
       await newService.initialize();
 
-      final status = await newService.getQueueStatus();
+      final status = newService.getQueueStatus();
       expect(status['pendingCount'], greaterThan(0), 
              reason: 'Should restore queued entries after restart');
 
       await newService.clearQueue();
-      await newService.dispose();
+      newService.dispose();
     });
 
     test('should provide detailed queue status', () async {
-      final status = await service.getQueueStatus();
+      final status = service.getQueueStatus();
 
       expect(status.containsKey('pendingCount'), isTrue, reason: 'Should provide pending count');
       expect(status.containsKey('processingCount'), isTrue, reason: 'Should provide processing count');
@@ -142,7 +141,7 @@ void main() {
       // Should trigger automatic processing
       await Future.delayed(const Duration(milliseconds: 500));
       
-      final status = await service.getQueueStatus();
+      final status = service.getQueueStatus();
       expect(status['isProcessing'], isA<bool>(), reason: 'Should handle network status changes');
     });
 
@@ -159,7 +158,7 @@ void main() {
 
       expect(results, isNotEmpty, reason: 'Should return results even for failed items');
       
-      final status = await service.getQueueStatus();
+      final status = service.getQueueStatus();
       // Failed items should either be retried or moved to failed queue
       expect(status.containsKey('failedCount'), isTrue, reason: 'Should track failed items');
     });
@@ -179,7 +178,7 @@ void main() {
         await service.queueForProcessing(entry);
       }
 
-      final status = await service.getQueueStatus();
+      final status = service.getQueueStatus();
       expect(status['pendingCount'], lessThanOrEqualTo(maxQueueSize),
              reason: 'Should respect queue size limits');
     });
@@ -217,7 +216,7 @@ void main() {
       final futures = entries.map((entry) => service.queueForProcessing(entry));
       await Future.wait(futures);
 
-      final status = await service.getQueueStatus();
+      final status = service.getQueueStatus();
       expect(status['pendingCount'], equals(10), reason: 'Should handle concurrent queueing');
     });
 
@@ -236,7 +235,7 @@ void main() {
 
       // Should handle empty entries gracefully
       await service.queueForProcessing(emptyEntry);
-      final status = await service.getQueueStatus();
+      final status = service.getQueueStatus();
       expect(status['pendingCount'], greaterThanOrEqualTo(0), reason: 'Should handle empty entries');
     });
 
@@ -272,7 +271,7 @@ void main() {
       await service.queueForProcessing(testEntry);
       
       // Should not throw exception on disposal
-      expect(() async => await service.dispose(), returnsNormally, 
+      expect(() async => service.dispose(), returnsNormally, 
              reason: 'Service disposal should be safe');
     });
 
@@ -288,12 +287,12 @@ void main() {
         await service.queueForProcessing(entry);
       }
 
-      final statusBefore = await service.getQueueStatus();
+      final statusBefore = service.getQueueStatus();
       expect(statusBefore['pendingCount'], equals(5), reason: 'Should have 5 queued entries');
 
       await service.clearQueue();
 
-      final statusAfter = await service.getQueueStatus();
+      final statusAfter = service.getQueueStatus();
       expect(statusAfter['pendingCount'], equals(0), reason: 'Should have empty queue after clearing');
     });
   });

@@ -10,7 +10,6 @@ import '../ai_cache_service.dart';
 import '../ai_service_error_tracker.dart';
 import '../../config/ai_model_config.dart';
 import '../network/network_error_handler.dart';
-import '../network/network_health_monitor.dart';
 
 /// Modern Claude AI Provider with flexible model configuration
 /// 

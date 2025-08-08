@@ -3,9 +3,7 @@ import 'package:spiral_journal/models/journal_entry.dart';
 import 'package:spiral_journal/models/core.dart';
 import 'package:spiral_journal/services/ai_service_manager.dart';
 import 'package:spiral_journal/services/journal_service.dart';
-import 'package:spiral_journal/services/production_environment_loader.dart';
 import 'package:spiral_journal/services/ai_service_diagnostic.dart';
-import 'package:spiral_journal/config/environment.dart';
 import '../utils/test_setup_helper.dart';
 import '../utils/claude_integration_tester.dart';
 
