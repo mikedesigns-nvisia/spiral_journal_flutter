@@ -12,9 +12,12 @@ import '../widgets/enhanced_emotional_analysis_card.dart';
 import '../widgets/emotional_journey_visualization.dart';
 import '../utils/iphone_detector.dart';
 import '../models/emotional_state.dart';
+import '../models/emotion_matrix.dart';
 import '../models/core.dart';
 import '../models/journal_entry.dart';
+import '../widgets/emotion_matrix_widget.dart';
 import '../services/journal_service.dart';
+import '../services/daily_recommendation_service.dart';
 
 class EmotionalMirrorScreen extends StatefulWidget {
   const EmotionalMirrorScreen({super.key});
@@ -28,6 +31,7 @@ class _EmotionalMirrorScreenState extends State<EmotionalMirrorScreen>
   late AnimationController _particleController;
   late PageController _insightPageController;
   late ScrollController _scrollController;
+  late DailyRecommendationService _dailyRecommendationService;
   
   final List<MoodParticle> _particles = [];
   final Map<String, GlobalKey> _sectionKeys = {
@@ -40,6 +44,8 @@ class _EmotionalMirrorScreenState extends State<EmotionalMirrorScreen>
   };
   
   bool _showNavigation = false;
+  EnhancedRecommendation? _todaysRecommendation;
+  bool _isLoadingRecommendation = false;
   
   @override
   void initState() {
@@ -54,11 +60,40 @@ class _EmotionalMirrorScreenState extends State<EmotionalMirrorScreen>
     _insightPageController = PageController();
     _scrollController = ScrollController();
     
-    // Initialize provider
+    // Initialize daily recommendation service
+    _dailyRecommendationService = DailyRecommendationService(JournalService());
+    
+    // Initialize provider and load recommendation
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final provider = Provider.of<EmotionalMirrorProvider>(context, listen: false);
       provider.initialize();
+      _loadTodaysRecommendation();
     });
+  }
+
+  Future<void> _loadTodaysRecommendation() async {
+    if (!mounted) return;
+    
+    setState(() {
+      _isLoadingRecommendation = true;
+    });
+
+    try {
+      final recommendation = await _dailyRecommendationService.getTodaysRecommendation();
+      if (mounted) {
+        setState(() {
+          _todaysRecommendation = recommendation;
+          _isLoadingRecommendation = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading today\'s recommendation: $e');
+      if (mounted) {
+        setState(() {
+          _isLoadingRecommendation = false;
+        });
+      }
+    }
   }
   
   @override
@@ -386,6 +421,7 @@ class _EmotionalMirrorScreenState extends State<EmotionalMirrorScreen>
     // Get both primary and secondary emotional states from provider
     final primaryState = provider.getPrimaryEmotionalState(context);
     final secondaryState = provider.getSecondaryEmotionalState(context);
+    final emotionMatrix = provider.getEmotionMatrix();
     
     return Container(
       decoration: BoxDecoration(
@@ -426,17 +462,29 @@ class _EmotionalMirrorScreenState extends State<EmotionalMirrorScreen>
             ),
           ),
           
-          // Emotional state widget with full features
-          PrimaryEmotionalStateWidget(
-            primaryState: primaryState,
-            secondaryState: secondaryState,
-            showTabs: secondaryState != null, // Show tabs only if we have secondary state
-            showTimestamp: true, // Show when the analysis was done
-            showConfidence: false, // Hide confidence indicators
-            focusable: true, // Allow keyboard navigation
-            showAnimation: true, // Enable smooth animations
-            onTap: primaryState != null ? () => _showEmotionalStateDetails(primaryState, secondaryState) : null,
-          ),
+          // Emotional state widget with matrix support or traditional view
+          emotionMatrix != null
+              ? EmotionMatrixWidget(
+                  emotionMatrix: emotionMatrix,
+                  compactMode: false,
+                  maxEmotionsShown: 8,
+                  showAnimation: true,
+                  showValence: true,
+                  showPercentages: true,
+                  showBalance: true,
+                  title: 'Current Emotional State',
+                  onTap: () => _showEmotionMatrixDetails(emotionMatrix),
+                )
+              : PrimaryEmotionalStateWidget(
+                  primaryState: primaryState,
+                  secondaryState: secondaryState,
+                  showTabs: secondaryState != null,
+                  showTimestamp: true,
+                  showConfidence: false,
+                  focusable: true,
+                  showAnimation: true,
+                  onTap: primaryState != null ? () => _showEmotionalStateDetails(primaryState, secondaryState) : null,
+                ),
         ],
       ),
     );
@@ -449,6 +497,17 @@ class _EmotionalMirrorScreenState extends State<EmotionalMirrorScreen>
       backgroundColor: Colors.transparent,
       builder: (context) => Consumer<EmotionalMirrorProvider>(
         builder: (context, provider, child) => _buildEmotionalStateDetailsSheet(primaryState, secondaryState, provider),
+      ),
+    );
+  }
+
+  void _showEmotionMatrixDetails(EmotionMatrix emotionMatrix) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Consumer<EmotionalMirrorProvider>(
+        builder: (context, provider, child) => _buildEmotionMatrixDetailsSheet(emotionMatrix, provider),
       ),
     );
   }
@@ -518,6 +577,220 @@ class _EmotionalMirrorScreenState extends State<EmotionalMirrorScreen>
         ),
       ),
     );
+  }
+
+  Widget _buildEmotionMatrixDetailsSheet(EmotionMatrix emotionMatrix, EmotionalMirrorProvider provider) {
+    final topEmotions = emotionMatrix.getTopEmotions(10);
+    
+    return Container(
+      decoration: BoxDecoration(
+        color: DesignTokens.getBackgroundPrimary(context),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(DesignTokens.radiusXL)),
+      ),
+      child: DraggableScrollableSheet(
+        initialChildSize: 0.7,
+        minChildSize: 0.5,
+        maxChildSize: 0.95,
+        expand: false,
+        builder: (context, scrollController) => SingleChildScrollView(
+          controller: scrollController,
+          padding: EdgeInsets.all(DesignTokens.spaceL),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Drag handle
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  margin: EdgeInsets.only(bottom: DesignTokens.spaceL),
+                  decoration: BoxDecoration(
+                    color: DesignTokens.getBackgroundTertiary(context),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              
+              // Title
+              Text(
+                'Comprehensive Emotional Analysis',
+                style: HeadingSystem.getHeadlineMedium(context),
+              ),
+              SizedBox(height: DesignTokens.spaceM),
+              
+              // Subtitle
+              ResponsiveText(
+                'Your complete emotional spectrum with detailed percentages',
+                baseFontSize: DesignTokens.fontSizeM,
+                fontWeight: DesignTokens.fontWeightRegular,
+                color: DesignTokens.getTextSecondary(context),
+              ),
+              SizedBox(height: DesignTokens.spaceXL),
+              
+              // Emotional valence overview
+              ComponentLibrary.gradientCard(
+                gradient: DesignTokens.getCardGradient(context),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.insights,
+                          color: DesignTokens.getPrimaryColor(context),
+                          size: DesignTokens.iconSizeM,
+                        ),
+                        SizedBox(width: DesignTokens.spaceM),
+                        ResponsiveText(
+                          'Overall Analysis',
+                          baseFontSize: DesignTokens.fontSizeL,
+                          fontWeight: DesignTokens.fontWeightSemiBold,
+                          color: DesignTokens.getTextPrimary(context),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: DesignTokens.spaceL),
+                    
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            ResponsiveText(
+                              'Emotional Balance',
+                              baseFontSize: DesignTokens.fontSizeM,
+                              fontWeight: DesignTokens.fontWeightMedium,
+                              color: DesignTokens.getTextSecondary(context),
+                            ),
+                            ResponsiveText(
+                              _getEmotionalBalanceDescription(emotionMatrix.emotionalValence),
+                              baseFontSize: DesignTokens.fontSizeL,
+                              fontWeight: DesignTokens.fontWeightBold,
+                              color: _getValenceColor(emotionMatrix.emotionalValence),
+                            ),
+                          ],
+                        ),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            ResponsiveText(
+                              'Intensity',
+                              baseFontSize: DesignTokens.fontSizeM,
+                              fontWeight: DesignTokens.fontWeightMedium,
+                              color: DesignTokens.getTextSecondary(context),
+                            ),
+                            ResponsiveText(
+                              '${(emotionMatrix.emotionalIntensity * 100).round()}%',
+                              baseFontSize: DesignTokens.fontSizeL,
+                              fontWeight: DesignTokens.fontWeightBold,
+                              color: DesignTokens.getPrimaryColor(context),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              
+              SizedBox(height: DesignTokens.spaceXL),
+              
+              // Full emotion matrix widget
+              EmotionMatrixWidget(
+                emotionMatrix: emotionMatrix,
+                compactMode: false,
+                showAnimation: false, // No animations in details view
+                showValence: false, // Already shown above
+                showPercentages: true,
+                showBalance: false, // Already shown above
+                title: 'Detailed Emotional Breakdown',
+              ),
+              
+              SizedBox(height: DesignTokens.spaceXL),
+              
+              // Top emotions detailed view
+              ResponsiveText(
+                'Top Emotions Breakdown',
+                baseFontSize: DesignTokens.fontSizeL,
+                fontWeight: DesignTokens.fontWeightSemiBold,
+                color: DesignTokens.getTextPrimary(context),
+              ),
+              SizedBox(height: DesignTokens.spaceL),
+              
+              ...topEmotions.where((e) => e.value > 0.5).map((emotionEntry) {
+                final emotion = emotionEntry.key;
+                final percentage = emotionEntry.value;
+                final isPositive = EmotionalState.isPositiveEmotion(emotion);
+                
+                return Container(
+                  margin: EdgeInsets.only(bottom: DesignTokens.spaceM),
+                  child: ComponentLibrary.gradientCard(
+                    gradient: DesignTokens.getCardGradient(context),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 12,
+                          height: 12,
+                          margin: EdgeInsets.only(right: DesignTokens.spaceM),
+                          decoration: BoxDecoration(
+                            color: isPositive ? DesignTokens.successColor : DesignTokens.warningColor,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              ResponsiveText(
+                                emotion.split('_').map((w) => w[0].toUpperCase() + w.substring(1)).join(' '),
+                                baseFontSize: DesignTokens.fontSizeM,
+                                fontWeight: DesignTokens.fontWeightSemiBold,
+                                color: DesignTokens.getTextPrimary(context),
+                              ),
+                              ResponsiveText(
+                                isPositive ? 'Positive emotion' : 'Negative emotion',
+                                baseFontSize: DesignTokens.fontSizeS,
+                                fontWeight: DesignTokens.fontWeightRegular,
+                                color: DesignTokens.getTextTertiary(context),
+                              ),
+                            ],
+                          ),
+                        ),
+                        ResponsiveText(
+                          '${percentage.toStringAsFixed(1)}%',
+                          baseFontSize: DesignTokens.fontSizeL,
+                          fontWeight: DesignTokens.fontWeightBold,
+                          color: isPositive ? DesignTokens.successColor : DesignTokens.warningColor,
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }).toList(),
+              
+              SizedBox(height: DesignTokens.spaceXL),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Get color based on emotional valence
+  Color _getValenceColor(double valence) {
+    if (valence > 0.2) return DesignTokens.successColor;
+    if (valence < -0.2) return DesignTokens.warningColor;
+    return DesignTokens.accentBlue;
+  }
+
+  /// Get description of emotional balance
+  String _getEmotionalBalanceDescription(double valence) {
+    if (valence > 0.4) return 'Very Positive';
+    if (valence > 0.2) return 'Positive';
+    if (valence > -0.2) return 'Balanced';
+    if (valence > -0.4) return 'Negative';
+    return 'Very Negative';
   }
 
   Widget _buildEmotionDetailCard(String title, EmotionalState state, IconData icon, Color color) {
@@ -1308,15 +1581,385 @@ class _EmotionalMirrorScreenState extends State<EmotionalMirrorScreen>
   }
 
   Widget _buildRecommendationsCard(EmotionalMirrorProvider provider) {
-    final recommendations = _generateRecommendations(provider);
-    
     return _buildUnifiedContentCard(
-      title: 'Personalized Recommendations',
-      icon: Icons.recommend_rounded,
+      title: 'Today\'s Personal Recommendation',
+      icon: Icons.auto_awesome_rounded,
       iconColor: DesignTokens.accentGreen,
-      items: [], // We'll use customContent for recommendation items
-      customContent: Column(
-        children: recommendations.map((rec) => _buildRecommendationItem(rec)).toList(),
+      items: [],
+      customContent: _buildDailyRecommendationContent(),
+    );
+  }
+
+  Widget _buildDailyRecommendationContent() {
+    if (_isLoadingRecommendation) {
+      return Container(
+        padding: EdgeInsets.all(DesignTokens.spaceXL),
+        child: Center(
+          child: Column(
+            children: [
+              CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(DesignTokens.accentGreen),
+              ),
+              SizedBox(height: DesignTokens.spaceM),
+              Text(
+                'Preparing your personalized recommendation...',
+                style: DesignTokens.bodyMedium.copyWith(
+                  color: DesignTokens.textSecondary,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (_todaysRecommendation == null) {
+      return Container(
+        padding: EdgeInsets.all(DesignTokens.spaceXL),
+        child: Column(
+          children: [
+            Icon(
+              Icons.auto_awesome_outlined,
+              size: 48,
+              color: DesignTokens.textSecondary,
+            ),
+            SizedBox(height: DesignTokens.spaceM),
+            Text(
+              'Your Daily Recommendation',
+              style: DesignTokens.headlineSmall.copyWith(
+                color: DesignTokens.textSecondary,
+              ),
+            ),
+            SizedBox(height: DesignTokens.spaceS),
+            Text(
+              'Start journaling to receive personalized daily recommendations based on your mood and patterns.',
+              style: DesignTokens.bodyMedium.copyWith(
+                color: DesignTokens.textSecondary,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      );
+    }
+
+    return _buildDailyRecommendationItem(_todaysRecommendation!);
+  }
+
+  Widget _buildDailyRecommendationItem(EnhancedRecommendation recommendation) {
+    final categoryColor = _getRecommendationCategoryColor(recommendation.category);
+    final priorityColor = _getRecommendationPriorityColor(recommendation.priority);
+    
+    return Container(
+      margin: EdgeInsets.only(bottom: DesignTokens.spaceL),
+      padding: EdgeInsets.all(DesignTokens.spaceL),
+      decoration: BoxDecoration(
+        color: DesignTokens.getBackgroundSecondary(context),
+        borderRadius: BorderRadius.circular(DesignTokens.radiusL),
+        border: Border.all(
+          color: categoryColor.withOpacity(0.3),
+          width: 1.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: categoryColor.withOpacity(0.1),
+            offset: const Offset(0, 2),
+            blurRadius: 8,
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header with title and priority
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: EdgeInsets.all(DesignTokens.spaceS),
+                decoration: BoxDecoration(
+                  color: categoryColor.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(DesignTokens.radiusM),
+                  border: Border.all(
+                    color: categoryColor.withOpacity(0.2),
+                    width: 1,
+                  ),
+                ),
+                child: Icon(
+                  recommendation.icon,
+                  color: categoryColor,
+                  size: 22,
+                ),
+              ),
+              SizedBox(width: DesignTokens.spaceM),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      recommendation.title,
+                      style: DesignTokens.bodyLarge.copyWith(
+                        color: DesignTokens.getTextPrimary(context).withOpacity(0.6),
+                        fontWeight: FontWeight.w300,
+                      ),
+                    ),
+                    SizedBox(height: DesignTokens.spaceXS),
+                    Row(
+                      children: [
+                        Container(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: DesignTokens.spaceS,
+                            vertical: DesignTokens.spaceXS,
+                          ),
+                          decoration: BoxDecoration(
+                            color: categoryColor.withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(DesignTokens.radiusS),
+                            border: Border.all(
+                              color: categoryColor.withOpacity(0.3),
+                              width: 1,
+                            ),
+                          ),
+                          child: Text(
+                            _getRecommendationCategoryLabel(recommendation.category),
+                            style: DesignTokens.bodySmall.copyWith(
+                              color: categoryColor,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              // Add completion button
+              FutureBuilder<bool>(
+                future: _dailyRecommendationService.isTodaysRecommendationCompleted(),
+                builder: (context, snapshot) {
+                  final isCompleted = snapshot.data ?? false;
+                  return IconButton(
+                    onPressed: isCompleted ? null : () async {
+                      await _dailyRecommendationService.markRecommendationCompleted();
+                      setState(() {}); // Refresh the UI
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Great job! Recommendation marked as completed 🎉'),
+                          backgroundColor: DesignTokens.successColor,
+                        ),
+                      );
+                    },
+                    icon: Icon(
+                      isCompleted ? Icons.check_circle : Icons.check_circle_outline,
+                      color: isCompleted ? DesignTokens.successColor : DesignTokens.textSecondary,
+                    ),
+                    tooltip: isCompleted ? 'Completed!' : 'Mark as completed',
+                  );
+                },
+              ),
+            ],
+          ),
+          
+          SizedBox(height: DesignTokens.spaceM),
+          
+          // Description
+          Text(
+            recommendation.description,
+            style: DesignTokens.bodyMedium.copyWith(
+              color: DesignTokens.getTextSecondary(context).withOpacity(0.7),
+              height: 1.4,
+              fontWeight: FontWeight.w300,
+            ),
+          ),
+          
+          SizedBox(height: DesignTokens.spaceM),
+          
+          // Time commitment and expected benefit
+          Container(
+            padding: EdgeInsets.all(DesignTokens.spaceM),
+            decoration: BoxDecoration(
+              color: DesignTokens.backgroundSecondary.withOpacity(0.5),
+              borderRadius: BorderRadius.circular(DesignTokens.radiusM),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      Icons.schedule_rounded,
+                      size: 16,
+                      color: DesignTokens.textSecondary,
+                    ),
+                    SizedBox(width: DesignTokens.spaceS),
+                    Text(
+                      'Time: ${recommendation.timeCommitment}',
+                      style: DesignTokens.bodySmall.copyWith(
+                        color: DesignTokens.textSecondary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(height: DesignTokens.spaceS),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(
+                      Icons.trending_up_rounded,
+                      size: 16,
+                      color: DesignTokens.successColor,
+                    ),
+                    SizedBox(width: DesignTokens.spaceS),
+                    Expanded(
+                      child: Text(
+                        recommendation.expectedBenefit,
+                        style: DesignTokens.bodySmall.copyWith(
+                          color: DesignTokens.textSecondary,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          
+          SizedBox(height: DesignTokens.spaceM),
+          
+          // Action steps
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Action Steps:',
+                style: DesignTokens.bodyMedium.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: Theme.of(context).brightness == Brightness.dark 
+                    ? DesignTokens.getTextPrimary(context).withOpacity(0.8)
+                    : DesignTokens.getTextPrimary(context).withOpacity(0.6),
+                ),
+              ),
+              SizedBox(height: DesignTokens.spaceS),
+              ...recommendation.actionSteps.asMap().entries.map((entry) {
+                final index = entry.key;
+                final step = entry.value;
+                return Padding(
+                  padding: EdgeInsets.only(bottom: DesignTokens.spaceS),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        width: 20,
+                        height: 20,
+                        decoration: BoxDecoration(
+                          color: categoryColor.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Center(
+                          child: Text(
+                            '${index + 1}',
+                            style: DesignTokens.bodySmall.copyWith(
+                              color: categoryColor,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
+                      SizedBox(width: DesignTokens.spaceM),
+                      Expanded(
+                        child: Text(
+                          step,
+                          style: DesignTokens.bodyMedium.copyWith(
+                            color: Theme.of(context).brightness == Brightness.dark 
+                              ? DesignTokens.getTextSecondary(context).withOpacity(0.9)
+                              : DesignTokens.getTextSecondary(context).withOpacity(0.7),
+                            height: 1.3,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }).toList(),
+            ],
+          ),
+          
+          SizedBox(height: DesignTokens.spaceM),
+          
+          // Based on information
+          Container(
+            width: double.infinity,
+            padding: EdgeInsets.all(DesignTokens.spaceM),
+            decoration: BoxDecoration(
+              color: categoryColor.withOpacity(0.05),
+              borderRadius: BorderRadius.circular(DesignTokens.radiusM),
+              border: Border.all(
+                color: categoryColor.withOpacity(0.1),
+                width: 1,
+              ),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.insights_rounded,
+                  size: 16,
+                  color: categoryColor,
+                ),
+                SizedBox(width: DesignTokens.spaceS),
+                Expanded(
+                  child: Text(
+                    'Based on: ${recommendation.basedOn}',
+                    style: DesignTokens.bodySmall.copyWith(
+                      color: DesignTokens.textSecondary,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          
+          // Show streak information
+          SizedBox(height: DesignTokens.spaceM),
+          FutureBuilder<int>(
+            future: _dailyRecommendationService.getRecommendationStreak(),
+            builder: (context, snapshot) {
+              final streak = snapshot.data ?? 0;
+              if (streak > 0) {
+                return Container(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: DesignTokens.spaceM,
+                    vertical: DesignTokens.spaceS,
+                  ),
+                  decoration: BoxDecoration(
+                    color: DesignTokens.accentYellow.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(DesignTokens.radiusM),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.local_fire_department_rounded,
+                        size: 16,
+                        color: DesignTokens.accentYellow,
+                      ),
+                      SizedBox(width: DesignTokens.spaceS),
+                      Text(
+                        '$streak day${streak == 1 ? '' : 's'} of recommendations!',
+                        style: DesignTokens.bodySmall.copyWith(
+                          color: DesignTokens.accentYellow,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }
+              return SizedBox.shrink();
+            },
+          ),
+        ],
       ),
     );
   }
@@ -1361,7 +2004,8 @@ class _EmotionalMirrorScreenState extends State<EmotionalMirrorScreen>
                     Text(
                       recommendation.title,
                       style: HeadingSystem.getTitleMedium(context).copyWith(
-                        fontWeight: FontWeight.bold,
+                        fontWeight: FontWeight.w300,
+                        color: DesignTokens.getTextPrimary(context).withOpacity(0.6),
                       ),
                     ),
                     Text(
@@ -1373,23 +2017,6 @@ class _EmotionalMirrorScreenState extends State<EmotionalMirrorScreen>
                   ],
                 ),
               ),
-              Container(
-                padding: EdgeInsets.symmetric(
-                  horizontal: DesignTokens.spaceS,
-                  vertical: DesignTokens.spaceXS,
-                ),
-                decoration: BoxDecoration(
-                  color: priorityColor.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(DesignTokens.radiusS),
-                ),
-                child: Text(
-                  _getRecommendationPriorityLabel(recommendation.priority),
-                  style: HeadingSystem.getLabelSmall(context).copyWith(
-                    color: priorityColor,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
             ],
           ),
           SizedBox(height: DesignTokens.spaceM),
@@ -1397,7 +2024,10 @@ class _EmotionalMirrorScreenState extends State<EmotionalMirrorScreen>
           // Description
           Text(
             recommendation.description,
-            style: HeadingSystem.getBodyMedium(context),
+            style: HeadingSystem.getBodyMedium(context).copyWith(
+              fontWeight: FontWeight.w300,
+              color: DesignTokens.getTextSecondary(context).withOpacity(0.7),
+            ),
           ),
           SizedBox(height: DesignTokens.spaceM),
           
@@ -1505,7 +2135,11 @@ class _EmotionalMirrorScreenState extends State<EmotionalMirrorScreen>
                           Expanded(
                             child: Text(
                               step,
-                              style: HeadingSystem.getBodySmall(context),
+                              style: HeadingSystem.getBodySmall(context).copyWith(
+                                color: Theme.of(context).brightness == Brightness.dark 
+                                  ? DesignTokens.getTextSecondary(context).withOpacity(0.9)
+                                  : DesignTokens.getTextSecondary(context).withOpacity(0.7),
+                              ),
                             ),
                           ),
                         ],
@@ -1553,15 +2187,18 @@ class _EmotionalMirrorScreenState extends State<EmotionalMirrorScreen>
   }
 
   Color _getRecommendationCategoryColor(RecommendationCategory category) {
+    // Use higher contrast colors for better accessibility
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     switch (category) {
       case RecommendationCategory.growth:
-        return DesignTokens.accentGreen;
+        return isDark ? const Color(0xFF4CAF50) : const Color(0xFF2E7D32); // Better green contrast
       case RecommendationCategory.wellbeing:
-        return DesignTokens.accentBlue;
+        return isDark ? const Color(0xFF2196F3) : const Color(0xFF1565C0); // Better blue contrast
       case RecommendationCategory.skill_building:
-        return DesignTokens.getPrimaryColor(context);
+        return isDark ? const Color(0xFFFF9800) : const Color(0xFFE65100); // Better orange contrast
       case RecommendationCategory.pattern_work:
-        return DesignTokens.warningColor;
+        return isDark ? const Color(0xFFFFB74D) : const Color(0xFFE65100); // Better amber contrast
     }
   }
 
@@ -1666,7 +2303,19 @@ class _EmotionalMirrorScreenState extends State<EmotionalMirrorScreen>
         ],
       ));
     }
-    
+
+    // Enhanced variety - Add many more recommendation types
+    _addCreativityRecommendations(recommendations, provider);
+    _addSocialConnectionRecommendations(recommendations, provider);
+    _addPhysicalWellbeingRecommendations(recommendations, provider);
+    _addMindfulnessRecommendations(recommendations, provider);
+    _addGoalSettingRecommendations(recommendations, provider);
+    _addStressManagementRecommendations(recommendations, provider);
+    _addRelationshipRecommendations(recommendations, provider);
+    _addProductivityRecommendations(recommendations, provider);
+    _addSelfCareRecommendations(recommendations, provider);
+    _addLearningRecommendations(recommendations, provider);
+
     // Default positive recommendations
     if (recommendations.isEmpty || recommendations.length < 2) {
       recommendations.add(EnhancedRecommendation(
@@ -1687,7 +2336,266 @@ class _EmotionalMirrorScreenState extends State<EmotionalMirrorScreen>
       ));
     }
     
-    return recommendations.take(3).toList();
+    // Return up to 12 recommendations instead of just 3
+    return recommendations.take(12).toList();
+  }
+
+  void _addCreativityRecommendations(List<EnhancedRecommendation> recommendations, EmotionalMirrorProvider provider) {
+    recommendations.add(EnhancedRecommendation(
+      title: 'Express Through Art',
+      description: 'Channel your emotions into creative expression. Art can help process complex feelings and unlock new insights.',
+      category: RecommendationCategory.growth,
+      priority: RecommendationPriority.medium,
+      icon: Icons.palette_rounded,
+      basedOn: 'Emotional complexity analysis',
+      expectedBenefit: 'Enhanced emotional processing and creative fulfillment',
+      coreImpacts: {'creativity': 0.4, 'emotional_processing': 0.3},
+      timeCommitment: '20-30 minutes',
+      actionSteps: [
+        'Try drawing your current emotional state',
+        'Write poetry about your feelings',
+        'Create a mood board with colors and images',
+      ],
+    ));
+    
+    recommendations.add(EnhancedRecommendation(
+      title: 'Creative Problem Solving',
+      description: 'Approach current challenges from new angles using creative thinking techniques.',
+      category: RecommendationCategory.skill_building,
+      priority: RecommendationPriority.medium,
+      icon: Icons.lightbulb_rounded,
+      basedOn: 'Challenge identification in recent entries',
+      expectedBenefit: 'Innovative solutions and enhanced adaptability',
+      coreImpacts: {'problem_solving': 0.4, 'adaptability': 0.3},
+      timeCommitment: '15-25 minutes',
+      actionSteps: [
+        'Brainstorm without judgment for 10 minutes',
+        'Ask "What would someone I admire do?"',
+        'Consider the opposite of your first solution',
+      ],
+    ));
+  }
+
+  void _addSocialConnectionRecommendations(List<EnhancedRecommendation> recommendations, EmotionalMirrorProvider provider) {
+    recommendations.add(EnhancedRecommendation(
+      title: 'Strengthen Relationships',
+      description: 'Invest in meaningful connections with others. Quality relationships are fundamental to emotional wellbeing.',
+      category: RecommendationCategory.wellbeing,
+      priority: RecommendationPriority.high,
+      icon: Icons.people_rounded,
+      basedOn: 'Social connection pattern analysis',
+      expectedBenefit: 'Improved support system and emotional fulfillment',
+      coreImpacts: {'social_connection': 0.4, 'emotional_support': 0.3},
+      timeCommitment: '30-60 minutes',
+      actionSteps: [
+        'Reach out to someone you care about',
+        'Schedule quality time with loved ones',
+        'Practice active listening in conversations',
+      ],
+    ));
+
+    recommendations.add(EnhancedRecommendation(
+      title: 'Practice Empathy',
+      description: 'Develop deeper understanding of others\' perspectives. Empathy enriches relationships and self-awareness.',
+      category: RecommendationCategory.growth,
+      priority: RecommendationPriority.medium,
+      icon: Icons.favorite_rounded,
+      basedOn: 'Relationship dynamics in journal entries',
+      expectedBenefit: 'Enhanced emotional intelligence and connection',
+      coreImpacts: {'empathy': 0.4, 'social_skills': 0.3},
+      timeCommitment: '10-15 minutes daily',
+      actionSteps: [
+        'Try to see situations from others\' viewpoints',
+        'Ask curious questions instead of making assumptions',
+        'Reflect on how your actions affect others',
+      ],
+    ));
+  }
+
+  void _addPhysicalWellbeingRecommendations(List<EnhancedRecommendation> recommendations, EmotionalMirrorProvider provider) {
+    recommendations.add(EnhancedRecommendation(
+      title: 'Mind-Body Connection',
+      description: 'Physical activity can significantly impact emotional wellbeing. Movement helps process stress and boost mood.',
+      category: RecommendationCategory.wellbeing,
+      priority: RecommendationPriority.high,
+      icon: Icons.directions_run_rounded,
+      basedOn: 'Stress and energy level patterns',
+      expectedBenefit: 'Improved mood, energy, and stress resilience',
+      coreImpacts: {'physical_wellness': 0.4, 'stress_management': 0.3},
+      timeCommitment: '20-30 minutes',
+      actionSteps: [
+        'Take a mindful walk in nature',
+        'Try gentle stretching or yoga',
+        'Dance to your favorite music',
+      ],
+    ));
+
+    recommendations.add(EnhancedRecommendation(
+      title: 'Optimize Sleep Patterns',
+      description: 'Quality sleep is crucial for emotional regulation and mental clarity. Improve your sleep hygiene.',
+      category: RecommendationCategory.wellbeing,
+      priority: RecommendationPriority.medium,
+      icon: Icons.bedtime_rounded,
+      basedOn: 'Energy and mood consistency analysis',
+      expectedBenefit: 'Better emotional regulation and mental clarity',
+      coreImpacts: {'sleep_quality': 0.4, 'emotional_stability': 0.3},
+      timeCommitment: 'Ongoing habit',
+      actionSteps: [
+        'Create a consistent bedtime routine',
+        'Limit screen time before bed',
+        'Keep your bedroom cool and dark',
+      ],
+    ));
+  }
+
+  void _addMindfulnessRecommendations(List<EnhancedRecommendation> recommendations, EmotionalMirrorProvider provider) {
+    recommendations.add(EnhancedRecommendation(
+      title: 'Present Moment Awareness',
+      description: 'Cultivate mindfulness to reduce anxiety and increase appreciation for life\'s moments.',
+      category: RecommendationCategory.skill_building,
+      priority: RecommendationPriority.medium,
+      icon: Icons.self_improvement_rounded,
+      basedOn: 'Anxiety and worry pattern detection',
+      expectedBenefit: 'Reduced anxiety and increased life satisfaction',
+      coreImpacts: {'mindfulness': 0.4, 'anxiety_management': 0.3},
+      timeCommitment: '5-15 minutes daily',
+      actionSteps: [
+        'Practice 5-minute breathing meditation',
+        'Notice 5 things you can see, 4 you can hear, 3 you can touch',
+        'Eat one meal mindfully each day',
+      ],
+    ));
+  }
+
+  void _addGoalSettingRecommendations(List<EnhancedRecommendation> recommendations, EmotionalMirrorProvider provider) {
+    recommendations.add(EnhancedRecommendation(
+      title: 'Set Meaningful Goals',
+      description: 'Align your actions with your values by setting purposeful goals that inspire growth.',
+      category: RecommendationCategory.growth,
+      priority: RecommendationPriority.medium,
+      icon: Icons.flag_rounded,
+      basedOn: 'Purpose and direction themes in entries',
+      expectedBenefit: 'Increased motivation and sense of purpose',
+      coreImpacts: {'goal_achievement': 0.4, 'life_purpose': 0.3},
+      timeCommitment: '20-30 minutes',
+      actionSteps: [
+        'Identify 3 areas for personal growth',
+        'Set SMART goals with specific deadlines',
+        'Break large goals into small daily actions',
+      ],
+    ));
+  }
+
+  void _addStressManagementRecommendations(List<EnhancedRecommendation> recommendations, EmotionalMirrorProvider provider) {
+    recommendations.add(EnhancedRecommendation(
+      title: 'Develop Stress Resilience',
+      description: 'Build tools to handle life\'s challenges with greater ease and bounce back from setbacks.',
+      category: RecommendationCategory.skill_building,
+      priority: RecommendationPriority.high,
+      icon: Icons.shield_rounded,
+      basedOn: 'Stress response patterns in entries',
+      expectedBenefit: 'Improved stress tolerance and emotional stability',
+      coreImpacts: {'stress_resilience': 0.4, 'coping_skills': 0.3},
+      timeCommitment: '10-20 minutes daily',
+      actionSteps: [
+        'Practice progressive muscle relaxation',
+        'Use the "STOP" technique when overwhelmed',
+        'Develop a personal stress-relief toolkit',
+      ],
+    ));
+  }
+
+  void _addRelationshipRecommendations(List<EnhancedRecommendation> recommendations, EmotionalMirrorProvider provider) {
+    recommendations.add(EnhancedRecommendation(
+      title: 'Improve Communication Skills',
+      description: 'Enhance your ability to express needs, set boundaries, and resolve conflicts constructively.',
+      category: RecommendationCategory.skill_building,
+      priority: RecommendationPriority.medium,
+      icon: Icons.forum_rounded,
+      basedOn: 'Relationship challenges in journal entries',
+      expectedBenefit: 'Stronger relationships and reduced interpersonal stress',
+      coreImpacts: {'communication': 0.4, 'relationship_quality': 0.3},
+      timeCommitment: '15-20 minutes practice',
+      actionSteps: [
+        'Practice "I" statements instead of "you" statements',
+        'Ask for clarification before reacting',
+        'Express appreciation daily to loved ones',
+      ],
+    ));
+  }
+
+  void _addProductivityRecommendations(List<EnhancedRecommendation> recommendations, EmotionalMirrorProvider provider) {
+    recommendations.add(EnhancedRecommendation(
+      title: 'Optimize Daily Routines',
+      description: 'Create structure that supports both productivity and wellbeing through intentional daily practices.',
+      category: RecommendationCategory.skill_building,
+      priority: RecommendationPriority.low,
+      icon: Icons.schedule_rounded,
+      basedOn: 'Time management themes in entries',
+      expectedBenefit: 'Increased efficiency and reduced overwhelm',
+      coreImpacts: {'productivity': 0.3, 'time_management': 0.4},
+      timeCommitment: 'Ongoing habit building',
+      actionSteps: [
+        'Plan your top 3 priorities each morning',
+        'Use time-blocking for important tasks',
+        'Build in regular breaks throughout your day',
+      ],
+    ));
+  }
+
+  void _addSelfCareRecommendations(List<EnhancedRecommendation> recommendations, EmotionalMirrorProvider provider) {
+    recommendations.add(EnhancedRecommendation(
+      title: 'Prioritize Self-Care',
+      description: 'Make time for activities that nourish your mind, body, and spirit. Self-care isn\'t selfish—it\'s essential.',
+      category: RecommendationCategory.wellbeing,
+      priority: RecommendationPriority.medium,
+      icon: Icons.spa_rounded,
+      basedOn: 'Burnout and exhaustion indicators',
+      expectedBenefit: 'Renewed energy and emotional resilience',
+      coreImpacts: {'self_care': 0.4, 'energy_levels': 0.3},
+      timeCommitment: '20-60 minutes',
+      actionSteps: [
+        'Schedule regular "me time" in your calendar',
+        'Try a new hobby or return to an old one',
+        'Create a relaxing evening ritual',
+      ],
+    ));
+  }
+
+  void _addLearningRecommendations(List<EnhancedRecommendation> recommendations, EmotionalMirrorProvider provider) {
+    recommendations.add(EnhancedRecommendation(
+      title: 'Cultivate Growth Mindset',
+      description: 'Embrace challenges as opportunities to learn and grow. Develop resilience through continuous learning.',
+      category: RecommendationCategory.growth,
+      priority: RecommendationPriority.medium,
+      icon: Icons.school_rounded,
+      basedOn: 'Learning and challenge themes',
+      expectedBenefit: 'Increased adaptability and confidence',
+      coreImpacts: {'growth_mindset': 0.4, 'learning_agility': 0.3},
+      timeCommitment: '15-30 minutes daily',
+      actionSteps: [
+        'Learn something new for 15 minutes daily',
+        'Reframe failures as learning opportunities',
+        'Seek feedback and act on it constructively',
+      ],
+    ));
+
+    recommendations.add(EnhancedRecommendation(
+      title: 'Practice Gratitude',
+      description: 'Regular gratitude practice can shift your perspective and increase overall life satisfaction.',
+      category: RecommendationCategory.wellbeing,
+      priority: RecommendationPriority.low,
+      icon: Icons.favorite_border_rounded,
+      basedOn: 'Emotional tone analysis',
+      expectedBenefit: 'Improved mood and life satisfaction',
+      coreImpacts: {'gratitude': 0.3, 'positive_outlook': 0.4},
+      timeCommitment: '5-10 minutes daily',
+      actionSteps: [
+        'Write down 3 things you\'re grateful for daily',
+        'Share appreciation with others regularly',
+        'Notice and savor positive moments',
+      ],
+    ));
   }
 
   Map<String, double> _getCoreResonanceData(EmotionalMirrorProvider provider) {

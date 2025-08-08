@@ -101,8 +101,7 @@ class LocalAuthService {
       final storedHash = await _secureStorage.read(key: _passwordHashKey);
       if (storedHash == null) return false;
       
-      final hashedPassword = _hashPassword(password);
-      return hashedPassword == storedHash;
+      return _verifyPassword(password, storedHash);
     } catch (error) {
       debugPrint('LocalAuthService authenticateWithPassword error: $error');
       return false;
@@ -200,11 +199,42 @@ class LocalAuthService {
     }
   }
 
-  /// Hash password using SHA-256
+  /// Hash password using SHA-256 with salt (temporary - should use bcrypt)
+  /// TODO: Replace with bcrypt or Argon2 for production
   String _hashPassword(String password) {
-    final bytes = utf8.encode(password);
+    // Generate a random salt
+    final timestamp = DateTime.now().millisecondsSinceEpoch.toString();
+    final random = List.generate(16, (i) => (timestamp.hashCode * i) % 256);
+    final saltBytes = sha256.convert(random).bytes.take(16).toList();
+    final salt = base64Encode(saltBytes);
+    
+    // Hash password with salt
+    final saltedPassword = '$password$salt';
+    final bytes = utf8.encode(saltedPassword);
     final digest = sha256.convert(bytes);
-    return digest.toString();
+    
+    // Return salt:hash format
+    return '$salt:${digest.toString()}';
+  }
+  
+  /// Verify password against stored hash
+  bool _verifyPassword(String password, String storedHash) {
+    final parts = storedHash.split(':');
+    if (parts.length != 2) {
+      // Legacy hash format (no salt) - still verify for backward compatibility
+      final bytes = utf8.encode(password);
+      final digest = sha256.convert(bytes);
+      return digest.toString() == storedHash;
+    }
+    
+    final salt = parts[0];
+    final expectedHash = parts[1];
+    
+    final saltedPassword = '$password$salt';
+    final bytes = utf8.encode(saltedPassword);
+    final digest = sha256.convert(bytes);
+    
+    return digest.toString() == expectedHash;
   }
 
   /// Change password

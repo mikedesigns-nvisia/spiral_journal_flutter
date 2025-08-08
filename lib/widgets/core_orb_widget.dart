@@ -165,7 +165,7 @@ class _CoreOrbWidgetState extends State<CoreOrbWidget>
                     ],
                     gradient: RadialGradient(
                       colors: [
-                        Colors.white.withOpacity(widget.isDormant ? 0.4 : 0.7),
+                        adjustedColor.withOpacity(widget.isDormant ? 0.8 : 1.0),
                         adjustedColor.withOpacity(widget.isDormant ? 0.6 : 0.9),
                         adjustedColor.withOpacity(widget.isDormant ? 0.3 : 0.5),
                       ],

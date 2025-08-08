@@ -1,0 +1,193 @@
+# Security Detection Rules for Spiral Journal Flutter App
+# These rules can be used with static analysis tools or CI/CD pipelines
+
+rules:
+  # API Key and Secret Detection
+  - id: hardcoded-api-key
+    pattern: |
+      sk-ant-api[0-9a-zA-Z-]+
+    message: "Potential Anthropic API key found in code"
+    severity: critical
+    files:
+      - "*.dart"
+      - "*.yaml"
+      - "*.json"
+    exclude:
+      - "*_test.dart"
+      - "*.example"
+
+  - id: api-key-in-logs
+    patterns:
+      - pattern: |
+          (debugPrint|print|log).*[Aa]pi.*[Kk]ey
+      - pattern: |
+          (debugPrint|print|log).*apiKey
+    message: "API key information might be logged"
+    severity: high
+    files:
+      - "*.dart"
+
+  - id: exposed-env-file
+    pattern: |
+      \.env$
+    message: "Environment file should not be committed"
+    severity: critical
+    files:
+      - "*"
+    exclude:
+      - ".env.example"
+
+  # Authentication Issues
+  - id: weak-password-hash
+    patterns:
+      - pattern: |
+          sha256\.convert.*password
+      - pattern: |
+          md5\.convert.*password
+    message: "Weak password hashing algorithm detected"
+    severity: high
+    files:
+      - "*.dart"
+
+  - id: missing-auth-check
+    pattern: |
+      class\s+\w+Screen.*\{(?!.*LocalAuthService)
+    message: "Screen might be missing authentication check"
+    severity: medium
+    files:
+      - "lib/screens/*.dart"
+
+  # Input Validation
+  - id: missing-input-validation
+    patterns:
+      - pattern: |
+          TextFormField\s*\([^)]*\)(?!.*validator)
+      - pattern: |
+          TextField\s*\([^)]*\)(?!.*inputFormatters)
+    message: "Text input field missing validation"
+    severity: medium
+    files:
+      - "*.dart"
+
+  - id: sql-injection-risk
+    patterns:
+      - pattern: |
+          rawQuery.*\$\{.*\}
+      - pattern: |
+          execute.*\+.*content
+    message: "Potential SQL injection vulnerability"
+    severity: critical
+    files:
+      - "*.dart"
+
+  # Data Exposure
+  - id: sensitive-data-print
+    patterns:
+      - pattern: |
+          (debugPrint|print).*password
+      - pattern: |
+          (debugPrint|print).*token
+      - pattern: |
+          (debugPrint|print).*secret
+    message: "Sensitive data might be printed to logs"
+    severity: high
+    files:
+      - "*.dart"
+
+  - id: unencrypted-storage
+    patterns:
+      - pattern: |
+          SharedPreferences.*password
+      - pattern: |
+          SharedPreferences.*token
+    message: "Sensitive data stored without encryption"
+    severity: high
+    files:
+      - "*.dart"
+
+  # Network Security
+  - id: http-not-https
+    pattern: |
+      http://(?!localhost|127\.0\.0\.1)
+    message: "Insecure HTTP connection detected"
+    severity: high
+    files:
+      - "*.dart"
+      - "*.yaml"
+
+  - id: missing-certificate-pinning
+    pattern: |
+      http\.(get|post|put|delete)(?!.*SecurityContext)
+    message: "HTTP request without certificate pinning"
+    severity: medium
+    files:
+      - "*.dart"
+
+  # iOS Security
+  - id: missing-jailbreak-detection
+    pattern: |
+      main\s*\(.*\)\s*\{(?!.*jailbreak|cydia|root)
+    message: "Application might not detect jailbroken devices"
+    severity: medium
+    files:
+      - "lib/main.dart"
+
+  - id: arbitrary-loads-enabled
+    pattern: |
+      NSAllowsArbitraryLoads.*true
+    message: "App Transport Security is disabled"
+    severity: critical
+    files:
+      - "Info.plist"
+
+  # General Security
+  - id: hardcoded-credentials
+    patterns:
+      - pattern: |
+          (password|passwd|pwd)\s*=\s*["'][^"']+["']
+      - pattern: |
+          (apikey|api_key|apiKey)\s*=\s*["'][^"']+["']
+    message: "Hardcoded credentials detected"
+    severity: critical
+    files:
+      - "*.dart"
+    exclude:
+      - "*_test.dart"
+
+  - id: missing-encryption
+    pattern: |
+      File\(.*\)\.writeAs(String|Bytes)(?!.*encrypt)
+    message: "File write without encryption"
+    severity: medium
+    files:
+      - "*.dart"
+
+  # Error Handling
+  - id: generic-error-exposure
+    pattern: |
+      catch.*\{[^}]*return.*e\.toString\(\)
+    message: "Error details might expose sensitive information"
+    severity: medium
+    files:
+      - "*.dart"
+
+  - id: missing-error-handling
+    pattern: |
+      http\.(get|post|put|delete)(?!.*try.*catch)
+    message: "Network request without error handling"
+    severity: medium
+    files:
+      - "*.dart"
+
+# Severity Levels:
+# - critical: Must fix before deployment
+# - high: Should fix before deployment
+# - medium: Should fix in next release
+# - low: Consider fixing
+
+# Usage:
+# These rules can be integrated with:
+# - semgrep: semgrep --config=security/detection_rules.yaml
+# - Custom pre-commit hooks
+# - CI/CD security scanning pipelines
+# - IDE plugins for real-time detection

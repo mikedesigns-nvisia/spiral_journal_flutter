@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import '../models/emotional_state.dart';
+import '../models/emotion_matrix.dart';
 import '../services/accessibility_service.dart' as accessibility;
 import '../design_system/design_tokens.dart';
 import '../design_system/heading_system.dart';
+import 'emotion_matrix_widget.dart';
 
 /// Primary emotional state widget that displays the user's dominant emotion
 /// with full accessibility support and smooth animations.
@@ -47,6 +49,12 @@ class PrimaryEmotionalStateWidget extends StatefulWidget {
   /// Whether to show tab navigation for primary/secondary emotions
   final bool showTabs;
 
+  /// Optional emotion matrix for comprehensive emotional display
+  final EmotionMatrix? emotionMatrix;
+
+  /// Whether to use emotion matrix mode instead of traditional primary/secondary
+  final bool useMatrixMode;
+
   const PrimaryEmotionalStateWidget({
     super.key,
     this.primaryState,
@@ -58,6 +66,8 @@ class PrimaryEmotionalStateWidget extends StatefulWidget {
     this.showConfidence = true,
     this.showTimestamp = true,
     this.showTabs = true,
+    this.emotionMatrix,
+    this.useMatrixMode = false,
   });
 
   @override
@@ -251,6 +261,22 @@ class _PrimaryEmotionalStateWidgetState extends State<PrimaryEmotionalStateWidge
 
   @override
   Widget build(BuildContext context) {
+    // Use emotion matrix mode if available and enabled
+    if (widget.useMatrixMode && widget.emotionMatrix != null) {
+      return EmotionMatrixWidget(
+        emotionMatrix: widget.emotionMatrix!,
+        compactMode: true,
+        maxEmotionsShown: 5,
+        showAnimation: widget.showAnimation,
+        onTap: widget.onTap,
+        showValence: true,
+        showPercentages: true,
+        title: 'Current Emotional State',
+        showBalance: false, // Keep compact in this context
+      );
+    }
+    
+    // Fall back to traditional display
     if (widget.primaryState == null && widget.secondaryState == null) {
       return _buildEmptyState();
     }

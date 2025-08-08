@@ -6,6 +6,7 @@ import 'package:spiral_journal/models/journal_entry.dart';
 import 'package:spiral_journal/services/emotional_analyzer.dart';
 import 'package:spiral_journal/models/emotional_mirror_data.dart';
 import 'package:spiral_journal/models/emotional_analysis.dart';
+import 'package:spiral_journal/models/emotion_matrix.dart';
 import 'package:spiral_journal/widgets/emotional_journey_visualization.dart';
 
 /// Enhanced widget that displays AI analysis results using the new Claude response structure
@@ -53,8 +54,8 @@ class PostAnalysisDisplay extends StatelessWidget {
         if (analysis.entryInsight != null)
           SizedBox(height: DesignTokens.spaceL),
         
-        // 2. Primary Emotions Summary
-        _buildPrimaryEmotionsCard(context, analysis),
+        // 2. Emotion Matrix Visualization
+        _buildEmotionMatrixCard(context, analysis),
         
         SizedBox(height: DesignTokens.spaceL),
         
@@ -149,8 +150,12 @@ class PostAnalysisDisplay extends StatelessWidget {
     );
   }
 
-  /// Build primary emotions card with intensity
-  Widget _buildPrimaryEmotionsCard(BuildContext context, EmotionalAnalysis analysis) {
+  /// Build comprehensive emotion matrix card
+  Widget _buildEmotionMatrixCard(BuildContext context, EmotionalAnalysis analysis) {
+    final emotionMatrix = analysis.emotionMatrix;
+    final topEmotions = emotionMatrix.getTopEmotions(8); // Show top 8 emotions
+    final hasSignificantEmotions = topEmotions.any((e) => e.value > 5.0);
+    
     return ComponentLibrary.gradientCard(
       gradient: DesignTokens.getCardGradient(context),
       child: Column(
@@ -165,18 +170,30 @@ class PostAnalysisDisplay extends StatelessWidget {
                   borderRadius: BorderRadius.circular(DesignTokens.radiusM),
                 ),
                 child: Icon(
-                  Icons.favorite_rounded,
+                  Icons.psychology_rounded,
                   color: DesignTokens.accentBlue,
                   size: DesignTokens.iconSizeL,
                 ),
               ),
               SizedBox(width: DesignTokens.spaceL),
               Expanded(
-                child: ResponsiveText(
-                  'Primary Emotions',
-                  baseFontSize: DesignTokens.fontSizeL,
-                  fontWeight: DesignTokens.fontWeightSemiBold,
-                  color: DesignTokens.getTextPrimary(context),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    ResponsiveText(
+                      'Emotional Spectrum',
+                      baseFontSize: DesignTokens.fontSizeL,
+                      fontWeight: DesignTokens.fontWeightSemiBold,
+                      color: DesignTokens.getTextPrimary(context),
+                    ),
+                    if (emotionMatrix.dominantEmotion != null)
+                      ResponsiveText(
+                        'Dominated by ${emotionMatrix.dominantEmotion}',
+                        baseFontSize: DesignTokens.fontSizeS,
+                        fontWeight: DesignTokens.fontWeightRegular,
+                        color: DesignTokens.getTextSecondary(context),
+                      ),
+                  ],
                 ),
               ),
               Container(
@@ -185,48 +202,196 @@ class PostAnalysisDisplay extends StatelessWidget {
                   vertical: DesignTokens.spaceS,
                 ),
                 decoration: BoxDecoration(
-                  color: DesignTokens.accentBlue.withValues(alpha: 0.2),
+                  color: _getEmotionalValenceColor(emotionMatrix.emotionalValence).withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(DesignTokens.radiusM),
                 ),
-                child: ResponsiveText(
-                  '${((analysis.emotionalIntensity > 1.0 ? analysis.emotionalIntensity / 10.0 : analysis.emotionalIntensity).clamp(0.0, 1.0) * 100).round()}%',
-                  baseFontSize: DesignTokens.fontSizeM,
-                  fontWeight: DesignTokens.fontWeightBold,
-                  color: DesignTokens.accentBlue,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      _getEmotionalValenceIcon(emotionMatrix.emotionalValence),
+                      size: DesignTokens.iconSizeS,
+                      color: _getEmotionalValenceColor(emotionMatrix.emotionalValence),
+                    ),
+                    SizedBox(width: DesignTokens.spaceXS),
+                    ResponsiveText(
+                      '${(emotionMatrix.emotionalIntensity * 100).round()}%',
+                      baseFontSize: DesignTokens.fontSizeM,
+                      fontWeight: DesignTokens.fontWeightBold,
+                      color: _getEmotionalValenceColor(emotionMatrix.emotionalValence),
+                    ),
+                  ],
                 ),
               ),
             ],
           ),
+          
           SizedBox(height: DesignTokens.spaceL),
-          Wrap(
-            spacing: DesignTokens.spaceS,
-            runSpacing: DesignTokens.spaceS,
-            children: analysis.primaryEmotions.take(5).map((emotion) {
-              return Container(
-                padding: EdgeInsets.symmetric(
-                  horizontal: DesignTokens.spaceM,
-                  vertical: DesignTokens.spaceS,
+          
+          if (!hasSignificantEmotions)
+            // Show placeholder when no significant emotions
+            Container(
+              padding: EdgeInsets.all(DesignTokens.spaceXL),
+              decoration: BoxDecoration(
+                color: DesignTokens.getBackgroundSecondary(context).withValues(alpha: 0.5),
+                borderRadius: BorderRadius.circular(DesignTokens.radiusM),
+                border: Border.all(
+                  color: DesignTokens.getTextTertiary(context).withValues(alpha: 0.2),
+                  width: 1,
                 ),
-                decoration: BoxDecoration(
-                  color: DesignTokens.accentBlue.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(DesignTokens.radiusM),
-                  border: Border.all(
-                    color: DesignTokens.accentBlue.withValues(alpha: 0.3),
-                    width: 1,
+              ),
+              child: Center(
+                child: Column(
+                  children: [
+                    Icon(
+                      Icons.sentiment_neutral,
+                      size: DesignTokens.iconSizeL,
+                      color: DesignTokens.getTextTertiary(context),
+                    ),
+                    SizedBox(height: DesignTokens.spaceM),
+                    ResponsiveText(
+                      'Neutral emotional state',
+                      baseFontSize: DesignTokens.fontSizeM,
+                      fontWeight: DesignTokens.fontWeightMedium,
+                      color: DesignTokens.getTextSecondary(context),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          else
+            // Show emotion matrix visualization
+            Column(
+              children: [
+                // Top emotions as progress bars
+                ...topEmotions.where((e) => e.value > 1.0).map((emotionEntry) {
+                  final emotion = emotionEntry.key;
+                  final percentage = emotionEntry.value;
+                  final isPositive = EmotionalState.isPositiveEmotion(emotion);
+                  
+                  return Padding(
+                    padding: EdgeInsets.only(bottom: DesignTokens.spaceM),
+                    child: Column(
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Expanded(
+                              child: Row(
+                                children: [
+                                  Container(
+                                    width: 8,
+                                    height: 8,
+                                    margin: EdgeInsets.only(right: DesignTokens.spaceS),
+                                    decoration: BoxDecoration(
+                                      color: isPositive ? DesignTokens.successColor : DesignTokens.warningColor,
+                                      shape: BoxShape.circle,
+                                    ),
+                                  ),
+                                  Expanded(
+                                    child: ResponsiveText(
+                                      emotion.split('_').map((w) => w[0].toUpperCase() + w.substring(1)).join(' '),
+                                      baseFontSize: DesignTokens.fontSizeM,
+                                      fontWeight: DesignTokens.fontWeightMedium,
+                                      color: DesignTokens.getTextPrimary(context),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            ResponsiveText(
+                              '${percentage.round()}%',
+                              baseFontSize: DesignTokens.fontSizeM,
+                              fontWeight: DesignTokens.fontWeightBold,
+                              color: isPositive ? DesignTokens.successColor : DesignTokens.warningColor,
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: DesignTokens.spaceS),
+                        Container(
+                          height: 6,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(DesignTokens.radiusS),
+                            color: DesignTokens.getBackgroundTertiary(context),
+                          ),
+                          child: FractionallySizedBox(
+                            alignment: Alignment.centerLeft,
+                            widthFactor: (percentage / 100.0).clamp(0.0, 1.0),
+                            child: Container(
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(DesignTokens.radiusS),
+                                gradient: LinearGradient(
+                                  colors: [
+                                    isPositive 
+                                        ? DesignTokens.successColor.withValues(alpha: 0.6)
+                                        : DesignTokens.warningColor.withValues(alpha: 0.6),
+                                    isPositive ? DesignTokens.successColor : DesignTokens.warningColor,
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }).toList(),
+                
+                // Emotional balance indicator
+                SizedBox(height: DesignTokens.spaceL),
+                Container(
+                  padding: EdgeInsets.all(DesignTokens.spaceL),
+                  decoration: BoxDecoration(
+                    color: DesignTokens.getBackgroundSecondary(context).withValues(alpha: 0.3),
+                    borderRadius: BorderRadius.circular(DesignTokens.radiusM),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.balance,
+                        size: DesignTokens.iconSizeM,
+                        color: DesignTokens.getTextSecondary(context),
+                      ),
+                      SizedBox(width: DesignTokens.spaceM),
+                      Expanded(
+                        child: ResponsiveText(
+                          'Emotional Balance: ${_getEmotionalBalanceDescription(emotionMatrix.emotionalValence)}',
+                          baseFontSize: DesignTokens.fontSizeM,
+                          fontWeight: DesignTokens.fontWeightRegular,
+                          color: DesignTokens.getTextSecondary(context),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                child: ResponsiveText(
-                  emotion,
-                  baseFontSize: DesignTokens.fontSizeM,
-                  fontWeight: DesignTokens.fontWeightMedium,
-                  color: DesignTokens.accentBlue,
-                ),
-              );
-            }).toList(),
-          ),
+              ],
+            ),
         ],
       ),
     );
+  }
+
+  /// Get color based on emotional valence
+  Color _getEmotionalValenceColor(double valence) {
+    if (valence > 0.2) return DesignTokens.successColor;
+    if (valence < -0.2) return DesignTokens.warningColor;
+    return DesignTokens.accentBlue;
+  }
+
+  /// Get icon based on emotional valence
+  IconData _getEmotionalValenceIcon(double valence) {
+    if (valence > 0.2) return Icons.sentiment_very_satisfied;
+    if (valence < -0.2) return Icons.sentiment_dissatisfied;
+    return Icons.sentiment_neutral;
+  }
+
+  /// Get description of emotional balance
+  String _getEmotionalBalanceDescription(double valence) {
+    if (valence > 0.4) return 'Very Positive';
+    if (valence > 0.2) return 'Positive';
+    if (valence > -0.2) return 'Balanced';
+    if (valence > -0.4) return 'Negative';
+    return 'Very Negative';
   }
 
   /// Build enhanced mind reflection card

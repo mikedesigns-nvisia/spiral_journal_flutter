@@ -3,6 +3,7 @@ import '../services/emotional_mirror_service.dart';
 import '../models/core.dart';
 import '../models/emotional_mirror_data.dart';
 import '../models/emotional_state.dart';
+import '../models/emotion_matrix.dart';
 
 /// Provider for managing emotional mirror state, filters, and data
 class EmotionalMirrorProvider extends ChangeNotifier {
@@ -108,6 +109,69 @@ class EmotionalMirrorProvider extends ChangeNotifier {
       confidence: confidence,
       context: context,
       customDescription: description,
+    );
+  }
+
+  /// Get comprehensive emotion matrix from the mirror data
+  EmotionMatrix? getEmotionMatrix() {
+    if (_mirrorData == null) return null;
+    
+    final moodOverview = _mirrorData!.moodOverview;
+    if (moodOverview.dominantMoods.isEmpty) {
+      // Return empty emotion matrix
+      return EmotionMatrix.empty();
+    }
+    
+    // Create emotion percentages based on dominant moods and mood balance
+    final emotionPercentages = <String, double>{};
+    
+    // Initialize all emotions to 0
+    for (final emotion in EmotionMatrix.supportedEmotions) {
+      emotionPercentages[emotion] = 0.0;
+    }
+    
+    // Distribute percentages based on dominant moods
+    final totalMoods = moodOverview.dominantMoods.length;
+    final basePercentage = 100.0 / totalMoods;
+    final moodBalance = moodOverview.moodBalance; // -1.0 to 1.0
+    
+    for (int i = 0; i < moodOverview.dominantMoods.length; i++) {
+      final mood = moodOverview.dominantMoods[i];
+      
+      // Apply mood balance to adjust percentages
+      double percentage = basePercentage;
+      
+      // Primary mood gets more weight
+      if (i == 0) {
+        percentage *= 1.5;
+      } else if (i == 1) {
+        percentage *= 1.2;
+      } else {
+        percentage *= 0.8;
+      }
+      
+      // Adjust based on mood balance and whether emotion is positive/negative
+      final isPositive = EmotionalState.isPositiveEmotion(mood);
+      if (isPositive && moodBalance > 0) {
+        percentage *= (1.0 + moodBalance * 0.5);
+      } else if (!isPositive && moodBalance < 0) {
+        percentage *= (1.0 + moodBalance.abs() * 0.5);
+      } else {
+        percentage *= 0.8; // Reduce contradictory emotions
+      }
+      
+      if (EmotionMatrix.supportedEmotions.contains(mood.toLowerCase())) {
+        emotionPercentages[mood.toLowerCase()] = percentage.clamp(0.0, 100.0);
+      }
+    }
+    
+    // Calculate confidence based on data completeness
+    final confidence = moodOverview.dominantMoods.length >= 2 ? 0.85 : 0.65;
+    
+    return EmotionMatrix.fromPercentages(
+      percentages: emotionPercentages,
+      confidence: confidence,
+      normalize: true,
     );
   }
 

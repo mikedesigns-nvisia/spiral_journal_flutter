@@ -9,6 +9,7 @@ import 'migrations/schema_migration_v3.dart';
 import 'migrations/schema_migration_v4.dart';
 import 'migrations/schema_migration_v6.dart';
 import 'migrations/schema_migration_v7.dart';
+import 'migrations/schema_migration_v8.dart';
 import '../utils/database_exceptions.dart';
 
 /// Result class for database clearing operations
@@ -77,7 +78,7 @@ class DatabaseHelper {
       
       return await openDatabase(
         path,
-        version: 7, // Increment version for status column addition
+        version: 8, // Increment version for emotion_matrix column addition
         onCreate: _onCreate,
         onUpgrade: _onUpgrade,
       );
@@ -119,6 +120,7 @@ class DatabaseHelper {
         date TEXT NOT NULL,
         content TEXT NOT NULL,
         moods TEXT NOT NULL,
+        emotion_matrix TEXT DEFAULT '{}',
         dayOfWeek TEXT NOT NULL,
         createdAt TEXT NOT NULL,
         updatedAt TEXT NOT NULL,
@@ -241,6 +243,11 @@ class DatabaseHelper {
     if (oldVersion < 7 && newVersion >= 7) {
       // Migrate from version 6 to version 7 (add status column for processing state tracking)
       await SchemaMigrationV7.migrate(db);
+    }
+    
+    if (oldVersion < 8 && newVersion >= 8) {
+      // Migrate from version 7 to version 8 (add emotion_matrix column for comprehensive emotional data)
+      await SchemaMigrationV8.migrate(db);
     }
   }
 

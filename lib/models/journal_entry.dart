@@ -1,3 +1,5 @@
+import 'emotion_matrix.dart';
+
 /// Entry status enumeration
 enum EntryStatus {
   draft,     // Entry is being written/edited
@@ -11,6 +13,7 @@ class JournalEntry {
   final DateTime date;
   final String content;
   final List<String> moods;
+  final EmotionMatrix? emotionMatrix;
   final String dayOfWeek;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -29,6 +32,7 @@ class JournalEntry {
     required this.date,
     required this.content,
     required this.moods,
+    this.emotionMatrix,
     required this.dayOfWeek,
     required this.createdAt,
     required this.updatedAt,
@@ -53,6 +57,7 @@ class JournalEntry {
   factory JournalEntry.create({
     required String content,
     required List<String> moods,
+    EmotionMatrix? emotionMatrix,
     String? id,
     String? userId,
   }) {
@@ -65,6 +70,7 @@ class JournalEntry {
       date: now,
       content: content,
       moods: moods,
+      emotionMatrix: emotionMatrix,
       dayOfWeek: dayNames[now.weekday - 1],
       createdAt: now,
       updatedAt: now,
@@ -78,6 +84,7 @@ class JournalEntry {
     DateTime? date,
     String? content,
     List<String>? moods,
+    EmotionMatrix? emotionMatrix,
     String? dayOfWeek,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -93,6 +100,7 @@ class JournalEntry {
       date: date ?? this.date,
       content: content ?? this.content,
       moods: moods ?? this.moods,
+      emotionMatrix: emotionMatrix ?? this.emotionMatrix,
       dayOfWeek: dayOfWeek ?? this.dayOfWeek,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
@@ -112,6 +120,7 @@ class JournalEntry {
       'date': date.toIso8601String(),
       'content': content,
       'moods': moods,
+      'emotion_matrix': emotionMatrix?.toJson(),
       'dayOfWeek': dayOfWeek,
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt.toIso8601String(),
@@ -124,12 +133,18 @@ class JournalEntry {
 
   // Create from JSON
   factory JournalEntry.fromJson(Map<String, dynamic> json) {
+    EmotionMatrix? emotionMatrix;
+    if (json['emotion_matrix'] != null) {
+      emotionMatrix = EmotionMatrix.fromJson(json['emotion_matrix']);
+    }
+    
     return JournalEntry(
       id: json['id'],
       userId: json['userId'] ?? 'local_user',
       date: DateTime.parse(json['date']),
       content: json['content'],
       moods: List<String>.from(json['moods'] ?? []),
+      emotionMatrix: emotionMatrix,
       dayOfWeek: json['dayOfWeek'],
       createdAt: DateTime.parse(json['createdAt']),
       updatedAt: DateTime.parse(json['updatedAt']),

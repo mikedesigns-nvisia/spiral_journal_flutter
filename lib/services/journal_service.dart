@@ -187,6 +187,18 @@ class JournalService {
     }
   }
 
+  Future<List<JournalEntry>> getRecentEntries(int days) async {
+    try {
+      final cutoffDate = DateTime.now().subtract(Duration(days: days));
+      final allEntries = await getAllEntries();
+      return allEntries.where((entry) => entry.createdAt.isAfter(cutoffDate)).toList()
+        ..sort((a, b) => b.createdAt.compareTo(a.createdAt)); // Most recent first
+    } catch (e) {
+      debugPrint('JournalService getRecentEntries error: $e');
+      rethrow;
+    }
+  }
+
   Future<List<JournalEntry>> searchEntries(String query) async {
     try {
       return await _journalDao.searchJournalEntries(query);

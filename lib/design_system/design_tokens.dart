@@ -675,6 +675,124 @@ class DesignTokens {
       ),
     );
   }
+
+  // ============================================================================
+  // STATIC TEXT STYLES - CONVENIENCE PROPERTIES
+  // ============================================================================
+
+  /// Commonly used static text styles for easy access
+  static TextStyle get displayLarge => getSerifTextStyle(
+    fontSize: 57,
+    fontWeight: FontWeight.w400,
+    color: textPrimary,
+    letterSpacing: -0.25,
+    height: 1.12,
+  );
+
+  static TextStyle get displayMedium => getSerifTextStyle(
+    fontSize: 45,
+    fontWeight: FontWeight.w400,
+    color: textPrimary,
+    height: 1.16,
+  );
+
+  static TextStyle get displaySmall => getSerifTextStyle(
+    fontSize: 36,
+    fontWeight: FontWeight.w400,
+    color: textPrimary,
+    height: 1.22,
+  );
+
+  static TextStyle get headlineLarge => getSerifTextStyle(
+    fontSize: 32,
+    fontWeight: FontWeight.w400,
+    color: textPrimary,
+    height: 1.25,
+  );
+
+  static TextStyle get headlineMedium => getSerifTextStyle(
+    fontSize: 28,
+    fontWeight: FontWeight.w400,
+    color: textPrimary,
+    height: 1.29,
+  );
+
+  static TextStyle get headlineSmall => getSerifTextStyle(
+    fontSize: 24,
+    fontWeight: FontWeight.w400,
+    color: textPrimary,
+    height: 1.33,
+  );
+
+  static TextStyle get titleLarge => getTextStyle(
+    fontSize: 22,
+    fontWeight: FontWeight.w500,
+    color: textPrimary,
+    height: 1.27,
+  );
+
+  static TextStyle get titleMedium => getTextStyle(
+    fontSize: 16,
+    fontWeight: FontWeight.w500,
+    color: textPrimary,
+    height: 1.5,
+  );
+
+  static TextStyle get titleSmall => getTextStyle(
+    fontSize: 14,
+    fontWeight: FontWeight.w500,
+    color: textPrimary,
+    height: 1.43,
+  );
+
+  static TextStyle get bodyLarge => getTextStyle(
+    fontSize: 16,
+    fontWeight: FontWeight.w400,
+    color: textPrimary,
+    height: 1.5,
+  );
+
+  static TextStyle get bodyMedium => getTextStyle(
+    fontSize: 14,
+    fontWeight: FontWeight.w400,
+    color: textPrimary,
+    height: 1.43,
+  );
+
+  static TextStyle get bodySmall => getTextStyle(
+    fontSize: 12,
+    fontWeight: FontWeight.w400,
+    color: textSecondary,
+    height: 1.33,
+  );
+
+  static TextStyle get bodyLargeBold => getTextStyle(
+    fontSize: 16,
+    fontWeight: FontWeight.w700,
+    color: textPrimary,
+    height: 1.5,
+  );
+
+  static TextStyle get labelLarge => getTextStyle(
+    fontSize: 14,
+    fontWeight: FontWeight.w500,
+    color: textPrimary,
+    height: 1.43,
+  );
+
+  static TextStyle get labelMedium => getTextStyle(
+    fontSize: 12,
+    fontWeight: FontWeight.w500,
+    color: textPrimary,
+    height: 1.33,
+  );
+
+  static TextStyle get labelSmall => getTextStyle(
+    fontSize: 11,
+    fontWeight: FontWeight.w500,
+    color: textPrimary,
+    height: 1.45,
+  );
   
   /// Responsive value based on screen width
   static T getResponsiveValue<T>(

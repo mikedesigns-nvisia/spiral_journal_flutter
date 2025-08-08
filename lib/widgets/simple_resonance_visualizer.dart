@@ -40,26 +40,6 @@ class SimpleResonanceVisualizer extends StatelessWidget {
         children: [
           // Simple depth indicator
           if (!isDormant) _buildDepthIndicator(color),
-          
-          // Simple highlight
-          Positioned(
-            top: size * 0.2,
-            left: size * 0.2,
-            child: Container(
-              width: size * 0.3,
-              height: size * 0.3,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: RadialGradient(
-                  colors: [
-                    Colors.white.withValues(alpha: isDormant ? 0.3 : 0.5),
-                    Colors.transparent,
-                  ],
-                  stops: const [0.0, 1.0],
-                ),
-              ),
-            ),
-          ),
         ],
       ),
     );
@@ -99,7 +79,7 @@ class SimpleResonanceVisualizer extends StatelessWidget {
         return RadialGradient(
           center: const Alignment(-0.3, -0.3),
           colors: [
-            Colors.white.withValues(alpha: 0.7),
+            color.withValues(alpha: 0.8),
             color.withValues(alpha: 0.6),
             color.withValues(alpha: 0.8),
             color.withValues(alpha: 1.0),
@@ -110,7 +90,7 @@ class SimpleResonanceVisualizer extends StatelessWidget {
         return RadialGradient(
           center: const Alignment(-0.3, -0.3),
           colors: [
-            Colors.white.withValues(alpha: 0.8),
+            color.withValues(alpha: 0.9),
             color.withValues(alpha: 0.7),
             color.withValues(alpha: 0.9),
             _getDarkerVariant(color),
@@ -122,7 +102,7 @@ class SimpleResonanceVisualizer extends StatelessWidget {
         return RadialGradient(
           center: const Alignment(-0.3, -0.3),
           colors: [
-            Colors.white.withValues(alpha: 0.9),
+            color,
             color.withValues(alpha: 0.8),
             color,
             _getDarkerVariant(color),
@@ -133,7 +113,7 @@ class SimpleResonanceVisualizer extends StatelessWidget {
         return RadialGradient(
           center: const Alignment(-0.3, -0.3),
           colors: [
-            Colors.white,
+            color,
             color.withValues(alpha: 0.9),
             color,
             _getDarkerVariant(color),

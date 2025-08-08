@@ -33,7 +33,7 @@ class ProductionEnvironmentLoader {
       
       debugPrint('✅ Environment loaded successfully');
       debugPrint('   Variables loaded: ${_envVars.keys.length}');
-      debugPrint('   Claude API key present: ${hasClaudeApiKey()}');
+      debugPrint('   Claude API key configured: ${hasClaudeApiKey()}');
       
     } catch (e, stackTrace) {
       _lastError = e.toString();
@@ -119,11 +119,11 @@ class ProductionEnvironmentLoader {
     );
   }
 
-  /// Get API key preview for debugging (first 20 chars + ...)
+  /// Get API key status for debugging (no actual key data)
   static String? _getApiKeyPreview() {
     final key = getClaudeApiKey();
-    if (key == null || key.length < 20) return key;
-    return '${key.substring(0, 20)}...';
+    if (key == null) return 'not_configured';
+    return key.isNotEmpty ? 'configured' : 'empty';
   }
 
   /// Reset loading state (for testing)

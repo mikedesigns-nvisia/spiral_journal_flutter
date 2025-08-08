@@ -70,8 +70,11 @@ dev_dependencies:
   flutter_lints: ^6.0.0
   sqflite_common_ffi: ^2.3.0
 
-  integration_test: any
-  mockito: any
+  integration_test:
+    sdk: flutter
+  mockito: ^5.4.4
+  flutter_native_splash: ^2.4.3
+  image: ^4.5.4
 flutter:
   uses-material-design: true
   
@@ -87,3 +90,14 @@ flutter:
   #   android: true
   #   ios: true
   #   image_path: "assets/icon/app_icon.png"
+
+# Flutter Native Splash Configuration
+flutter_native_splash:
+  color: "#3A312C"  # Dark brown background color from the image
+  image: assets/images/splash_screen.png
+  android: true
+  ios: true
+  web: false
+  android_12:
+    color: "#3A312C"
+    image: assets/images/splash_screen.png

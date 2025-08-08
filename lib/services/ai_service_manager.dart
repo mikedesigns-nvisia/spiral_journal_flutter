@@ -199,7 +199,7 @@ class AIServiceManager {
       String apiKey = _builtInClaudeApiKey;
       String keySource = 'Built-in Environment';
       
-      debugPrint('📋 Initial API key from environment: ${apiKey.isNotEmpty ? "${apiKey.substring(0, 20)}..." : "empty"}');
+      debugPrint('📋 Initial API key from environment: ${apiKey.isNotEmpty ? "configured" : "empty"}');
       
       // If no API key from environment, check ProductionEnvironmentLoader directly
       if (apiKey.isEmpty) {
@@ -856,9 +856,9 @@ class AIServiceManager {
         final envStatus = _getEnvironmentStatus();
         debugPrint('✅ Environment status: ${envStatus.isLoaded ? "loaded" : "not loaded"}');
         if (envStatus.hasClaudeApiKey) {
-          debugPrint('✅ Claude API key found: ${envStatus.claudeApiKeyPreview}');
+          debugPrint('✅ Claude API key: configured');
         } else {
-          debugPrint('❌ Claude API key not found');
+          debugPrint('❌ Claude API key: not configured');
         }
       } catch (e) {
         debugPrint('⚠️  Environment loading check failed: $e');

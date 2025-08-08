@@ -129,7 +129,7 @@ class EmotionalState {
   }
 
   /// Determine if emotion is positive
-  static bool _isPositiveEmotion(String emotion) {
+  static bool isPositiveEmotion(String emotion) {
     final positiveEmotions = {
       'happy', 'excited', 'calm', 'content', 'joyful', 'peaceful', 
       'optimistic', 'energetic', 'confident', 'grateful'
@@ -137,6 +137,9 @@ class EmotionalState {
     
     return positiveEmotions.contains(emotion.toLowerCase());
   }
+
+  /// Private wrapper for backward compatibility
+  static bool _isPositiveEmotion(String emotion) => isPositiveEmotion(emotion);
 
   /// Create copy with updated properties
   EmotionalState copyWith({
