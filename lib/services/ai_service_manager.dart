@@ -1,2140 +1,282 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import '../models/journal_entry.dart';
-import '../models/core.dart' hide EmotionalPattern;
-import '../config/environment.dart';
-import 'ai_service_interface.dart';
-import 'ai_service_error_tracker.dart';
-import 'production_environment_loader.dart';
-import 'providers/fallback_provider.dart';
+import '../models/core.dart';
 import 'providers/enhanced_fallback_provider.dart';
-import 'dev_config_service.dart';
 import 'emotional_analyzer.dart';
 import 'core_evolution_engine.dart';
 import 'offline_queue_service.dart';
 
-/// Manages AI service providers and coordinates AI-powered analysis operations.
+/// Manages local analysis operations for journal entries.
 /// 
-/// This service acts as a facade for different AI providers, handling provider
-/// selection, configuration, fallback scenarios, and service health monitoring.
-/// It provides a unified interface for AI operations while abstracting the
-/// complexity of multiple provider implementations.
+/// This service provides local-only analysis using rule-based algorithms
+/// and emotional intelligence processing. No external API calls are made.
 /// 
 /// ## Key Features
-/// - Automatic provider selection based on configuration and availability
-/// - Built-in API key management with development mode support
-/// - Graceful fallback to rule-based analysis when AI services are unavailable
-/// - Service health monitoring and connection testing
-/// - Unified interface for all AI operations
+/// - Local emotional analysis using pattern recognition
+/// - Core evolution calculations based on journal content
+/// - Offline-first architecture with no external dependencies
+/// - Built-in emotional intelligence without API requirements
 /// 
 /// ## Usage Example
 /// ```dart
 /// final aiManager = AIServiceManager();
 /// await aiManager.initialize();
 /// 
-/// // Analyze a journal entry
+/// // Analyze a journal entry locally
 /// final analysis = await aiManager.analyzeJournalEntry(entry);
 /// 
-/// // Generate monthly insights
+/// // Generate monthly insights from local patterns
 /// final insight = await aiManager.generateMonthlyInsight(entries);
 /// 
-/// // Calculate core updates
+/// // Calculate core updates using local algorithms
 /// final coreUpdates = await aiManager.calculateCoreUpdates(entry, cores);
-/// 
-/// // Toggle AI analysis
-/// await aiManager.setAIEnabled(false); // Use fallback analysis
 /// ```
-/// 
-/// ## Provider Architecture
-/// - **ClaudeAIProvider**: Full AI analysis using Claude API
-/// - **FallbackProvider**: Rule-based analysis when AI is unavailable
-/// - Automatic provider switching based on configuration and health
-/// 
-/// ## Configuration Management
-/// - Built-in API keys for production deployment
-/// - Development mode support with custom API keys
-/// - Persistent user preferences for AI enablement
-/// - Automatic fallback when services are unavailable
 class AIServiceManager {
   static final AIServiceManager _instance = AIServiceManager._internal();
   factory AIServiceManager() => _instance;
   AIServiceManager._internal();
 
-  AIServiceInterface? _currentService;
-  AIServiceConfig? _currentConfig;
+  // Local analysis providers
+  late final EnhancedFallbackProvider _localAnalyzer;
   
   // Analysis engines
   final EmotionalAnalyzer _emotionalAnalyzer = EmotionalAnalyzer();
   final CoreEvolutionEngine _coreEvolutionEngine = CoreEvolutionEngine();
-  // final HaikuPromptOptimizer _promptOptimizer = HaikuPromptOptimizer();
   
-  // Token optimization
-  final TokenOptimizer _tokenOptimizer = TokenOptimizer();
-  final BatchRequestManager _batchManager = BatchRequestManager();
-  
-  // Metrics tracking
-  TokenUsageMetrics _tokenMetrics = TokenUsageMetrics();
-  
-  // Offline queue for failed operations
+  // Offline queue for analysis operations
   final OfflineQueueService _offlineQueue = OfflineQueueService();
   
   // Network connectivity monitoring
   final Connectivity _connectivity = Connectivity();
   StreamSubscription<List<ConnectivityResult>>? _connectivitySubscription;
   List<ConnectivityResult> _connectionStatus = [ConnectivityResult.none];
-  final StreamController<NetworkStatus> _networkStatusController = StreamController<NetworkStatus>.broadcast();
-  
-  // Network-aware processing
-  final List<QueuedAnalysisRequest> _deferredRequests = [];
-  Timer? _wifiPreFetchTimer;
-  DateTime? _lastIdleCheck;
-  bool _isPreFetching = false;
 
-  // Built-in Claude API key - loaded from .env file at runtime
-  static String get _builtInClaudeApiKey => EnvironmentConfig.claudeApiKey;
-  
-  // Available providers - Simplified to enabled/disabled only
-  // Note: _providers field removed as we now directly instantiate providers
+  bool _isInitialized = false;
 
-  // Getters
-  AIServiceInterface get currentService => _currentService ?? FallbackProvider(
-    AIServiceConfig(provider: AIProvider.disabled, apiKey: ''),
-  );
-  
-  AIProvider get currentProvider => _currentConfig?.provider ?? AIProvider.disabled;
-  List<AIProvider> get availableProviders => AIProvider.values;
-  bool get isConfigured => _currentService?.isConfigured ?? false;
-
-  // Initialize with saved configuration
+  /// Initialize the local analysis service
   Future<void> initialize() async {
+    if (_isInitialized) return;
+    
     try {
-      debugPrint('🔧 AIServiceManager: Starting initialization...');
+      debugPrint('🔧 AIServiceManager: Starting local analysis initialization...');
       
-      // CRITICAL: Ensure environment is loaded before proceeding
-      debugPrint('📋 Ensuring environment variables are loaded...');
-      await ProductionEnvironmentLoader.ensureLoaded();
-      final envStatus = ProductionEnvironmentLoader.getStatus();
-      debugPrint('📋 Environment status: ${envStatus.toString()}');
+      // Initialize local analyzer with fallback configuration
+      _localAnalyzer = EnhancedFallbackProvider(
+        LocalAnalysisConfig(),
+      );
       
-      final prefs = await SharedPreferences.getInstance();
-      final isAIEnabled = prefs.getBool('ai_enabled') ?? true; // Default to enabled
-      debugPrint('📋 AI enabled preference: $isAIEnabled');
-      
-      // Initialize network monitoring
-      debugPrint('📋 Initializing network monitoring...');
+      // Initialize network monitoring for queue management
       await _initializeNetworkMonitoring();
-      debugPrint('✅ Network monitoring initialized');
       
-      // PRIORITY CHANGE: Always use local fallback as primary, regardless of user preference
-      debugPrint('📋 Prioritizing local fallback processing...');
-      await _enableAIAnalysis(); // Now uses enhanced fallback as primary
-      debugPrint('✅ Local fallback processing prioritized with provider: $currentProvider');
+      // Initialize offline queue
+      await _offlineQueue.initialize();
       
-      // Note: User AI preference is maintained for potential future features
-      if (isAIEnabled) {
-        debugPrint('📋 User prefers AI analysis, but local fallback is prioritized for performance');
-      } else {
-        debugPrint('📋 User prefers local analysis, aligning with prioritized approach');
-      }
-      
-      debugPrint('🎉 AIServiceManager initialization completed successfully');
-    } catch (error, stackTrace) {
-      debugPrint('❌ AIServiceManager initialize error: $error');
-      debugPrint('Stack trace: $stackTrace');
-      
-      // Log the error for debugging
-      _logInitializationError('initialize', error, stackTrace);
-      
-      // Fallback to disabled if initialization fails
-      debugPrint('🔄 Falling back to disabled AI analysis due to initialization error');
-      await _disableAIAnalysis();
-    }
-  }
-
-  // Enable local fallback analysis (prioritized over AI API)
-  Future<void> _enableAIAnalysis() async {
-    try {
-      debugPrint('🔧 _enableAIAnalysis: Prioritizing local fallback processing...');
-      
-      // PRIORITY CHANGE: Start with enhanced fallback provider
-      debugPrint('📋 Using enhanced local fallback processing as primary method');
-      final config = AIServiceConfig(provider: AIProvider.disabled, apiKey: '');
-      _currentService = EnhancedFallbackProvider(config);
-      _currentConfig = config;
-      
-      debugPrint('✅ Local fallback analysis prioritized successfully');
-      debugPrint('   Provider: ${config.provider}');
-      debugPrint('   Service type: ${_currentService.runtimeType}');
-      debugPrint('   Analysis: Deep local emotional intelligence (primary)');
-      
-      // Log provider selection decision
-      _logProviderSelection(AIProvider.disabled, 'Local fallback prioritized for efficiency and reliability');
-      
-      // Optional: Still check for AI capability but don't use it as primary
-      await _checkAICapabilitySecondary();
+      _isInitialized = true;
+      debugPrint('✅ Local analysis service initialized successfully');
       
     } catch (error, stackTrace) {
-      debugPrint('❌ _enableAIAnalysis error: $error');
+      debugPrint('❌ AIServiceManager initialization error: $error');
       debugPrint('Stack trace: $stackTrace');
-      
-      // Log the error for debugging
-      _logInitializationError('_enableAIAnalysis', error, stackTrace);
-      
-      // Even on error, use basic fallback
-      debugPrint('🔄 Using basic fallback due to error');
-      await _disableAIAnalysis();
-    }
-  }
-
-  // Check AI capability as secondary option (for future use or diagnostics)
-  Future<void> _checkAICapabilitySecondary() async {
-    try {
-      debugPrint('🔍 Checking AI capability as secondary option...');
-      
-      // Ensure environment is loaded first
-      await ProductionEnvironmentLoader.ensureLoaded();
-      
-      String apiKey = _builtInClaudeApiKey;
-      String keySource = 'Built-in Environment';
-      
-      debugPrint('📋 Initial API key from environment: ${apiKey.isNotEmpty ? "configured" : "empty"}');
-      
-      // If no API key from environment, check ProductionEnvironmentLoader directly
-      if (apiKey.isEmpty) {
-        final loaderKey = ProductionEnvironmentLoader.getClaudeApiKey();
-        if (loaderKey != null && loaderKey.isNotEmpty) {
-          apiKey = loaderKey;
-          keySource = 'ProductionEnvironmentLoader';
-          debugPrint('📋 Found API key from ProductionEnvironmentLoader');
-        }
-      }
-      
-      // In development mode, check for dev API key
-      if (DevConfigService.isDevMode) {
-        debugPrint('📋 Development mode detected, checking for dev API key...');
-        try {
-          final devService = DevConfigService();
-          final devApiKey = await devService.getDevClaudeApiKey();
-          if (devApiKey != null && devApiKey.isNotEmpty) {
-            apiKey = devApiKey;
-            keySource = 'DevConfigService';
-            debugPrint('✅ Found dev API key from secure storage');
-          }
-        } catch (e) {
-          debugPrint('⚠️  Dev config failed: $e');
-        }
-      }
-
-      if (apiKey.isNotEmpty) {
-        // Validate API key format
-        final keyValidation = _validateApiKeyFormat(apiKey);
-        if (keyValidation.isValid) {
-          debugPrint('📋 AI capability available but not prioritized (key source: $keySource)');
-          debugPrint('   Local fallback remains primary for performance and reliability');
-        } else {
-          debugPrint('📋 AI key found but invalid format - local fallback remains primary');
-        }
-      } else {
-        debugPrint('📋 No AI key found - local fallback is the only option');
-      }
-      
-    } catch (error) {
-      debugPrint('⚠️  AI capability check failed: $error (local fallback unaffected)');
-    }
-  }
-
-  // Disable AI analysis and use enhanced local analysis
-  Future<void> _disableAIAnalysis() async {
-    debugPrint('🔧 _disableAIAnalysis: Configuring enhanced fallback provider...');
-    
-    final config = AIServiceConfig(provider: AIProvider.disabled, apiKey: '');
-    _currentService = EnhancedFallbackProvider(config);
-    _currentConfig = config;
-    
-    debugPrint('✅ Enhanced fallback provider configured');
-    debugPrint('   Provider: ${config.provider}');
-    debugPrint('   Service type: ${_currentService.runtimeType}');
-    debugPrint('   Analysis: Deep local emotional intelligence');
-    
-    // Log provider selection decision
-    _logProviderSelection(AIProvider.disabled, 'Using enhanced fallback provider for sophisticated local analysis');
-  }
-
-  // Toggle AI analysis on/off (user-facing setting) - Now always uses local fallback
-  Future<void> setAIEnabled(bool enabled) async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setBool('ai_enabled', enabled);
-      
-      // PRIORITY CHANGE: Always use local fallback regardless of setting
-      debugPrint('📋 User AI preference set to: $enabled');
-      debugPrint('📋 Maintaining local fallback processing as primary method');
-      await _enableAIAnalysis(); // Always uses enhanced fallback now
-      
-      debugPrint('✅ Service configured with local fallback processing (user preference: $enabled)');
-    } catch (e) {
-      debugPrint('AIServiceManager setAIEnabled error: $e');
       rethrow;
     }
   }
 
-  // Test current service connection
-  Future<void> testCurrentService() async {
-    try {
-      if (_currentService == null) {
-        throw Exception('No service configured');
-      }
-      
-      await _currentService!.testConnection();
-    } catch (e) {
-      debugPrint('AIServiceManager testCurrentService error: $e');
-      rethrow;
-    }
-  }
-
-  // Token-optimized delegate methods to current service with comprehensive error handling
-  Future<Map<String, dynamic>> analyzeJournalEntry(JournalEntry entry, {bool isCritical = true}) async {
-    try {
-      // Check network conditions and defer non-critical analysis on cellular
-      if (!isCritical && _isOnCellular()) {
-        return await _deferAnalysisRequest(entry);
-      }
-      
-      // If offline, queue for later processing
-      if (_isOffline()) {
-        await _offlineQueue.queueAIAnalysis(entry);
-        return _getBasicFallbackAnalysis();
-      }
-      
-      // Optimize the entry for token efficiency
-      final optimizedEntry = await _tokenOptimizer.optimizeEntry(entry);
-      
-      // Track token usage before request
-      final estimatedTokens = _tokenOptimizer.estimateTokens(optimizedEntry.optimizedContent);
-      _tokenMetrics.recordRequest(estimatedTokens);
-      
-      // Enhanced batching on WiFi - batch all requests for efficiency
-      if (_isOnWiFi() && _batchManager.shouldBatch(optimizedEntry)) {
-        return await _batchManager.addToBatch(optimizedEntry, () => 
-            _analyzeOptimizedEntry(optimizedEntry));
-      }
-      
-      return await _analyzeOptimizedEntry(optimizedEntry);
-    } on AIServiceException catch (e) {
-      debugPrint('AIServiceManager analyzeJournalEntry AIServiceException: $e');
-      _tokenMetrics.recordError();
-      
-      // If the error is not retryable or we're already using fallback, queue for retry
-      if (!e.isRetryable || currentService is FallbackProvider) {
-        // Queue for offline retry if this appears to be a network-related issue
-        if (e.message.toLowerCase().contains('network') || 
-            e.message.toLowerCase().contains('connection') ||
-            e.message.toLowerCase().contains('timeout')) {
-          try {
-            await _offlineQueue.queueAIAnalysis(entry);
-            debugPrint('AIServiceManager: Queued AI analysis for offline retry');
-          } catch (queueError) {
-            debugPrint('AIServiceManager: Failed to queue AI analysis: $queueError');
-          }
-        }
-        rethrow;
-      }
-      
-      // Try fallback provider for retryable errors
-      return await _tryFallbackAnalysis(entry);
-    } catch (e) {
-      debugPrint('AIServiceManager analyzeJournalEntry unexpected error: $e');
-      _tokenMetrics.recordError();
-      
-      // For unexpected errors, try fallback if not already using it
-      if (currentService is! FallbackProvider) {
-        try {
-          return await _tryFallbackAnalysis(entry);
-        } catch (fallbackError) {
-          // If fallback also fails, queue for offline retry
-          try {
-            await _offlineQueue.queueAIAnalysis(entry);
-            debugPrint('AIServiceManager: Queued AI analysis for offline retry after fallback failure');
-            // Return a basic fallback result
-            return _getBasicFallbackAnalysis();
-          } catch (queueError) {
-            debugPrint('AIServiceManager: Failed to queue AI analysis: $queueError');
-          }
-          rethrow;
-        }
-      }
-      
-      // Queue for offline retry if all else fails
-      try {
-        await _offlineQueue.queueAIAnalysis(entry);
-        debugPrint('AIServiceManager: Queued AI analysis for offline retry');
-        return _getBasicFallbackAnalysis();
-      } catch (queueError) {
-        debugPrint('AIServiceManager: Failed to queue AI analysis: $queueError');
-        rethrow;
-      }
-    }
-  }
-  
-  /// Internal method to analyze an optimized entry
-  Future<Map<String, dynamic>> _analyzeOptimizedEntry(OptimizedJournalEntry optimizedEntry) async {
-    final result = await currentService.analyzeJournalEntry(optimizedEntry.toJournalEntry());
+  /// Analyze journal entry using local algorithms
+  Future<Map<String, dynamic>> analyzeJournalEntry(JournalEntry entry) async {
+    await _ensureInitialized();
     
-    // Track successful response tokens
-    if (result.containsKey('_token_usage')) {
-      final usage = result['_token_usage'] as Map<String, dynamic>;
-      _tokenMetrics.recordResponse(
-        usage['input_tokens'] ?? 0,
-        usage['output_tokens'] ?? 0,
-      );
-    }
-    
-    return result;
-  }
-
-  Future<String> generateMonthlyInsight(List<JournalEntry> entries, {bool isCritical = false}) async {
     try {
-      // Defer non-critical insight generation on cellular
-      if (!isCritical && _isOnCellular()) {
-        // Queue for WiFi processing
-        _deferredRequests.add(QueuedAnalysisRequest(
-          entry: entries.first, // Use first entry as representative
-          analysisFunction: () async {
-            final result = await generateMonthlyInsight(entries, isCritical: true);
-            return {'insight': result};
-          },
-          completer: Completer<Map<String, dynamic>>(),
-          timestamp: DateTime.now(),
-          type: AnalysisType.monthlyInsight,
-        ));
-        
-        return 'Monthly insight will be generated when on WiFi for better performance.';
-      }
+      // Use local analysis via the enhanced fallback provider
+      final analysis = await _localAnalyzer.analyzeJournalEntry(entry);
       
-      // If offline, return basic insight
-      if (_isOffline()) {
-        return _tryFallbackInsight(entries);
-      }
-      
-      // Optimize entries for token efficiency
-      final compressedData = _tokenOptimizer.compressMonthlyData(entries);
-      final estimatedTokens = _tokenOptimizer.estimateTokens(compressedData);
-      _tokenMetrics.recordRequest(estimatedTokens);
-      
-      // Create optimized insight request
-      final result = await _generateOptimizedInsight(compressedData);
-      
-      return result;
-    } on AIServiceException catch (e) {
-      debugPrint('AIServiceManager generateMonthlyInsight AIServiceException: $e');
-      _tokenMetrics.recordError();
-      
-      if (!e.isRetryable || currentService is FallbackProvider) {
-        rethrow;
-      }
-      
-      return await _tryFallbackInsight(entries);
-    } catch (e) {
-      debugPrint('AIServiceManager generateMonthlyInsight unexpected error: $e');
-      _tokenMetrics.recordError();
-      
-      if (currentService is! FallbackProvider) {
-        return await _tryFallbackInsight(entries);
-      }
-      
-      rethrow;
-    }
-  }
-  
-  /// Generate insight from compressed monthly data
-  Future<String> _generateOptimizedInsight(String compressedData) async {
-    // This would need to be implemented in the provider
-    return await currentService.generateMonthlyInsight([]);
-  }
-
-  Future<Map<String, double>> calculateCoreUpdates(
-    JournalEntry entry,
-    List<EmotionalCore> currentCores, {
-    bool isCritical = true,
-  }) async {
-    try {
-      // Defer non-critical core updates on cellular
-      if (!isCritical && _isOnCellular()) {
-        // Queue for WiFi processing and return minimal update
-        _deferredRequests.add(QueuedAnalysisRequest(
-          entry: entry,
-          analysisFunction: () async {
-            final result = await calculateCoreUpdates(entry, currentCores, isCritical: true);
-            return {'core_updates': result};
-          },
-          completer: Completer<Map<String, dynamic>>(),
-          timestamp: DateTime.now(),
-          type: AnalysisType.coreUpdate,
-        ));
-        
-        // Return minimal self-awareness boost
-        final updates = <String, double>{};
-        for (final core in currentCores) {
-          if (core.name == 'Self-Awareness') {
-            updates[core.id] = (core.percentage + 0.1).clamp(0.0, 100.0);
-            break;
-          }
-        }
-        return updates;
-      }
-      
-      // If offline, use fallback
-      if (_isOffline()) {
-        return await _tryFallbackCoreUpdates(entry, currentCores);
-      }
-      
-      return await currentService.calculateCoreUpdates(entry, currentCores);
-    } on AIServiceException catch (e) {
-      debugPrint('AIServiceManager calculateCoreUpdates AIServiceException: $e');
-      
-      if (!e.isRetryable || currentService is FallbackProvider) {
-        rethrow;
-      }
-      
-      return await _tryFallbackCoreUpdates(entry, currentCores);
-    } catch (e) {
-      debugPrint('AIServiceManager calculateCoreUpdates unexpected error: $e');
-      
-      if (currentService is! FallbackProvider) {
-        return await _tryFallbackCoreUpdates(entry, currentCores);
-      }
-      
-      rethrow;
-    }
-  }
-
-  // Fallback methods
-  Future<Map<String, dynamic>> _tryFallbackAnalysis(JournalEntry entry) async {
-    try {
-      final fallbackService = FallbackProvider(
-        AIServiceConfig(provider: AIProvider.disabled, apiKey: ''),
-      );
-      return await fallbackService.analyzeJournalEntry(entry);
-    } catch (e) {
-      debugPrint('AIServiceManager fallback analysis failed: $e');
-      // Return absolute minimum analysis
       return {
-        "primary_emotions": ["neutral"],
-        "emotional_intensity": 5.0,
-        "growth_indicators": ["self_reflection"],
-        "core_adjustments": {
-          'Optimism': 0.0,
-          'Resilience': 0.0,
-          'Self-Awareness': 0.1,
-          'Creativity': 0.0,
-          'Social Connection': 0.0,
-          'Growth Mindset': 0.0,
-        },
-        "mind_reflection": {
-          "title": "Basic Analysis",
-          "summary": "Thank you for journaling.",
-          "insights": ["Self-reflection supports personal growth"],
-        },
-        "entry_insight": "Thank you for taking time to reflect.",
+        'emotional_analysis': analysis['emotional_analysis'] ?? {'mood': 'neutral', 'confidence': 0.7},
+        'insights': analysis['insights'] ?? ['Entry processed with local analysis'],
+        'processing_type': 'local',
+        'timestamp': DateTime.now().toIso8601String(),
+      };
+    } catch (error) {
+      debugPrint('❌ Error analyzing journal entry: $error');
+      // Return basic analysis on error
+      return {
+        'emotional_analysis': {'mood': 'neutral', 'confidence': 0.5},
+        'insights': ['Entry processed locally'],
+        'processing_type': 'basic_local',
+        'error': error.toString(),
       };
     }
   }
 
-  Future<String> _tryFallbackInsight(List<JournalEntry> entries) async {
-    try {
-      final fallbackService = FallbackProvider(
-        AIServiceConfig(provider: AIProvider.disabled, apiKey: ''),
-      );
-      return await fallbackService.generateMonthlyInsight(entries);
-    } catch (e) {
-      debugPrint('AIServiceManager fallback insight failed: $e');
-      return entries.isEmpty 
-          ? "Consider starting a regular journaling practice."
-          : "Your journaling practice shows commitment to self-reflection.";
-    }
-  }
-
-  Future<Map<String, double>> _tryFallbackCoreUpdates(
-    JournalEntry entry,
-    List<EmotionalCore> currentCores,
-  ) async {
-    try {
-      final fallbackService = FallbackProvider(
-        AIServiceConfig(provider: AIProvider.disabled, apiKey: ''),
-      );
-      return await fallbackService.calculateCoreUpdates(entry, currentCores);
-    } catch (e) {
-      debugPrint('AIServiceManager fallback core updates failed: $e');
-      // Return minimal self-awareness boost
-      final updates = <String, double>{};
-      for (final core in currentCores) {
-        if (core.name == 'Self-Awareness') {
-          updates[core.id] = (core.percentage + 0.1).clamp(0.0, 100.0);
-          break;
-        }
-      }
-      return updates;
-    }
-  }
-
-  // Get provider info
-  String getProviderDescription(AIProvider provider) {
-    return provider.description;
-  }
-
-  // Enhanced analysis methods using EmotionalAnalyzer and CoreEvolutionEngine
-
-  /// Perform comprehensive emotional analysis with validation and sanitization
-  Future<EmotionalAnalysisResult> performEmotionalAnalysis(JournalEntry entry, {bool isCritical = true}) async {
-    try {
-      // Get raw AI analysis with network awareness
-      final rawAnalysis = await analyzeJournalEntry(entry, isCritical: isCritical);
-      
-      // Process through emotional analyzer
-      final analysisResult = _emotionalAnalyzer.processAnalysis(rawAnalysis, entry);
-      
-      // Validate and sanitize the result
-      if (!_emotionalAnalyzer.validateAnalysisResult(analysisResult)) {
-        debugPrint('AIServiceManager: Analysis validation failed, using fallback');
-        return _emotionalAnalyzer.processAnalysis({}, entry); // Fallback analysis
-      }
-      
-      return _emotionalAnalyzer.sanitizeAnalysisResult(analysisResult);
-    } catch (e) {
-      debugPrint('AIServiceManager performEmotionalAnalysis error: $e');
-      // Return fallback analysis
-      return _emotionalAnalyzer.processAnalysis({}, entry);
-    }
-  }
-
-  /// Update emotional cores based on analysis with milestone tracking
-  Future<List<EmotionalCore>> updateEmotionalCores(
-    List<EmotionalCore> currentCores,
-    JournalEntry entry, {
-    bool isCritical = true,
-  }) async {
-    try {
-      // Perform emotional analysis with network awareness
-      final analysisResult = await performEmotionalAnalysis(entry, isCritical: isCritical);
-      
-      // Update cores using evolution engine
-      return _coreEvolutionEngine.updateCoresWithAnalysis(
-        currentCores,
-        analysisResult,
-        entry,
-      );
-    } catch (e) {
-      debugPrint('AIServiceManager updateEmotionalCores error: $e');
-      return currentCores; // Return unchanged cores on error
-    }
-  }
-
-  /// Calculate core progress with milestones and insights
-  Future<CoreProgressResult> calculateCoreProgress(
-    EmotionalCore core,
-    List<JournalEntry> recentEntries,
-  ) async {
-    try {
-      return _coreEvolutionEngine.calculateCoreProgress(core, recentEntries);
-    } catch (e) {
-      debugPrint('AIServiceManager calculateCoreProgress error: $e');
-      return CoreProgressResult(
-        core: core,
-        milestones: [],
-        achievedMilestones: [],
-        nextMilestone: null,
-        progressVelocity: 0.0,
-        estimatedTimeToNextMilestone: null,
-      );
-    }
-  }
-
-  /// Generate personalized core insight based on recent patterns
-  Future<String> generateCoreInsight(
-    EmotionalCore core,
-    List<JournalEntry> recentEntries,
-  ) async {
-    try {
-      // Analyze recent entries
-      final recentAnalyses = <EmotionalAnalysisResult>[];
-      for (final entry in recentEntries.take(5)) { // Limit to 5 most recent
-        final analysis = await performEmotionalAnalysis(entry);
-        recentAnalyses.add(analysis);
-      }
-      
-      return _coreEvolutionEngine.generateCoreInsight(core, recentAnalyses);
-    } catch (e) {
-      debugPrint('AIServiceManager generateCoreInsight error: $e');
-      return 'Your ${core.name} continues to develop through self-reflection.';
-    }
-  }
-
-  /// Identify emotional patterns across multiple entries (removed - using local processing)
-  /// This method has been simplified for local processing
-
-  /// Get initial core set for new users
-  List<EmotionalCore> getInitialEmotionalCores() {
-    return _coreEvolutionEngine.getInitialCores();
-  }
-
-  /// Comprehensive analysis combining all features
-  Future<ComprehensiveAnalysisResult> performComprehensiveAnalysis(
-    JournalEntry entry,
-    List<EmotionalCore> currentCores,
-    List<JournalEntry> recentEntries, {
-    bool isCritical = true,
-  }) async {
-    try {
-      // Perform emotional analysis with network awareness
-      final emotionalAnalysis = await performEmotionalAnalysis(entry, isCritical: isCritical);
-      
-      // Update cores with network awareness
-      final updatedCores = await updateEmotionalCores(currentCores, entry, isCritical: isCritical);
-      
-      // Calculate core updates with network awareness
-      final coreUpdates = await calculateCoreUpdates(entry, currentCores, isCritical: isCritical);
-      
-      // Pattern identification removed for local processing
-      
-      return ComprehensiveAnalysisResult(
-        emotionalAnalysis: emotionalAnalysis,
-        updatedCores: updatedCores,
-        coreUpdates: coreUpdates,
-        // emotionalPatterns parameter removed
-        analysisTimestamp: DateTime.now(),
-      );
-    } catch (e) {
-      debugPrint('AIServiceManager performComprehensiveAnalysis error: $e');
-      // Return minimal result on error
-      return ComprehensiveAnalysisResult(
-        emotionalAnalysis: _emotionalAnalyzer.processAnalysis({}, entry),
-        updatedCores: currentCores,
-        coreUpdates: {},
-        // emotionalPatterns parameter removed
-        analysisTimestamp: DateTime.now(),
-      );
-    }
-  }
-
-  /// Get token optimization metrics
-  TokenUsageMetrics getTokenMetrics() => _tokenMetrics;
-  
-  /// Reset token metrics
-  void resetTokenMetrics() {
-    _tokenMetrics = TokenUsageMetrics();
-  }
-  
-  /// Get batch processing status
-  BatchStatus getBatchStatus() => _batchManager.getStatus();
-  
-  /// Force process pending batches
-  Future<void> processPendingBatches() async {
-    await _batchManager.processPendingBatches();
-  }
-  
-  /// Defer analysis request for WiFi processing
-  Future<Map<String, dynamic>> _deferAnalysisRequest(JournalEntry entry) async {
-    final completer = Completer<Map<String, dynamic>>();
+  /// Generate monthly insights from journal entries
+  Future<Map<String, dynamic>> generateMonthlyInsight(List<JournalEntry> entries) async {
+    await _ensureInitialized();
     
-    _deferredRequests.add(QueuedAnalysisRequest(
-      entry: entry,
-      analysisFunction: () async {
-        return await analyzeJournalEntry(entry, isCritical: true);
-      },
-      completer: completer,
-      timestamp: DateTime.now(),
-      type: AnalysisType.journalEntry,
-    ));
-    
-    debugPrint('AIServiceManager: Deferred analysis request for entry ${entry.id}');
-    
-    // Return basic analysis with note about deferral
-    final basicAnalysis = _getBasicFallbackAnalysis();
-    basicAnalysis['mind_reflection']['summary'] = 
-        'Basic analysis complete. Detailed AI analysis will be performed when on WiFi for better performance.';
-    
-    return basicAnalysis;
-  }
-  
-  /// Get network statistics
-  NetworkStatistics getNetworkStatistics() {
-    return NetworkStatistics(
-      currentStatus: _getNetworkStatus(),
-      deferredRequestsCount: _deferredRequests.length,
-      isPreFetching: _isPreFetching,
-      lastIdleCheck: _lastIdleCheck,
-    );
-  }
-
-  // Clear configuration
-  Future<void> clearConfiguration() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.remove('ai_service_config');
-      
-      _currentService = FallbackProvider(
-        AIServiceConfig(provider: AIProvider.disabled, apiKey: ''),
-      );
-      _currentConfig = AIServiceConfig(provider: AIProvider.disabled, apiKey: '');
-      
-      // Clean up network monitoring
-      await _disposeNetworkMonitoring();
-    } catch (e) {
-      // Ignore clear errors
-    }
-  }
-  
-  // =============================================================================
-  // DIAGNOSTIC METHODS
-  // =============================================================================
-  
-  /// Get detailed status of the AI service for debugging
-  Future<DetailedServiceStatus> getDetailedStatus() async {
-    try {
-      debugPrint('🔍 Getting detailed AI service status...');
-      
-      // Environment status (assuming ProductionEnvironmentLoader exists)
-      final envStatus = _getEnvironmentStatus();
-      
-      // Service configuration
-      final isConfigured = this.isConfigured;
-      final currentProvider = this.currentProvider;
-      final currentService = this.currentService;
-      
-      // API key status
-      final apiKeyStatus = await _getApiKeyStatus();
-      
-      // Connection test
-      ConnectionTestResult? connectionTest;
-      try {
-        await testCurrentService();
-        connectionTest = ConnectionTestResult.success('Connection test passed');
-      } catch (e) {
-        connectionTest = ConnectionTestResult.failed('Connection test failed: $e');
-      }
-      
-      // Provider analysis
-      final providerAnalysis = _analyzeProviderSelection();
-      
-      final status = DetailedServiceStatus(
-        timestamp: DateTime.now(),
-        environmentStatus: envStatus,
-        isServiceConfigured: isConfigured,
-        currentProvider: currentProvider,
-        currentServiceType: currentService.runtimeType.toString(),
-        apiKeyStatus: apiKeyStatus,
-        connectionTest: connectionTest,
-        providerAnalysis: providerAnalysis,
-        availableProviders: availableProviders,
-      );
-      
-      debugPrint('📊 Service status: ${status.summary}');
-      return status;
-      
-    } catch (e, stackTrace) {
-      debugPrint('❌ Failed to get detailed status: $e');
-      debugPrint('Stack trace: $stackTrace');
-      
-      return DetailedServiceStatus.error(
-        error: e.toString(),
-        stackTrace: stackTrace.toString(),
-      );
-    }
-  }
-  
-  /// Initialize with comprehensive diagnostics and logging
-  Future<void> initializeWithDiagnostics() async {
-    try {
-      debugPrint('🔧 AIServiceManager: Starting diagnostic initialization...');
-      
-      // Step 1: Ensure environment is loaded (if ProductionEnvironmentLoader exists)
-      debugPrint('📋 Step 1: Loading environment variables...');
-      try {
-        // Try to load environment if the loader exists
-        final envStatus = _getEnvironmentStatus();
-        debugPrint('✅ Environment status: ${envStatus.isLoaded ? "loaded" : "not loaded"}');
-        if (envStatus.hasClaudeApiKey) {
-          debugPrint('✅ Claude API key: configured');
+      // Generate simple local patterns
+      final moodCounts = <String, int>{};
+      for (final entry in entries) {
+        final moods = entry.moods;
+        if (moods.isNotEmpty) {
+          final primaryMood = moods.first;
+          moodCounts[primaryMood] = (moodCounts[primaryMood] ?? 0) + 1;
         } else {
-          debugPrint('❌ Claude API key: not configured');
-        }
-      } catch (e) {
-        debugPrint('⚠️  Environment loading check failed: $e');
-      }
-      
-      // Step 2: Initialize the service
-      debugPrint('📋 Step 2: Initializing AI service...');
-      await initialize();
-      debugPrint('✅ AI service initialized');
-      
-      // Step 3: Validate configuration
-      debugPrint('📋 Step 3: Validating configuration...');
-      final status = await getDetailedStatus();
-      debugPrint('📊 Final status:');
-      debugPrint('   Service configured: ${status.isServiceConfigured}');
-      debugPrint('   Current provider: ${status.currentProvider}');
-      debugPrint('   Service type: ${status.currentServiceType}');
-      debugPrint('   API key valid: ${status.apiKeyStatus.isValid}');
-      debugPrint('   Connection: ${status.connectionTest?.isSuccess ?? false ? "success" : "failed"}');
-      
-      // Step 4: Log provider analysis
-      debugPrint('📋 Step 4: Provider analysis...');
-      debugPrint('   ${status.providerAnalysis.summary}');
-      if (status.providerAnalysis.warnings.isNotEmpty) {
-        for (final warning in status.providerAnalysis.warnings) {
-          debugPrint('   ⚠️  $warning');
+          moodCounts['neutral'] = (moodCounts['neutral'] ?? 0) + 1;
         }
       }
       
-      debugPrint('🎉 Diagnostic initialization completed');
-      
-    } catch (e, stackTrace) {
-      debugPrint('❌ AIServiceManager diagnostic initialization failed: $e');
-      debugPrint('Stack trace: $stackTrace');
-      
-      // Log the error for debugging
-      _logInitializationError('initializeWithDiagnostics', e, stackTrace);
-      
-      rethrow;
+      return {
+        'patterns': moodCounts,
+        'total_entries': entries.length,
+        'processing_type': 'local',
+        'period': 'monthly',
+        'dominant_mood': moodCounts.isNotEmpty ? 
+          moodCounts.entries.reduce((a, b) => a.value > b.value ? a : b).key : 'neutral',
+      };
+    } catch (error) {
+      debugPrint('❌ Error generating monthly insight: $error');
+      return {
+        'patterns': {},
+        'total_entries': entries.length,
+        'processing_type': 'basic_local',
+        'error': error.toString(),
+      };
     }
   }
-  
-  // =============================================================================
-  // DIAGNOSTIC HELPER METHODS
-  // =============================================================================
-  
-  /// Get environment status (simplified version if ProductionEnvironmentLoader not available)
-  EnvironmentStatus _getEnvironmentStatus() {
+
+  /// Calculate core updates based on journal entry
+  Future<List<EmotionalCore>> calculateCoreUpdates(JournalEntry entry, List<EmotionalCore> existingCores) async {
+    await _ensureInitialized();
+    
     try {
-      final claudeKey = _builtInClaudeApiKey;
-      return EnvironmentStatus(
-        isLoaded: true,
-        variableCount: claudeKey.isNotEmpty ? 1 : 0,
-        hasClaudeApiKey: claudeKey.isNotEmpty && claudeKey.startsWith('sk-ant-'),
-        claudeApiKeyPreview: claudeKey.isNotEmpty && claudeKey.length > 20 
-            ? '${claudeKey.substring(0, 20)}...' 
-            : claudeKey,
-      );
-    } catch (e) {
-      return EnvironmentStatus(
-        isLoaded: false,
-        variableCount: 0,
-        hasClaudeApiKey: false,
-        claudeApiKeyPreview: null,
-      );
+      // Simple local core update logic
+      final updatedCores = <EmotionalCore>[];
+      for (final core in existingCores) {
+        // Simple content-based core resonance calculation
+        final contentLower = entry.content.toLowerCase();
+        final coreNameLower = core.name.toLowerCase();
+        
+        double adjustmentFactor = 0.0;
+        if (contentLower.contains(coreNameLower)) {
+          adjustmentFactor = 0.05; // Small positive adjustment if core name appears in content
+        }
+        
+        final updatedLevel = (core.currentLevel + adjustmentFactor).clamp(0.0, 1.0);
+        
+        updatedCores.add(EmotionalCore(
+          id: core.id,
+          name: core.name,
+          description: core.description,
+          currentLevel: updatedLevel,
+          previousLevel: core.currentLevel,
+          lastUpdated: DateTime.now(),
+          lastTransitionDate: core.lastTransitionDate,
+          entriesAtCurrentDepth: core.entriesAtCurrentDepth,
+          trend: _calculateTrend(core.currentLevel, updatedLevel),
+          color: core.color,
+          iconPath: core.iconPath,
+          insight: core.insight,
+          relatedCores: core.relatedCores,
+          milestones: core.milestones,
+          recentInsights: core.recentInsights,
+          transitionSignals: core.transitionSignals,
+          supportingEvidence: core.supportingEvidence,
+        ));
+      }
+      
+      return updatedCores;
+    } catch (error) {
+      debugPrint('❌ Error calculating core updates: $error');
+      return existingCores; // Return unchanged cores on error
     }
   }
-  
-  /// Get API key status with detailed validation
-  Future<ApiKeyStatus> _getApiKeyStatus() async {
+
+  /// Calculate trend based on level changes
+  String _calculateTrend(double previousLevel, double currentLevel) {
+    final difference = currentLevel - previousLevel;
+    if (difference > 0.01) return 'rising';
+    if (difference < -0.01) return 'declining';
+    return 'stable';
+  }
+
+  /// Check if service is ready for analysis
+  bool get isReady => _isInitialized;
+
+  /// Get current processing type (always local)
+  String get processingType => 'local';
+
+  /// Initialize network monitoring for queue management
+  Future<void> _initializeNetworkMonitoring() async {
     try {
-      // Check built-in key first
-      final builtInKey = _builtInClaudeApiKey;
-      if (builtInKey.isNotEmpty) {
-        final validation = _validateApiKeyFormat(builtInKey);
-        if (validation.isValid) {
-          return ApiKeyStatus.valid('Built-in Environment', validation.preview);
-        } else {
-          return ApiKeyStatus.invalid('Built-in Environment', validation.preview, validation.issues);
-        }
-      }
-      
-      // Check dev config service if in dev mode
-      if (DevConfigService.isDevMode) {
-        try {
-          final devService = DevConfigService();
-          final devApiKey = await devService.getDevClaudeApiKey();
-          if (devApiKey != null && devApiKey.isNotEmpty) {
-            final validation = _validateApiKeyFormat(devApiKey);
-            if (validation.isValid) {
-              return ApiKeyStatus.valid('DevConfigService', validation.preview);
-            } else {
-              return ApiKeyStatus.invalid('DevConfigService', validation.preview, validation.issues);
-            }
-          }
-        } catch (e) {
-          debugPrint('⚠️  Dev config service failed: $e');
-        }
-      }
-      
-      return ApiKeyStatus.notFound();
-      
-    } catch (e) {
-      return ApiKeyStatus.error(e.toString());
-    }
-  }
-  
-  /// Validate API key format and properties
-  ApiKeyValidation _validateApiKeyFormat(String apiKey) {
-    final issues = <String>[];
-    
-    // Check format
-    if (!apiKey.startsWith('sk-ant-')) {
-      issues.add('Does not start with sk-ant-');
-    }
-    
-    // Check length
-    if (apiKey.length < 50) {
-      issues.add('Too short (${apiKey.length} chars, expected 50+)');
-    }
-    
-    // Check for placeholder values
-    if (apiKey.contains('your_api_key_here') || apiKey == 'sk-ant-placeholder') {
-      issues.add('Appears to be a placeholder value');
-    }
-    
-    final preview = apiKey.length > 20 ? '${apiKey.substring(0, 20)}...' : apiKey;
-    
-    return ApiKeyValidation(
-      isValid: issues.isEmpty,
-      preview: preview,
-      issues: issues,
-    );
-  }
-  
-  /// Analyze provider selection logic
-  ProviderAnalysis _analyzeProviderSelection() {
-    final warnings = <String>[];
-    final info = <String>[];
-    
-    final provider = currentProvider;
-    final service = currentService;
-    
-    // Check provider type
-    if (provider == AIProvider.disabled) {
-      warnings.add('Provider is disabled - using fallback analysis only');
-    }
-    
-    // Check service type vs provider
-    if (provider == AIProvider.enabled && service.runtimeType.toString() != 'ClaudeAIProvider') {
-      warnings.add('Provider is enabled but service is not ClaudeAIProvider');
-    }
-    
-    if (provider == AIProvider.disabled && service.runtimeType.toString() != 'FallbackProvider') {
-      warnings.add('Provider is disabled but service is not FallbackProvider');
-    }
-    
-    // Check environment vs provider
-    final envStatus = _getEnvironmentStatus();
-    if (envStatus.hasClaudeApiKey && provider == AIProvider.disabled) {
-      warnings.add('API key is available but provider is disabled');
-    }
-    
-    if (!envStatus.hasClaudeApiKey && provider == AIProvider.enabled) {
-      warnings.add('Provider is enabled but no API key is available');
-    }
-    
-    // Add info about current state
-    info.add('Current provider: $provider');
-    info.add('Current service: ${service.runtimeType}');
-    info.add('API key available: ${envStatus.hasClaudeApiKey}');
-    
-    String summary;
-    if (warnings.isEmpty) {
-      summary = 'Provider selection appears correct';
-    } else {
-      summary = 'Provider selection has ${warnings.length} issue(s)';
-    }
-    
-    return ProviderAnalysis(
-      summary: summary,
-      warnings: warnings,
-      info: info,
-    );
-  }
-  
-  /// Log provider selection decisions for debugging
-  void _logProviderSelection(AIProvider selectedProvider, String reason) {
-    debugPrint('🎯 Provider Selection Decision:');
-    debugPrint('   Selected: $selectedProvider');
-    debugPrint('   Reason: $reason');
-    debugPrint('   Service type: ${_currentService?.runtimeType ?? "none"}');
-    
-    // Track fallback events
-    if (selectedProvider == AIProvider.disabled && _currentConfig?.provider != AIProvider.disabled) {
-      AIServiceErrorTracker.logFallback(
-        reason,
-        'ClaudeAIProvider',
-        context: {
-          'previousProvider': _currentConfig?.provider.toString(),
-          'newProvider': selectedProvider.toString(),
-          'serviceType': _currentService?.runtimeType.toString(),
+      _connectionStatus = await _connectivity.checkConnectivity();
+      _connectivitySubscription = _connectivity.onConnectivityChanged.listen(
+        (List<ConnectivityResult> results) {
+          _connectionStatus = results;
+          _processQueuedOperations();
         },
       );
+    } catch (error) {
+      debugPrint('❌ Network monitoring initialization error: $error');
+      // Continue without network monitoring
     }
   }
-  
-  /// Log initialization errors for debugging
-  void _logInitializationError(String operation, dynamic error, StackTrace? stackTrace) {
-    debugPrint('❌ Initialization Error in $operation:');
-    debugPrint('   Error: $error');
-    if (stackTrace != null && kDebugMode) {
-      debugPrint('   Stack trace: $stackTrace');
+
+  /// Process any queued operations when connectivity is restored
+  void _processQueuedOperations() {
+    if (_connectionStatus.contains(ConnectivityResult.wifi) ||
+        _connectionStatus.contains(ConnectivityResult.mobile)) {
+      // Process any queued offline operations
+      _offlineQueue.processQueue();
     }
-    
-    // Track initialization errors
-    AIServiceErrorTracker.logError(
-      operation,
-      error,
-      stackTrace: stackTrace,
-      context: {
-        'currentProvider': _currentConfig?.provider.toString(),
-        'isConfigured': _currentService?.isConfigured,
-        'serviceType': _currentService?.runtimeType.toString(),
-      },
-      provider: 'AIServiceManager',
-    );
+  }
+
+  /// Ensure service is initialized before operations
+  Future<void> _ensureInitialized() async {
+    if (!_isInitialized) {
+      await initialize();
+    }
   }
 
   /// Dispose of resources
   void dispose() {
-    _disposeNetworkMonitoring();
-  }
-
-  /// Get a basic fallback analysis when all AI services fail
-  Map<String, dynamic> _getBasicFallbackAnalysis() {
-    return {
-      "primary_emotions": ["neutral"],
-      "emotional_intensity": 5.0,
-      "growth_indicators": ["self_reflection"],
-      "core_adjustments": {
-        'Optimism': 0.0,
-        'Resilience': 0.0,
-        'Self-Awareness': 0.1,
-        'Creativity': 0.0,
-        'Social Connection': 0.0,
-        'Growth Mindset': 0.0,
-      },
-      "mind_reflection": {
-        "title": "Basic Analysis",
-        "summary": "Thank you for journaling. Your entry has been saved and will be analyzed when connectivity is restored.",
-        "insights": ["Self-reflection supports personal growth"],
-      },
-      "entry_insight": "Thank you for taking time to reflect. Your entry will be fully analyzed when online.",
-    };
-  }
-  
-  // =============================================================================
-  // NETWORK-AWARE PROCESSING METHODS
-  // =============================================================================
-  
-  /// Initialize network connectivity monitoring
-  Future<void> _initializeNetworkMonitoring() async {
-    try {
-      // Get initial connectivity status
-      _connectionStatus = await _connectivity.checkConnectivity();
-      
-      // Listen for connectivity changes
-      _connectivitySubscription = _connectivity.onConnectivityChanged.listen(
-        _onConnectivityChanged,
-        onError: (error) {
-          debugPrint('AIServiceManager connectivity stream error: $error');
-        },
-      );
-      
-      // Update batch manager with network status
-      _batchManager.setWiFiMode(_isOnWiFi());
-      
-      // Start WiFi idle monitoring if on WiFi
-      if (_isOnWiFi()) {
-        _startWiFiIdleMonitoring();
-      }
-      
-      debugPrint('AIServiceManager: Network monitoring initialized. Status: $_connectionStatus');
-    } catch (e) {
-      debugPrint('AIServiceManager _initializeNetworkMonitoring error: $e');
-    }
-  }
-  
-  /// Handle connectivity changes
-  void _onConnectivityChanged(List<ConnectivityResult> results) {
-    final previousStatus = _connectionStatus;
-    _connectionStatus = results;
-    
-    final networkStatus = _getNetworkStatus();
-    _networkStatusController.add(networkStatus);
-    
-    // Update batch manager
-    _batchManager.setWiFiMode(_isOnWiFi());
-    
-    debugPrint('AIServiceManager: Network status changed from $previousStatus to $results');
-    
-    // Handle network state transitions
-    if (_wasOfflineNowOnline(previousStatus, results)) {
-      _handleBackOnline();
-    } else if (_wasOnWiFiNowCellular(previousStatus, results)) {
-      _handleWiFiToCellular();
-    } else if (_wasCellularNowWiFi(previousStatus, results)) {
-      _handleCellularToWiFi();
-    }
-  }
-  
-  /// Check if transitioned from offline to online
-  bool _wasOfflineNowOnline(List<ConnectivityResult> previous, List<ConnectivityResult> current) {
-    final wasOffline = previous.every((result) => result == ConnectivityResult.none);
-    final isOnline = current.any((result) => result != ConnectivityResult.none);
-    return wasOffline && isOnline;
-  }
-  
-  /// Check if transitioned from WiFi to cellular
-  bool _wasOnWiFiNowCellular(List<ConnectivityResult> previous, List<ConnectivityResult> current) {
-    final wasWiFi = previous.contains(ConnectivityResult.wifi);
-    final isCellular = current.contains(ConnectivityResult.mobile) && !current.contains(ConnectivityResult.wifi);
-    return wasWiFi && isCellular;
-  }
-  
-  /// Check if transitioned from cellular to WiFi
-  bool _wasCellularNowWiFi(List<ConnectivityResult> previous, List<ConnectivityResult> current) {
-    final wasCellular = previous.contains(ConnectivityResult.mobile) && !previous.contains(ConnectivityResult.wifi);
-    final isWiFi = current.contains(ConnectivityResult.wifi);
-    return wasCellular && isWiFi;
-  }
-  
-  /// Handle coming back online
-  void _handleBackOnline() {
-    debugPrint('AIServiceManager: Back online - processing queued requests');
-    
-    // Process offline queue
-    // Note: processQueuedRequests would need to be implemented in OfflineQueueService
-    // _offlineQueue.processQueuedRequests();
-    
-    // Process deferred requests if on WiFi
-    if (_isOnWiFi()) {
-      _processDeferredRequests();
-      _startWiFiIdleMonitoring();
-    }
-  }
-  
-  /// Handle WiFi to cellular transition
-  void _handleWiFiToCellular() {
-    debugPrint('AIServiceManager: Switched to cellular - deferring non-critical analysis');
-    _stopWiFiIdleMonitoring();
-  }
-  
-  /// Handle cellular to WiFi transition
-  void _handleCellularToWiFi() {
-    debugPrint('AIServiceManager: Switched to WiFi - processing deferred requests');
-    _processDeferredRequests();
-    _startWiFiIdleMonitoring();
-  }
-  
-  /// Check if currently on WiFi
-  bool _isOnWiFi() {
-    return _connectionStatus.contains(ConnectivityResult.wifi);
-  }
-  
-  /// Check if currently on cellular
-  bool _isOnCellular() {
-    return _connectionStatus.contains(ConnectivityResult.mobile) && !_connectionStatus.contains(ConnectivityResult.wifi);
-  }
-  
-  /// Check if currently offline
-  bool _isOffline() {
-    return _connectionStatus.every((result) => result == ConnectivityResult.none);
-  }
-  
-  /// Get current network status
-  NetworkStatus _getNetworkStatus() {
-    if (_isOffline()) {
-      return NetworkStatus.offline;
-    } else if (_isOnWiFi()) {
-      return NetworkStatus.wifi;
-    } else if (_isOnCellular()) {
-      return NetworkStatus.cellular;
-    } else {
-      return NetworkStatus.unknown;
-    }
-  }
-  
-  /// Get network status stream
-  Stream<NetworkStatus> get networkStatusStream => _networkStatusController.stream;
-  
-  /// Get current network status
-  NetworkStatus get currentNetworkStatus => _getNetworkStatus();
-  
-  /// Process deferred requests when on WiFi
-  Future<void> _processDeferredRequests() async {
-    if (_deferredRequests.isEmpty) return;
-    
-    debugPrint('AIServiceManager: Processing ${_deferredRequests.length} deferred requests');
-    
-    final requestsToProcess = List<QueuedAnalysisRequest>.from(_deferredRequests);
-    _deferredRequests.clear();
-    
-    // Process in batches to avoid overwhelming the API
-    const batchSize = 3;
-    for (int i = 0; i < requestsToProcess.length; i += batchSize) {
-      final batch = requestsToProcess.skip(i).take(batchSize);
-      
-      // Process batch in parallel
-      await Future.wait(batch.map((request) async {
-        try {
-          final result = await request.analysisFunction();
-          request.completer.complete(result);
-        } catch (e) {
-          request.completer.completeError(e);
-        }
-      }));
-      
-      // Brief pause between batches
-      if (i + batchSize < requestsToProcess.length) {
-        await Future.delayed(Duration(milliseconds: 500));
-      }
-    }
-  }
-  
-  /// Start WiFi idle monitoring for pre-fetching
-  void _startWiFiIdleMonitoring() {
-    if (_wifiPreFetchTimer != null) return;
-    
-    _wifiPreFetchTimer = Timer.periodic(Duration(minutes: 2), (timer) {
-      _checkForIdleTimePrefetch();
-    });
-    
-    debugPrint('AIServiceManager: Started WiFi idle monitoring');
-  }
-  
-  /// Stop WiFi idle monitoring
-  void _stopWiFiIdleMonitoring() {
-    _wifiPreFetchTimer?.cancel();
-    _wifiPreFetchTimer = null;
-    debugPrint('AIServiceManager: Stopped WiFi idle monitoring');
-  }
-  
-  /// Check for idle time and pre-fetch insights
-  void _checkForIdleTimePrefetch() {
-    if (!_isOnWiFi() || _isPreFetching) return;
-    
-    final now = DateTime.now();
-    _lastIdleCheck ??= now;
-    
-    // If no recent analysis requests, consider it idle time
-    final timeSinceLastCheck = now.difference(_lastIdleCheck!);
-    if (timeSinceLastCheck.inMinutes >= 5) {
-      _performIdleTimePrefetch();
-    }
-    
-    _lastIdleCheck = now;
-  }
-  
-  /// Perform pre-fetching during idle time on WiFi
-  Future<void> _performIdleTimePrefetch() async {
-    if (_isPreFetching || !_isOnWiFi()) return;
-    
-    _isPreFetching = true;
-    debugPrint('AIServiceManager: Starting idle time pre-fetch');
-    
-    try {
-      // Pre-fetch insights for recent entries that haven't been fully analyzed
-      // This is a placeholder - would need access to recent entries from database
-      // Could be implemented by calling a method on the journal service
-      
-      // For now, just warm up the connection
-      if (_currentService != null && _currentService is! FallbackProvider) {
-        try {
-          await _currentService!.testConnection();
-          debugPrint('AIServiceManager: Connection warmed up during idle time');
-        } catch (e) {
-          debugPrint('AIServiceManager: Idle connection test failed: $e');
-        }
-      }
-    } catch (e) {
-      debugPrint('AIServiceManager: Idle time pre-fetch error: $e');
-    } finally {
-      _isPreFetching = false;
-    }
-  }
-  
-  /// Dispose network monitoring resources
-  Future<void> _disposeNetworkMonitoring() async {
     _connectivitySubscription?.cancel();
-    _connectivitySubscription = null;
-    
-    _stopWiFiIdleMonitoring();
-    
-    await _networkStatusController.close();
-    
-    // Complete any pending deferred requests with error
-    for (final request in _deferredRequests) {
-      if (!request.completer.isCompleted) {
-        request.completer.completeError('Service disposed');
-      }
-    }
-    _deferredRequests.clear();
+    _offlineQueue.dispose();
   }
 }
 
-/// Token optimization utility class
-class TokenOptimizer {
-  // Token counting heuristic: words * 1.3 + overhead
-  static const double _tokenMultiplier = 1.3;
-  static const int _systemPromptTokens = 800; // Estimated system prompt size
-  // static const int _responseTokens = 500; // Max tokens for Haiku responses
-  
-  /// Estimate token count using simple heuristic
-  int estimateTokens(String text) {
-    final wordCount = text.split(RegExp(r'\s+')).where((w) => w.isNotEmpty).length;
-    return (wordCount * _tokenMultiplier).ceil() + _systemPromptTokens;
-  }
-  
-  /// Optimize journal entry for token efficiency
-  Future<OptimizedJournalEntry> optimizeEntry(JournalEntry entry) async {
-    // 1. Compress whitespace and remove formatting
-    String optimizedContent = _compressWhitespace(entry.content);
-    
-    // 2. Remove redundant words while preserving meaning
-    optimizedContent = _removeRedundantWords(optimizedContent);
-    
-    // 3. Smart truncation if still too long
-    final maxContentTokens = 1500; // Leave room for system prompt and response
-    final estimatedTokens = estimateTokens(optimizedContent);
-    
-    if (estimatedTokens > maxContentTokens) {
-      optimizedContent = _smartTruncate(optimizedContent, maxContentTokens);
-    }
-    
-    // 4. Compress mood selection
-    final optimizedMoods = _compressMoods(entry.moods);
-    
-    return OptimizedJournalEntry(
-      originalEntry: entry,
-      optimizedContent: optimizedContent,
-      optimizedMoods: optimizedMoods,
-      tokenReduction: estimateTokens(entry.content) - estimateTokens(optimizedContent),
-    );
-  }
-  
-  /// Compress whitespace and remove formatting
-  String _compressWhitespace(String text) {
-    return text
-        // Replace multiple whitespace with single space
-        .replaceAll(RegExp(r'\s+'), ' ')
-        // Remove leading/trailing whitespace
-        .trim()
-        // Remove common formatting characters that don't add meaning
-        .replaceAll(RegExp(r'[\*_~`]{1,2}'), '')
-        // Compress multiple punctuation
-        .replaceAll(RegExp(r'[!]{2,}'), '!')
-        .replaceAll(RegExp(r'[?]{2,}'), '?')
-        .replaceAll(RegExp(r'[.]{3,}'), '...');
-  }
-  
-  /// Remove redundant words while preserving meaning
-  String _removeRedundantWords(String text) {
-    // Common filler words that can be removed in analysis context
-    final fillerWords = {
-      'really', 'very', 'quite', 'just', 'actually', 'basically', 'literally',
-      'totally', 'completely', 'absolutely', 'definitely', 'certainly',
-      'obviously', 'clearly', 'honestly', 'frankly', 'truly', 'indeed',
-      'perhaps', 'maybe', 'possibly', 'probably', 'presumably',
-      'like', 'you know', 'i mean', 'sort of', 'kind of'
-    };
-    
-    final words = text.split(' ');
-    final filteredWords = words.where((word) {
-      final cleanWord = word.toLowerCase().replaceAll(RegExp(r'[^a-z\s]'), '');
-      return !fillerWords.contains(cleanWord);
-    }).toList();
-    
-    return filteredWords.join(' ');
-  }
-  
-  /// Smart truncation that preserves meaning
-  String _smartTruncate(String text, int maxTokens) {
-    final targetLength = (maxTokens / _tokenMultiplier).floor();
-    
-    if (text.split(' ').length <= targetLength) {
-      return text;
-    }
-    
-    // Try to find natural break points
-    final sentences = text.split(RegExp(r'[.!?]+\s*'));
-    final importantSentences = <String>[];
-    int currentLength = 0;
-    
-    // Prioritize sentences with emotional content
-    final emotionalKeywords = {
-      'feel', 'felt', 'emotion', 'happy', 'sad', 'angry', 'excited',
-      'worried', 'grateful', 'proud', 'disappointed', 'surprised',
-      'love', 'hate', 'fear', 'hope', 'dream', 'wish'
-    };
-    
-    // First pass: include sentences with emotional keywords
-    for (final sentence in sentences) {
-      final words = sentence.split(' ');
-      if (currentLength + words.length > targetLength) break;
-      
-      final hasEmotionalContent = words.any((word) => 
-          emotionalKeywords.contains(word.toLowerCase().replaceAll(RegExp(r'[^a-z]'), '')));
-      
-      if (hasEmotionalContent) {
-        importantSentences.add(sentence);
-        currentLength += words.length;
-      }
-    }
-    
-    // Second pass: fill remaining space with other sentences
-    for (final sentence in sentences) {
-      if (importantSentences.contains(sentence)) continue;
-      
-      final words = sentence.split(' ');
-      if (currentLength + words.length > targetLength) break;
-      
-      importantSentences.add(sentence);
-      currentLength += words.length;
-    }
-    
-    return importantSentences.join('. ').trim() + 
-           (importantSentences.length < sentences.length ? '...' : '');
-  }
-  
-  /// Compress mood selection to most relevant ones
-  List<String> _compressMoods(List<String> moods) {
-    // Limit to top 3 most specific moods to reduce token usage
-    final priorityMoods = {
-      'grateful': 5, 'excited': 5, 'proud': 5, 'confident': 5,
-      'anxious': 4, 'overwhelmed': 4, 'frustrated': 4, 'disappointed': 4,
-      'happy': 3, 'sad': 3, 'angry': 3, 'peaceful': 3,
-      'content': 2, 'tired': 2, 'energetic': 2,
-      'neutral': 1, 'okay': 1
-    };
-    
-    final sortedMoods = moods.toList()
-      ..sort((a, b) => (priorityMoods[b] ?? 0).compareTo(priorityMoods[a] ?? 0));
-    
-    return sortedMoods.take(3).toList();
-  }
-  
-  /// Compress monthly data for insights
-  String compressMonthlyData(List<JournalEntry> entries) {
-    if (entries.isEmpty) return 'No entries this month.';
-    
-    // Statistical summary approach
-    final totalWords = entries.fold(0, (sum, entry) => sum + entry.content.split(' ').length);
-    final avgWords = totalWords / entries.length;
-    
-    // Mood frequency analysis
-    final moodCounts = <String, int>{};
-    for (final entry in entries) {
-      for (final mood in entry.moods) {
-        moodCounts[mood] = (moodCounts[mood] ?? 0) + 1;
-      }
-    }
-    
-    final topMoods = moodCounts.entries.toList()
-      ..sort((a, b) => b.value.compareTo(a.value));
-    
-    // Key content themes using simple keyword extraction
-    final contentThemes = _extractContentThemes(entries);
-    
-    // Compressed representation
-    return '''${entries.length} entries, avg ${avgWords.round()} words/entry.
-Top moods: ${topMoods.take(5).map((e) => '${e.key}(${e.value})').join(', ')}
-Themes: ${contentThemes.take(5).join(', ')}
-Sample: "${entries.first.content.length > 100 ? '${entries.first.content.substring(0, 100)}...' : entries.first.content}"''';
-  }
-  
-  /// Extract key content themes using simple keyword analysis
-  List<String> _extractContentThemes(List<JournalEntry> entries) {
-    final wordCounts = <String, int>{};
-    
-    for (final entry in entries) {
-      final words = entry.content.toLowerCase()
-          .replaceAll(RegExp(r'[^a-z\s]'), '')
-          .split(' ')
-          .where((w) => w.length > 4) // Only meaningful words
-          .toList();
-      
-      for (final word in words) {
-        wordCounts[word] = (wordCounts[word] ?? 0) + 1;
-      }
-    }
-    
-    // Return top themes that appear in multiple entries
-    final sortedEntries = wordCounts.entries
-        .where((e) => e.value >= 2) // Appears at least twice
-        .toList();
-    
-    sortedEntries.sort((a, b) => b.value.compareTo(a.value));
-    
-    return sortedEntries
-        .map((e) => e.key)
-        .take(5)
-        .toList();
-  }
+/// Configuration for local analysis operations
+class LocalAnalysisConfig {
+  final String processingType = 'local';
+  final bool enablePatternRecognition = true;
+  final bool enableEmotionalAnalysis = true;
+  final double confidenceThreshold = 0.6;
 }
 
-/// Batch request manager for similar requests
-class BatchRequestManager {
-  final List<BatchedRequest> _pendingRequests = [];
-  Duration _batchWindow = Duration(seconds: 5);
-  Timer? _batchTimer;
-  bool _isWiFiMode = false;
-  
-  /// Check if request should be batched
-  bool shouldBatch(OptimizedJournalEntry entry) {
-    if (_isWiFiMode) {
-      // More aggressive batching on WiFi
-      return entry.optimizedContent.length < 800 && // Larger entries on WiFi
-             _pendingRequests.length < 10; // Larger batch sizes on WiFi
-    } else {
-      // Conservative batching on cellular
-      return entry.optimizedContent.length < 300 && // Smaller entries on cellular
-             _pendingRequests.length < 3; // Smaller batch sizes on cellular
-    }
-  }
-  
-  /// Update WiFi mode for enhanced batching
-  void setWiFiMode(bool isWiFi) {
-    _isWiFiMode = isWiFi;
-    if (isWiFi) {
-      _batchWindow = Duration(seconds: 8); // Longer window on WiFi for better batching
-    } else {
-      _batchWindow = Duration(seconds: 3); // Shorter window on cellular for responsiveness
-    }
-  }
-  
-  /// Add request to batch
-  Future<Map<String, dynamic>> addToBatch(
-    OptimizedJournalEntry entry,
-    Future<Map<String, dynamic>> Function() analyzer,
-  ) async {
-    final completer = Completer<Map<String, dynamic>>();
-    
-    _pendingRequests.add(BatchedRequest(
-      entry: entry,
-      analyzer: analyzer,
-      completer: completer,
-      timestamp: DateTime.now(),
-    ));
-    
-    // Schedule batch processing if not already scheduled
-    _batchTimer ??= Timer(_batchWindow, _processBatch);
-    
-    return completer.future;
-  }
-  
-  /// Process pending batch
-  Future<void> _processBatch() async {
-    if (_pendingRequests.isEmpty) return;
-    
-    final requests = List<BatchedRequest>.from(_pendingRequests);
-    _pendingRequests.clear();
-    _batchTimer = null;
-    
-    try {
-      // Create combined prompt for batch processing
-      // final combinedContent = requests.map((r) => 
-      //     'Entry ${requests.indexOf(r) + 1}: "${r.entry.optimizedContent}" [${r.entry.optimizedMoods.join(", ")}]'
-      // ).join('\n\n');
-      
-      // This would need to be implemented in the provider for actual batch processing
-      // For now, process individually but with delay between requests
-      for (int i = 0; i < requests.length; i++) {
-        final request = requests[i];
-        try {
-          final result = await request.analyzer();
-          request.completer.complete(result);
-        } catch (e) {
-          request.completer.completeError(e);
-        }
-        
-        // Adaptive delay based on network type
-        if (i < requests.length - 1) {
-          final delay = _isWiFiMode ? Duration(milliseconds: 100) : Duration(milliseconds: 300);
-          await Future.delayed(delay);
-        }
-      }
-    } catch (e) {
-      // Complete all with error
-      for (final request in requests) {
-        if (!request.completer.isCompleted) {
-          request.completer.completeError(e);
-        }
-      }
-    }
-  }
-  
-  /// Get batch processing status
-  BatchStatus getStatus() {
-    return BatchStatus(
-      pendingRequests: _pendingRequests.length,
-      isProcessing: _batchTimer != null,
-      nextProcessTime: _batchTimer != null 
-          ? DateTime.now().add(_batchWindow)
-          : null,
-    );
-  }
-  
-  /// Force process pending batches
-  Future<void> processPendingBatches() async {
-    _batchTimer?.cancel();
-    _batchTimer = null;
-    await _processBatch();
-  }
-}
-
-/// Token usage metrics tracking
+/// Token usage metrics (placeholder for local processing)
 class TokenUsageMetrics {
-  int totalRequests = 0;
-  int totalInputTokens = 0;
-  int totalOutputTokens = 0;
-  int totalErrors = 0;
-  int totalTokensSaved = 0;
-  List<TokenUsageSample> recentSamples = [];
-  DateTime startTime = DateTime.now();
+  int entriesProcessed = 0;
+  int patternsIdentified = 0;
+  DateTime lastProcessed = DateTime.now();
   
-  void recordRequest(int estimatedTokens) {
-    totalRequests++;
-    totalInputTokens += estimatedTokens;
-    
-    _addSample(TokenUsageSample(
-      timestamp: DateTime.now(),
-      inputTokens: estimatedTokens,
-      outputTokens: 0,
-      isError: false,
-    ));
-  }
-  
-  void recordResponse(int actualInputTokens, int outputTokens) {
-    totalOutputTokens += outputTokens;
-    
-    // Update the last sample with actual values
-    if (recentSamples.isNotEmpty) {
-      final lastSample = recentSamples.last;
-      final tokensSaved = lastSample.inputTokens - actualInputTokens;
-      totalTokensSaved += tokensSaved.clamp(0, double.infinity).toInt();
-      
-      recentSamples[recentSamples.length - 1] = TokenUsageSample(
-        timestamp: lastSample.timestamp,
-        inputTokens: actualInputTokens,
-        outputTokens: outputTokens,
-        isError: false,
-      );
-    }
-  }
-  
-  void recordError() {
-    totalErrors++;
-    
-    if (recentSamples.isNotEmpty) {
-      final lastSample = recentSamples.last;
-      recentSamples[recentSamples.length - 1] = TokenUsageSample(
-        timestamp: lastSample.timestamp,
-        inputTokens: lastSample.inputTokens,
-        outputTokens: 0,
-        isError: true,
-      );
-    }
-  }
-  
-  void _addSample(TokenUsageSample sample) {
-    recentSamples.add(sample);
-    
-    // Keep only recent samples (last 100)
-    if (recentSamples.length > 100) {
-      recentSamples.removeAt(0);
-    }
-  }
-  
-  /// Get optimization statistics
-  OptimizationStats getStats() {
-    final totalTokens = totalInputTokens + totalOutputTokens;
-    final successRate = totalRequests > 0 ? (totalRequests - totalErrors) / totalRequests : 0.0;
-    final avgTokensPerRequest = totalRequests > 0 ? totalTokens / totalRequests : 0.0;
-    final tokenSavingsRate = totalInputTokens > 0 ? totalTokensSaved / totalInputTokens : 0.0;
-    
-    return OptimizationStats(
-      totalRequests: totalRequests,
-      totalTokens: totalTokens,
-      totalTokensSaved: totalTokensSaved,
-      successRate: successRate,
-      averageTokensPerRequest: avgTokensPerRequest,
-      tokenSavingsRate: tokenSavingsRate,
-      uptime: DateTime.now().difference(startTime),
-    );
-  }
-}
-
-/// Optimized journal entry for token efficiency
-class OptimizedJournalEntry {
-  final JournalEntry originalEntry;
-  final String optimizedContent;
-  final List<String> optimizedMoods;
-  final int tokenReduction;
-  
-  OptimizedJournalEntry({
-    required this.originalEntry,
-    required this.optimizedContent,
-    required this.optimizedMoods,
-    required this.tokenReduction,
-  });
-  
-  JournalEntry toJournalEntry() {
-    return JournalEntry(
-      id: originalEntry.id,
-      content: optimizedContent,
-      date: originalEntry.date,
-      moods: optimizedMoods,
-      createdAt: originalEntry.createdAt,
-      updatedAt: originalEntry.updatedAt,
-      userId: originalEntry.userId,
-      dayOfWeek: originalEntry.dayOfWeek,
-    );
-  }
-}
-
-/// Batched request container
-class BatchedRequest {
-  final OptimizedJournalEntry entry;
-  final Future<Map<String, dynamic>> Function() analyzer;
-  final Completer<Map<String, dynamic>> completer;
-  final DateTime timestamp;
-  
-  BatchedRequest({
-    required this.entry,
-    required this.analyzer,
-    required this.completer,
-    required this.timestamp,
-  });
-}
-
-/// Batch processing status
-class BatchStatus {
-  final int pendingRequests;
-  final bool isProcessing;
-  final DateTime? nextProcessTime;
-  
-  BatchStatus({
-    required this.pendingRequests,
-    required this.isProcessing,
-    this.nextProcessTime,
-  });
-  
-  @override
-  String toString() {
-    return 'BatchStatus(pending: $pendingRequests, processing: $isProcessing, next: $nextProcessTime)';
-  }
-}
-
-/// Token usage sample for metrics
-class TokenUsageSample {
-  final DateTime timestamp;
-  final int inputTokens;
-  final int outputTokens;
-  final bool isError;
-  
-  TokenUsageSample({
-    required this.timestamp,
-    required this.inputTokens,
-    required this.outputTokens,
-    required this.isError,
-  });
-}
-
-/// Optimization statistics
-class OptimizationStats {
-  final int totalRequests;
-  final int totalTokens;
-  final int totalTokensSaved;
-  final double successRate;
-  final double averageTokensPerRequest;
-  final double tokenSavingsRate;
-  final Duration uptime;
-  
-  OptimizationStats({
-    required this.totalRequests,
-    required this.totalTokens,
-    required this.totalTokensSaved,
-    required this.successRate,
-    required this.averageTokensPerRequest,
-    required this.tokenSavingsRate,
-    required this.uptime,
-  });
-  
-  @override
-  String toString() {
-    return 'OptimizationStats(requests: $totalRequests, tokens: $totalTokens, saved: $totalTokensSaved (${(tokenSavingsRate * 100).toStringAsFixed(1)}%), success: ${(successRate * 100).toStringAsFixed(1)}%, avg: ${averageTokensPerRequest.toStringAsFixed(1)} tokens/req)';
+  void recordProcessing() {
+    entriesProcessed++;
+    lastProcessed = DateTime.now();
   }
 }
 
 /// Network status enumeration
-enum NetworkStatus {
-  offline,
-  cellular,
-  wifi,
-  unknown,
-}
+enum NetworkStatus { connected, disconnected, limited }
 
-/// Analysis type enumeration
-enum AnalysisType {
-  journalEntry,
-  monthlyInsight,
-  coreUpdate,
-  comprehensive,
-}
-
-/// Queued analysis request for deferred processing
+/// Queued analysis request
 class QueuedAnalysisRequest {
+  final String id;
   final JournalEntry entry;
-  final Future<Map<String, dynamic>> Function() analysisFunction;
-  final Completer<Map<String, dynamic>> completer;
-  final DateTime timestamp;
-  final AnalysisType type;
+  final DateTime queuedAt;
   
   QueuedAnalysisRequest({
+    required this.id,
     required this.entry,
-    required this.analysisFunction,
-    required this.completer,
-    required this.timestamp,
-    required this.type,
-  });
-}
-
-/// Network statistics for monitoring
-class NetworkStatistics {
-  final NetworkStatus currentStatus;
-  final int deferredRequestsCount;
-  final bool isPreFetching;
-  final DateTime? lastIdleCheck;
-  
-  NetworkStatistics({
-    required this.currentStatus,
-    required this.deferredRequestsCount,
-    required this.isPreFetching,
-    this.lastIdleCheck,
-  });
-  
-  @override
-  String toString() {
-    return 'NetworkStatistics(status: $currentStatus, deferred: $deferredRequestsCount, prefetching: $isPreFetching)';
-  }
-}
-
-/// Comprehensive analysis result combining all analysis features
-class ComprehensiveAnalysisResult {
-  final EmotionalAnalysisResult emotionalAnalysis;
-  final List<EmotionalCore> updatedCores;
-  final Map<String, double> coreUpdates;
-  // emotionalPatterns removed for local processing
-  final DateTime analysisTimestamp;
-
-  ComprehensiveAnalysisResult({
-    required this.emotionalAnalysis,
-    required this.updatedCores,
-    required this.coreUpdates,
-    // emotionalPatterns parameter removed
-    required this.analysisTimestamp,
-  });
-
-  Map<String, dynamic> toJson() {
-    return {
-      'emotional_analysis': emotionalAnalysis.toJson(),
-      'updated_cores': updatedCores.map((core) => core.toJson()).toList(),
-      'core_updates': coreUpdates,
-      // emotional_patterns removed for local processing
-      'analysis_timestamp': analysisTimestamp.toIso8601String(),
-    };
-  }
-}
-// =============================================================================
-// DIAGNOSTIC SUPPORT CLASSES
-// =============================================================================
-
-/// Detailed service status for comprehensive debugging
-class DetailedServiceStatus {
-  final DateTime timestamp;
-  final EnvironmentStatus environmentStatus;
-  final bool isServiceConfigured;
-  final AIProvider currentProvider;
-  final String currentServiceType;
-  final ApiKeyStatus apiKeyStatus;
-  final ConnectionTestResult? connectionTest;
-  final ProviderAnalysis providerAnalysis;
-  final List<AIProvider> availableProviders;
-  final String? error;
-  final String? stackTrace;
-  
-  DetailedServiceStatus({
-    required this.timestamp,
-    required this.environmentStatus,
-    required this.isServiceConfigured,
-    required this.currentProvider,
-    required this.currentServiceType,
-    required this.apiKeyStatus,
-    this.connectionTest,
-    required this.providerAnalysis,
-    required this.availableProviders,
-    this.error,
-    this.stackTrace,
-  });
-  
-  DetailedServiceStatus.error({
-    required String error,
-    String? stackTrace,
-  }) : timestamp = DateTime.now(),
-       environmentStatus = EnvironmentStatus(
-         isLoaded: false,
-         variableCount: 0,
-         hasClaudeApiKey: false,
-       ),
-       isServiceConfigured = false,
-       currentProvider = AIProvider.disabled,
-       currentServiceType = 'unknown',
-       apiKeyStatus = ApiKeyStatus.error(error),
-       connectionTest = null,
-       providerAnalysis = ProviderAnalysis(
-         summary: 'Error occurred during status check',
-         warnings: [error],
-         info: [],
-       ),
-       availableProviders = [],
-       error = error,
-       stackTrace = stackTrace;
-  
-  /// Quick summary of the status
-  String get summary {
-    if (error != null) return 'Error: $error';
-    
-    final parts = <String>[];
-    parts.add('Env: ${environmentStatus.isLoaded ? "✅" : "❌"}');
-    parts.add('Service: ${isServiceConfigured ? "✅" : "❌"}');
-    parts.add('API Key: ${apiKeyStatus.isValid ? "✅" : "❌"}');
-    parts.add('Provider: $currentProvider');
-    
-    return parts.join(' | ');
-  }
-  
-  /// Check if everything is working correctly
-  bool get isHealthy {
-    return error == null &&
-           environmentStatus.isLoaded &&
-           isServiceConfigured &&
-           apiKeyStatus.isValid &&
-           currentProvider == AIProvider.enabled &&
-           currentServiceType.contains('ClaudeAIProvider') &&
-           (connectionTest?.isSuccess ?? false);
-  }
-  
-  Map<String, dynamic> toJson() => {
-    'timestamp': timestamp.toIso8601String(),
-    'environmentStatus': environmentStatus.toJson(),
-    'isServiceConfigured': isServiceConfigured,
-    'currentProvider': currentProvider.toString(),
-    'currentServiceType': currentServiceType,
-    'apiKeyStatus': apiKeyStatus.toJson(),
-    'connectionTest': connectionTest?.toJson(),
-    'providerAnalysis': providerAnalysis.toJson(),
-    'availableProviders': availableProviders.map((p) => p.toString()).toList(),
-    'error': error,
-    'stackTrace': stackTrace,
-    'summary': summary,
-    'isHealthy': isHealthy,
-  };
-}
-
-/// API key validation status
-class ApiKeyStatus {
-  final bool isValid;
-  final String? source;
-  final String? preview;
-  final List<String> issues;
-  final String? error;
-  
-  ApiKeyStatus.valid(this.source, this.preview) 
-      : isValid = true, issues = [], error = null;
-  
-  ApiKeyStatus.invalid(this.source, this.preview, this.issues) 
-      : isValid = false, error = null;
-  
-  ApiKeyStatus.notFound() 
-      : isValid = false, source = null, preview = null, 
-        issues = ['API key not found'], error = null;
-  
-  ApiKeyStatus.error(String errorMessage) 
-      : isValid = false, source = null, preview = null, 
-        issues = ['Error checking API key'], error = errorMessage;
-  
-  Map<String, dynamic> toJson() => {
-    'isValid': isValid,
-    'source': source,
-    'preview': preview,
-    'issues': issues,
-    'error': error,
-  };
-}
-
-/// Connection test result
-class ConnectionTestResult {
-  final bool isSuccess;
-  final String message;
-  final DateTime timestamp;
-  
-  ConnectionTestResult.success(String message) 
-      : message = message, isSuccess = true, timestamp = DateTime.now();
-  
-  ConnectionTestResult.failed(String message) 
-      : message = message, isSuccess = false, timestamp = DateTime.now();
-  
-  Map<String, dynamic> toJson() => {
-    'isSuccess': isSuccess,
-    'message': message,
-    'timestamp': timestamp.toIso8601String(),
-  };
-}
-
-/// Provider selection analysis
-class ProviderAnalysis {
-  final String summary;
-  final List<String> warnings;
-  final List<String> info;
-  
-  ProviderAnalysis({
-    required this.summary,
-    required this.warnings,
-    required this.info,
-  });
-  
-  Map<String, dynamic> toJson() => {
-    'summary': summary,
-    'warnings': warnings,
-    'info': info,
-  };
-}
-
-/// Environment status for debugging
-class EnvironmentStatus {
-  final bool isLoaded;
-  final int variableCount;
-  final bool hasClaudeApiKey;
-  final String? claudeApiKeyPreview;
-  
-  EnvironmentStatus({
-    required this.isLoaded,
-    required this.variableCount,
-    required this.hasClaudeApiKey,
-    this.claudeApiKeyPreview,
-  });
-  
-  Map<String, dynamic> toJson() => {
-    'isLoaded': isLoaded,
-    'variableCount': variableCount,
-    'hasClaudeApiKey': hasClaudeApiKey,
-    'claudeApiKeyPreview': claudeApiKeyPreview,
-  };
-}
-
-/// API key validation result
-class ApiKeyValidation {
-  final bool isValid;
-  final String preview;
-  final List<String> issues;
-  
-  ApiKeyValidation({
-    required this.isValid,
-    required this.preview,
-    required this.issues,
+    required this.queuedAt,
   });
 }

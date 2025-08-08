@@ -3,13 +3,11 @@ import 'package:flutter/foundation.dart';
 import '../../models/journal_entry.dart';
 import '../../models/core.dart';
 import '../../models/core_resonance_data.dart';
-import '../ai_service_interface.dart';
-import '../ai_service_error_tracker.dart';
 
 /// Enhanced Fallback Provider with sophisticated local emotional analysis
 /// This provider delivers rich, meaningful insights without any API calls
-class EnhancedFallbackProvider implements AIServiceInterface {
-  final AIServiceConfig _config;
+class EnhancedFallbackProvider {
+  final dynamic _config;
   
   // Emotional pattern recognition engine
   final _emotionalPatternEngine = EmotionalPatternEngine();
@@ -25,26 +23,19 @@ class EnhancedFallbackProvider implements AIServiceInterface {
 
   EnhancedFallbackProvider(this._config);
 
-  @override
-  AIProvider get provider => AIProvider.disabled;
+  String get provider => 'local';
 
-  @override
   bool get isConfigured => true;
 
-  @override
   bool get isEnabled => true;
 
-  @override
   Future<void> setApiKey(String apiKey) async {
     // No API key needed
   }
 
-  @override
   Future<void> testConnection() async {
     // Always passes
   }
-
-  @override
   Future<Map<String, dynamic>> analyzeJournalEntry(JournalEntry entry) async {
     try {
       debugPrint('🧠 EnhancedFallbackProvider: Performing deep emotional analysis for entry ${entry.id}');
@@ -105,7 +96,6 @@ class EnhancedFallbackProvider implements AIServiceInterface {
     }
   }
 
-  @override
   Future<String> generateMonthlyInsight(List<JournalEntry> entries) async {
     try {
       if (entries.isEmpty) {
@@ -138,7 +128,6 @@ class EnhancedFallbackProvider implements AIServiceInterface {
     }
   }
 
-  @override
   Future<Map<String, double>> calculateCoreUpdates(
     JournalEntry entry,
     List<EmotionalCore> currentCores,
@@ -486,6 +475,30 @@ class EnhancedFallbackProvider implements AIServiceInterface {
       "emotional_patterns": [],
       "entry_insight": "Thank you for sharing this moment of your journey.",
     };
+  }
+}
+
+  /// Generate local insights from content
+  Future<List<String>> generateInsights(String content) async {
+    try {
+      final mockEntry = JournalEntry(
+        id: 'temp',
+        content: content,
+        timestamp: DateTime.now(),
+        mood: 'neutral',
+      );
+      
+      final analysis = await analyzeJournalEntry(mockEntry);
+      final insights = analysis['personalized_insight'] as Map<String, dynamic>? ?? {};
+      
+      return [
+        insights['primary_insight'] ?? 'Entry processed with local emotional analysis',
+        insights['supporting_insight'] ?? 'Patterns identified through local processing',
+        'Generated locally without external API calls'
+      ];
+    } catch (error) {
+      return ['Local analysis completed', 'Content processed successfully'];
+    }
   }
 }
 

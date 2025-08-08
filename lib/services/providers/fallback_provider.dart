@@ -1,36 +1,28 @@
 import 'package:flutter/foundation.dart';
 import '../../models/journal_entry.dart';
 import '../../models/core.dart';
-import '../ai_service_interface.dart';
-import '../ai_service_error_tracker.dart';
 
-class FallbackProvider implements AIServiceInterface {
-  // Config not needed for fallback provider but kept for interface consistency
+class FallbackProvider {
+  // Config not needed for fallback provider but kept for consistency
   // ignore: unused_field
-  final AIServiceConfig _config;
+  final dynamic _config;
 
   FallbackProvider(this._config);
 
-  @override
-  AIProvider get provider => AIProvider.disabled;
+  String get provider => 'fallback';
 
-  @override
   bool get isConfigured => true; // Always configured
 
-  @override
   bool get isEnabled => true; // Always enabled
 
-  @override
   Future<void> setApiKey(String apiKey) async {
     // No API key needed for fallback
   }
 
-  @override
   Future<void> testConnection() async {
     // Always passes
   }
 
-  @override
   Future<Map<String, dynamic>> analyzeJournalEntry(JournalEntry entry) async {
     try {
       debugPrint('📝 FallbackProvider: Analyzing journal entry ${entry.id} with basic analysis');
@@ -71,7 +63,6 @@ class FallbackProvider implements AIServiceInterface {
     }
   }
 
-  @override
   Future<String> generateMonthlyInsight(List<JournalEntry> entries) async {
     try {
       debugPrint('📊 FallbackProvider: Generating monthly insight for ${entries.length} entries');
@@ -107,7 +98,6 @@ class FallbackProvider implements AIServiceInterface {
     }
   }
 
-  @override
   Future<Map<String, double>> calculateCoreUpdates(
     JournalEntry entry,
     List<EmotionalCore> currentCores,
